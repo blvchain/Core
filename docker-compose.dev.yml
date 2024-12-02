@@ -1,0 +1,12 @@
+services:
+  blvchain-core:
+    build: 
+      context: .
+      target: development
+    volumes:
+      - ./:/usr/src/app/blvchain/core
+    ports:
+      - "50051:50051"
+    env_file:
+      - ./config/.env
+    command: go run main.go
