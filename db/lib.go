@@ -21,8 +21,8 @@ func FindManyDatas(filter primitive.M, skip string, limit string) ([]Data, error
 		limit = "1"
 	}
 
-	findOptions := options.Find().SetSort(config.DESC).SetLimit(utils.StringToInt64(limit)).SetSkip(utils.StringToInt64(skip)).SetProjection(config.SET_ID_TO_ZERO)
-	cursor, find_err := config.Data_COLL.Find(context.TODO(), filter, findOptions)
+	findOptions := options.Find().SetSort(config.DESC).SetLimit(utils.StringToInt64(limit)).SetSkip(utils.StringToInt64(skip))
+	cursor, find_err := config.DATA_COLL.Find(context.TODO(), filter, findOptions)
 	if find_err != nil {
 		return result, config.ErrFindMany
 	}
@@ -41,10 +41,10 @@ func FindManyDatas(filter primitive.M, skip string, limit string) ([]Data, error
 func Genesis_check() (bool, error) {
 
 	// Check for first Data
-	var finded_Data Data
-	finded_Data_err := FindOne(config.Data_COLL, bson.M{"Datatype": config.GENESIS_DATA_TYPE}, &finded_Data)
+	var genesis_data Data
+	genesis_data_err := FindOne(config.DATA_COLL, bson.M{"predatahash": config.GENE}, &genesis_data)
 
-	if finded_Data_err == mongo.ErrNoDocuments {
+	if genesis_data_err == mongo.ErrNoDocuments {
 
 		genesis_Data := Data{
 			PreDataHash: config.GENESIS_DATA_PREHASH,
@@ -67,31 +67,6 @@ func Genesis_check() (bool, error) {
 
 	}
 
-	// Check for DNS seed
-	cursor, find_err := config.DNS_SEED_COLL.Find(context.TODO(), config.NO_FILTER)
-	if find_err != nil {
-		return false, config.ErrFindMany
-	}
-	cursor_err := cursor.All(context.TODO(), &DNS_SEED_LIST)
-	if cursor_err != nil {
-		return false, config.ErrCursor
-	}
-
-	if len(DNS_SEED_LIST) == 0 {
-
-		DNS_SEED_LIST := []interface{}{
-			DnsSeed{
-				UID: config.GENESIS_DNS_SEED_1,
-			},
-		}
-
-		_, insert_many_dns_err := config.DNS_SEED_COLL.InsertMany(context.TODO(), DNS_SEED_LIST)
-
-		if insert_many_dns_err != nil {
-			return false, insert_many_dns_err
-		}
-	}
-
 	return true, nil
 }
 
@@ -104,7 +79,7 @@ func NodeSignatureMaker(t *Data) {
 		t.ReceiverUID + config.DELIMITER +
 		utils.Int64ToStr(t.TimeStamp)
 
-	signature, _ := utils.Sign(config.NODE_PRIVKEY, fullData)
+	signature, _ := utils.Sign(config.BLV_INFO.PRIVATE_KEY, fullData)
 	t.NodeData.Signature = signature
 }
 
@@ -118,7 +93,7 @@ func Message_maker(t Data) string {
 
 func DataHashMaker(t *Data) {
 	message := Message_maker(*t)
-	t.Hash = utils.D256(message, config.HASH_DELIUM_CONFIG.Delete_step, config.HASH_DELIUM_CONFIG.Repeat).String
+	t.Hash = utils.D256(message, config.DELIUM_CONFIG.HASH.DELETE_STEP, config.DELIUM_CONFIG.HASH.REPEAT).String
 }
 
 func DataFilterMaker(uid string) bson.M {

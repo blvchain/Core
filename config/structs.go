@@ -1,10 +1,13 @@
 package config
 
+type Delium_config struct {
+	DELETE_STEP int
+	REPEAT      int
+}
+
 type Delium_json_config struct {
-	PASSWORD         string
-	DELIUM_SEED_PATH string
-	UID_DELETE_STEP  int
-	UID_REPEAT       int
+	HASH    Delium_config
+	MESSAGE Delium_config
 }
 
 type Blv_info_json struct {
@@ -12,4 +15,14 @@ type Blv_info_json struct {
 	PRIVATE_KEY string
 	PUBLIC_KEY  string
 	UID         string
+}
+
+type dns_seed struct {
+	uid     string
+	pubkey  string
+	address string
+}
+
+type Dns_seed_list struct {
+	dns_list []dns_seed
 }

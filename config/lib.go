@@ -25,32 +25,50 @@ func GetEnv(key string) string {
 	return os.Getenv(key)
 }
 
-func GetConfigFile() Delium_json_config {
+func GetDeliumConfigFile() Delium_json_config {
 	file, err := os.Open("delium_config.json")
 	if err != nil {
-		PrintError("Error opening file")
+		PrintError("Error opening delium_config.json file")
 	}
 	defer file.Close()
 
 	var jsonConfig Delium_json_config
 	decoder := json.NewDecoder(file)
 	if err := decoder.Decode(&jsonConfig); err != nil {
-		PrintError("Error decoding JSON")
+		PrintError("Error decoding delium_config.json")
 	}
 
 	return jsonConfig
 }
 
-func SaveBlvInfo(blv_info Blv_info_json) {
-	file, err := os.Create("blv_info.json")
+func GetBlvInfoFile() Blv_info_json {
+	file, err := os.Open("blv_info.json")
 	if err != nil {
-		PrintError("Error creating file")
+		PrintError("Error opening blv_info.json file")
 	}
 	defer file.Close()
 
-	encoder := json.NewEncoder(file)
-	if err := encoder.Encode(blv_info); err != nil {
-		PrintError("Error encoding JSON")
+	var blv_info Blv_info_json
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&blv_info); err != nil {
+		PrintError("Error decoding blv_info.json")
 	}
 
+	return blv_info
+}
+
+func GetDnsSeedListFile() Dns_seed_list {
+	file, err := os.Open("dns_seed.json")
+	if err != nil {
+		PrintError("Error opening dns_seed.json file")
+	}
+	defer file.Close()
+
+	var dns_seed Dns_seed_list
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&dns_seed); err != nil {
+		PrintError("Error decoding dns_seed.json")
+	}
+
+	return dns_seed
 }

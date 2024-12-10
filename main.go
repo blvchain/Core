@@ -22,9 +22,6 @@ func main() {
 	}()
 
 	dataBase := client.Database(config.DATABASE_NAME)
-
-	config.SELF_AUTH_COLL = dataBase.Collection(config.SELF_AUTH_COLLECTION_NAME)
-	config.CLIENT_AUTH_COLL = dataBase.Collection(config.CLIENT_AUTH_COLLECTION_NAME)
 	config.DATA_COLL = dataBase.Collection(config.DATA_COLLECTION_NAME)
 
 	// Genesis makers
