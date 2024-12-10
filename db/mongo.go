@@ -3,7 +3,7 @@ package db
 import (
 	"context"
 
-	"matinramznegar/core/config"
+	"blvchain/core/config"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	"matinramznegar/core/config"
+	"blvchain/core/config"
 )
 
 func Make_Privkey_Pubkey(mnemonic string) (string, string) {

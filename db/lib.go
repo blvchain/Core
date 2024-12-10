@@ -3,12 +3,12 @@ package db
 import (
 	"context"
 
+	"blvchain/core/config"
+	"blvchain/core/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"matinramznegar/core/config"
-	"matinramznegar/core/utils"
 )
 
 func FindManyDatas(filter primitive.M, skip string, limit string) ([]Data, error) {
@@ -42,19 +42,19 @@ func Genesis_check() (bool, error) {
 
 	// Check for first Data
 	var finded_Data Data
-	finded_Data_err := FindOne(config.Data_COLL, bson.M{"Datatype": config.GENESIS_Data_TYPE}, &finded_Data)
+	finded_Data_err := FindOne(config.Data_COLL, bson.M{"Datatype": config.GENESIS_DATA_TYPE}, &finded_Data)
 
 	if finded_Data_err == mongo.ErrNoDocuments {
 
 		genesis_Data := Data{
-			PreDataHash: config.GENESIS_Data_PREHASH,
+			PreDataHash: config.GENESIS_DATA_PREHASH,
 			SenderUID:   config.NODE_URL,
-			ReceiverUID: config.MAKER_WALLET,
+			ReceiverUID: config.MAKER_UID,
 			TimeStamp:   config.GENESIS_TIMESTAMP,
 			NodeData: NodeData{
 				NodeID:    config.BLVCHAIN_URL,
 				PubKey:    config.BLVCHAIN_PUBKEY,
-				Signature: config.GENESIS_Data_SIGNATURE,
+				Signature: config.GENESIS_SIGNATURE,
 			},
 		}
 
@@ -82,9 +82,6 @@ func Genesis_check() (bool, error) {
 		DNS_SEED_LIST := []interface{}{
 			DnsSeed{
 				UID: config.GENESIS_DNS_SEED_1,
-			},
-			DnsSeed{
-				UID: config.GENESIS_DNS_SEED_2,
 			},
 		}
 
@@ -116,7 +113,7 @@ func Message_maker(t Data) string {
 		t.SenderUID + config.DELIMITER +
 		t.ReceiverUID + config.DELIMITER +
 		utils.Int64ToStr(t.TimeStamp) + config.DELIMITER +
-		t.NodeData.UID
+		t.NodeData.NodeID
 }
 
 func DataHashMaker(t *Data) {
@@ -124,11 +121,11 @@ func DataHashMaker(t *Data) {
 	t.Hash = utils.D256(message, config.HASH_DELIUM_CONFIG.Delete_step, config.HASH_DELIUM_CONFIG.Repeat).String
 }
 
-func DataFilterMaker(wallet string) bson.M {
+func DataFilterMaker(uid string) bson.M {
 	return bson.M{
 		"$or": []bson.M{
-			{"sender": wallet},
-			{"receiver": wallet},
+			{"senderuid": uid},
+			{"receiveruid": uid},
 		},
 	}
 }

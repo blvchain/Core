@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"blvchain/core/config"
 	"github.com/tyler-smith/go-bip39"
-	"matinramznegar/core/config"
 )
 
 // Custom print for errors with red color

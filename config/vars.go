@@ -28,7 +28,7 @@ var (
 	NODE_ID_COLL     *mongo.Collection
 	SELF_AUTH_COLL   *mongo.Collection
 	CLIENT_AUTH_COLL *mongo.Collection
-	Data_COLL        *mongo.Collection
+	DATA_COLL        *mongo.Collection
 	DNS_SEED_COLL    *mongo.Collection
 	RATE_LIMIT_COLL  *mongo.Collection
 
@@ -60,7 +60,4 @@ var (
 		Delete_step: 10,
 		Repeat:      2,
 	}
-
-	// API route
-	API_MAIN_ROUTE string = "/" + API_PATH + "/" + API_VERSION
 )

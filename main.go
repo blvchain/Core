@@ -4,9 +4,9 @@ import (
 	"context"
 	"log"
 
-	"matinramznegar/core/config"
-	"matinramznegar/core/db"
-	"matinramznegar/core/utils"
+	"blvchain/core/config"
+	"blvchain/core/db"
+	"blvchain/core/utils"
 )
 
 func main() {
@@ -23,12 +23,9 @@ func main() {
 
 	dataBase := client.Database(config.DATABASE_NAME)
 
-	config.NODE_ID_COLL = dataBase.Collection(config.NODE_ID_COLLECTION_NAME)
 	config.SELF_AUTH_COLL = dataBase.Collection(config.SELF_AUTH_COLLECTION_NAME)
 	config.CLIENT_AUTH_COLL = dataBase.Collection(config.CLIENT_AUTH_COLLECTION_NAME)
-	config.Data_COLL = dataBase.Collection(config.Data_COLLECTION_NAME)
-	config.DNS_SEED_COLL = dataBase.Collection(config.DNS_SEED_COLLECTION_NAME)
-	config.RATE_LIMIT_COLL = dataBase.Collection(config.RATE_LIMIT_COLLECTION_NAME)
+	config.DATA_COLL = dataBase.Collection(config.DATA_COLLECTION_NAME)
 
 	// Genesis makers
 	check_genesis, check_genesis_err := db.Genesis_check()

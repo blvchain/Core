@@ -1,4 +1,4 @@
-module matinramznegar/core
+module blvchain/core
 
 go 1.23.3
 
