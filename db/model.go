@@ -13,10 +13,10 @@ type Data struct {
 	SenderUID    string   `bson:"senderuid,omitempty"`
 	SenderPubKey string   `bson:"senderpubkey,omitempty"`
 	Signature    string   `bson:"signature,omitempty"`
-	ReceiverUID  string   `bson:"receiveruid,omitempty"`
+	ReceiverUID  string   `bson:"receiveruid"`
 	Data         bson.Raw `bson:"data,omitempty"`
 	SenderRole   int      `bson:"senderrole,omitempty"`
-	ReceiverRole int      `bson:"receiverrole,omitempty"`
+	ReceiverRole int      `bson:"receiverrole"`
 	TimeStamp    int64    `bson:"timestamp,omitempty"`
 	NodeData     NodeData `bson:"nodedata,omitempty"`
 }

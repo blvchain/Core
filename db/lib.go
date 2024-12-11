@@ -42,25 +42,27 @@ func Genesis_check() (bool, error) {
 
 	// Check for first Data
 	var genesis_data Data
-	genesis_data_err := FindOne(config.DATA_COLL, bson.M{"predatahash": config.GENE}, &genesis_data)
+	genesis_data_err := FindOne(config.DATA_COLL, bson.M{"predatahash": config.GENESIS_DATA_PREHASH}, &genesis_data)
 
 	if genesis_data_err == mongo.ErrNoDocuments {
 
-		genesis_Data := Data{
-			PreDataHash: config.GENESIS_DATA_PREHASH,
-			SenderUID:   config.NODE_URL,
-			ReceiverUID: config.MAKER_UID,
-			TimeStamp:   config.GENESIS_TIMESTAMP,
+		genesis_data := Data{
+			PreDataHash:  config.GENESIS_DATA_PREHASH,
+			SenderUID:    config.GENESIS_SENDER_UID,
+			SenderPubKey: config.GENESIS_PUBKEY,
+			Signature:    config.GENESIS_SIGNATURE,
+			Data:         bson.Raw(config.GENESIS_DATA),
+			SenderRole:   config.GENESIS_SENDER_ROLE,
+			TimeStamp:    config.GENESIS_TIMESTAMP,
 			NodeData: NodeData{
-				NodeID:    config.BLVCHAIN_URL,
-				PubKey:    config.BLVCHAIN_PUBKEY,
-				Signature: config.GENESIS_SIGNATURE,
+				NodeUID:   config.GENESIS_NODE_UID,
+				Signature: config.GENESIS_NODE_SIGNATURE,
 			},
 		}
 
-		DataHashMaker(&genesis_Data)
+		DataHashMaker(&genesis_data)
 
-		Data_insert_result, Data_insert_result_err := InsertOne(config.Data_COLL, genesis_Data, "hash")
+		Data_insert_result, Data_insert_result_err := InsertOne(config.DATA_COLL, genesis_data, "hash")
 		if !Data_insert_result {
 			return false, Data_insert_result_err
 		}
@@ -88,7 +90,7 @@ func Message_maker(t Data) string {
 		t.SenderUID + config.DELIMITER +
 		t.ReceiverUID + config.DELIMITER +
 		utils.Int64ToStr(t.TimeStamp) + config.DELIMITER +
-		t.NodeData.NodeID
+		t.NodeData.NodeUID
 }
 
 func DataHashMaker(t *Data) {
