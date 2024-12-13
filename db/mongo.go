@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"blvchain/core/config"
+	"blvchain/core/utils"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -48,11 +49,58 @@ func InsertOne(collection *mongo.Collection, document interface{}, unique_key st
 }
 
 func FindOne(collection *mongo.Collection, filter primitive.M, result interface{}) error {
-	findOptions := options.FindOne().SetProjection(bson.M{"_id": 0})
+	findOptions := options.FindOne()
 	err := collection.FindOne(context.TODO(), filter, findOptions).Decode(result)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func FindManyDatasLimited(filter primitive.M, skip string, limit string) ([]Data, error) {
+	var result []Data
+
+	if skip == "" {
+		skip = "0"
+	}
+	if limit == "" {
+		limit = "1"
+	}
+
+	findOptions := options.Find().SetSort(config.DESC).SetLimit(utils.StringToInt64(limit)).SetSkip(utils.StringToInt64(skip))
+	cursor, find_err := config.DATA_COLL.Find(context.TODO(), filter, findOptions)
+	if find_err != nil {
+		return result, config.ErrFindMany
+	}
+	cursor_err := cursor.All(context.TODO(), &result)
+	if cursor_err != nil {
+		return result, config.ErrCursor
+	}
+
+	if result == nil {
+		return result, mongo.ErrNoDocuments
+	}
+
+	return result, nil
+}
+
+func FindAllDatas(filter primitive.M) ([]Data, error) {
+	var result []Data
+
+	findOptions := options.Find().SetSort(config.DESC)
+	cursor, find_err := config.DATA_COLL.Find(context.TODO(), filter, findOptions)
+	if find_err != nil {
+		return result, config.ErrFindMany
+	}
+	cursor_err := cursor.All(context.TODO(), &result)
+	if cursor_err != nil {
+		return result, config.ErrCursor
+	}
+
+	if result == nil {
+		return result, mongo.ErrNoDocuments
+	}
+
+	return result, nil
 }

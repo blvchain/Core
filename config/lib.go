@@ -11,7 +11,7 @@ import (
 func PrintError(err string) {
 	redColor := "\033[31m"
 	resetColor := "\033[0m"
-	fmt.Printf(redColor + err + resetColor + "\n")
+	fmt.Printf("%s", redColor+err+resetColor+"\n")
 	os.Exit(1)
 }
 
