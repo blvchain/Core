@@ -15,9 +15,13 @@ func PrintError(err string) {
 	os.Exit(1)
 }
 
+func pathMaker(fileName string) string {
+	return FILE_PATH + fileName
+}
+
 // Get env from .env file in /config and return one value of the key
 func GetEnv(key string) string {
-	err := godotenv.Load("config/.env")
+	err := godotenv.Load(pathMaker(".env"))
 	if err != nil {
 		PrintError("Error in reading ENV file")
 	}
@@ -26,7 +30,7 @@ func GetEnv(key string) string {
 }
 
 func GetDeliumConfigFile() Delium_json_config {
-	file, err := os.Open("delium_config.json")
+	file, err := os.Open(pathMaker("delium_config.json"))
 	if err != nil {
 		PrintError("Error opening delium_config.json file")
 	}
@@ -42,7 +46,7 @@ func GetDeliumConfigFile() Delium_json_config {
 }
 
 func GetBlvInfoFile() Blv_info_json {
-	file, err := os.Open("blv_info.json")
+	file, err := os.Open(pathMaker("blv_info.json"))
 	if err != nil {
 		PrintError("Error opening blv_info.json file")
 	}
@@ -58,7 +62,7 @@ func GetBlvInfoFile() Blv_info_json {
 }
 
 func GetDnsSeedListFile() Dns_seed_list {
-	file, err := os.Open("dns_seed.json")
+	file, err := os.Open(pathMaker("dns_seed.json"))
 	if err != nil {
 		PrintError("Error opening dns_seed.json file")
 	}

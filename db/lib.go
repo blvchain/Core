@@ -19,13 +19,15 @@ func Genesis_check() (bool, error) {
 		Signature:    config.GENESIS_SIGNATURE,
 		Data:         config.GENESIS_DATA,
 		SenderRole:   config.GENESIS_SENDER_ROLE,
+		ReceiverUID:  config.GENESIS_RECEIVER_UID,
+		ReceiverRole: config.GENESIS_RECEIVER_ROLE,
 		TimeStamp:    config.GENESIS_TIMESTAMP,
 		NodeData: NodeData{
 			NodeUID:   config.GENESIS_NODE_UID,
 			Signature: config.GENESIS_NODE_SIGNATURE,
 		},
 	}
-	DataHashMaker(&genesis_data)
+	HashMaker(&genesis_data)
 
 	db_genesis_datas, _ := FindAllDatas(bson.M{"predatahash": config.GENESIS_DATA_PREHASH})
 
@@ -59,7 +61,7 @@ func Genesis_check() (bool, error) {
 
 func NodeSignatureMaker(t *Data) {
 	fullData := t.PreDataHash + config.DELIMITER +
-		t.Hash + config.DELIMITER +
+		t.BlockHash + config.DELIMITER +
 		t.SenderUID + config.DELIMITER +
 		utils.Int64ToStr(t.SenderIndex) + config.DELIMITER +
 		t.SenderPubKey + config.DELIMITER +
@@ -87,8 +89,9 @@ func Message_maker(t Data) string {
 		utils.Int64ToStr(t.TimeStamp) + config.DELIMITER
 }
 
-func DataHashMaker(t *Data) {
+func HashMaker(t *Data) {
 	message := Message_maker(*t)
-	t.MessageHash = message
-	t.Hash = utils.D256(message, config.DELIUM_CONFIG.HASH.DELETE_STEP, config.DELIUM_CONFIG.HASH.REPEAT).String
+	t.MessageHash = utils.D256(message, config.DELIUM_CONFIG.HASH.DELETE_STEP, config.DELIUM_CONFIG.HASH.REPEAT).String
+	t.DataHash = utils.D256(t.Data, config.DELIUM_CONFIG.HASH.DELETE_STEP, config.DELIUM_CONFIG.HASH.REPEAT).String
+	t.BlockHash = utils.D256(t.PreDataHash+t.MessageHash+t.DataHash, config.DELIUM_CONFIG.HASH.DELETE_STEP, config.DELIUM_CONFIG.HASH.REPEAT).String
 }

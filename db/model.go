@@ -7,7 +7,7 @@ type NodeData struct {
 
 type Data struct {
 	PreDataHash  string   `bson:"predatahash,omitempty"`
-	Hash         string   `bson:"hash,omitempty"`
+	BlockHash    string   `bson:"blockhash,omitempty"`
 	SenderUID    string   `bson:"senderuid,omitempty"`
 	SenderIndex  int64    `bson:"senderindex,omitempty"`
 	SenderPubKey string   `bson:"senderpubkey,omitempty"`
@@ -16,7 +16,7 @@ type Data struct {
 	Data         string   `bson:"data,omitempty"`
 	DataHash     string   `bson:"datahash,omitempty"`
 	MessageHash  string   `bson:"messagehash,omitempty"`
-	SenderRole   int64    `bson:"senderrole,omitempty"`
+	SenderRole   int64    `bson:"senderrole"`
 	ReceiverRole int64    `bson:"receiverrole"`
 	TimeStamp    int64    `bson:"timestamp,omitempty"`
 	NodeData     NodeData `bson:"nodedata,omitempty"`
