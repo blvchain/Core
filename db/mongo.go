@@ -58,8 +58,8 @@ func FindOne(collection *mongo.Collection, filter primitive.M, result interface{
 	return nil
 }
 
-func FindManyDatasLimited(filter primitive.M, skip string, limit string) ([]Data, error) {
-	var result []Data
+func FindManyBlocksLimited(filter primitive.M, skip string, limit string) ([]Block, error) {
+	var result []Block
 
 	if skip == "" {
 		skip = "0"
@@ -85,8 +85,8 @@ func FindManyDatasLimited(filter primitive.M, skip string, limit string) ([]Data
 	return result, nil
 }
 
-func FindAllDatas(filter primitive.M) ([]Data, error) {
-	var result []Data
+func FindAllBlocks(filter primitive.M) ([]Block, error) {
+	var result []Block
 
 	findOptions := options.Find().SetSort(config.DESC)
 	cursor, find_err := config.DATA_COLL.Find(context.TODO(), filter, findOptions)

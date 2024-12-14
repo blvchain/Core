@@ -1,23 +1,25 @@
 package db
 
-type NodeData struct {
-	NodeUID   string `bson:"nodeid,omitempty"`
-	Signature string `bson:"signature,omitempty"`
+type BlockMeta struct {
+	PreBlockHash string `bson:"preBlockHash,omitempty"`
+	NodeUID      string `bson:"nodeId,omitempty"`
+	TimeStamp    int64  `bson:"timeStamp,omitempty"`
 }
 
-type Data struct {
-	PreDataHash  string   `bson:"predatahash,omitempty"`
-	BlockHash    string   `bson:"blockhash,omitempty"`
-	SenderUID    string   `bson:"senderuid,omitempty"`
-	SenderIndex  int64    `bson:"senderindex,omitempty"`
-	SenderPubKey string   `bson:"senderpubkey,omitempty"`
-	Signature    string   `bson:"signature,omitempty"`
-	ReceiverUID  string   `bson:"receiveruid"`
-	Data         string   `bson:"data,omitempty"`
-	DataHash     string   `bson:"datahash,omitempty"`
-	MessageHash  string   `bson:"messagehash,omitempty"`
-	SenderRole   int64    `bson:"senderrole"`
-	ReceiverRole int64    `bson:"receiverrole"`
-	TimeStamp    int64    `bson:"timestamp,omitempty"`
-	NodeData     NodeData `bson:"nodedata,omitempty"`
+type BlockData struct {
+	SenderUID    string `bson:"senderUid,omitempty"`
+	SenderRole   int64  `bson:"senderRole"`
+	SenderIndex  int64  `bson:"senderIndex,omitempty"`
+	SenderPubKey string `bson:"senderPubKey,omitempty"`
+	Signature    string `bson:"signature,omitempty"`
+	ReceiverUID  string `bson:"receiverUid"`
+	ReceiverRole int64  `bson:"receiverRole"`
+	Data         string `bson:"data,omitempty"`
+	TimeStamp    int64  `bson:"timeStamp,omitempty"`
+}
+
+type Block struct {
+	BlockHash string    `bson:"blockHash,omitempty"`
+	BlockMeta BlockMeta `bson:"blockMeta,omitempty"`
+	BlockData BlockData `bson:"blockData,omitempty"`
 }

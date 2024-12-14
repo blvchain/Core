@@ -3,95 +3,63 @@ package db
 import (
 	"blvchain/core/config"
 	"blvchain/core/utils"
-	"reflect"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 func Genesis_check() (bool, error) {
 
-	// Check for first Data
-	var genesis_data Data = Data{
-		PreDataHash:  config.GENESIS_DATA_PREHASH,
-		SenderUID:    config.GENESIS_SENDER_UID,
-		SenderIndex:  1,
-		SenderPubKey: config.GENESIS_PUBKEY,
-		Signature:    config.GENESIS_SIGNATURE,
-		Data:         config.GENESIS_DATA,
-		SenderRole:   config.GENESIS_SENDER_ROLE,
-		ReceiverUID:  config.GENESIS_RECEIVER_UID,
-		ReceiverRole: config.GENESIS_RECEIVER_ROLE,
-		TimeStamp:    config.GENESIS_TIMESTAMP,
-		NodeData: NodeData{
-			NodeUID:   config.GENESIS_NODE_UID,
-			Signature: config.GENESIS_NODE_SIGNATURE,
+	// Check for genesis Block
+	var genesis_block Block = Block{
+		BlockMeta: BlockMeta{
+			PreBlockHash: config.GENESIS_BLOCK_PREHASH,
+			TimeStamp:    config.GENESIS_TIMESTAMP,
+		},
+		BlockData: BlockData{
+			SenderUID:    config.GENESIS_SENDER_UID,
+			SenderRole:   config.GENESIS_SENDER_ROLE,
+			SenderIndex:  1,
+			SenderPubKey: config.GENESIS_PUBKEY,
+			Signature:    config.GENESIS_SIGNATURE,
+			ReceiverUID:  config.GENESIS_RECEIVER_UID,
+			ReceiverRole: config.GENESIS_RECEIVER_ROLE,
+			Data:         config.GENESIS_DATA,
+			TimeStamp:    config.GENESIS_TIMESTAMP,
 		},
 	}
-	HashMaker(&genesis_data)
+	BlockHashMaker(&genesis_block)
 
-	db_genesis_datas, _ := FindAllDatas(bson.M{"predatahash": config.GENESIS_DATA_PREHASH})
+	db_genesis_blocks, _ := FindAllBlocks(bson.M{"blockMeta.preBlockHash": config.GENESIS_BLOCK_PREHASH})
 
-	// No genesis data
-	if len(db_genesis_datas) == 0 {
+	// No genesis block
+	if len(db_genesis_blocks) == 0 {
 
-		Data_insert_result, Data_insert_result_err := InsertOne(config.DATA_COLL, genesis_data, "hash")
-		if !Data_insert_result {
-			return false, Data_insert_result_err
+		Block_insert_result, Block_insert_result_err := InsertOne(config.DATA_COLL, genesis_block, "hash")
+		if !Block_insert_result {
+			return false, Block_insert_result_err
 		}
 
-	} else {
-
-		var count_genesis_data = 0
-
-		// Make sure just have pure genesis data
-		for _, db_data := range db_genesis_datas {
-			if !reflect.DeepEqual(db_data, genesis_data) {
-				config.PrintError("error: Found NOT genesis data with genesis prehash in DB")
-				count_genesis_data += 1
-			}
-		}
-
-		if count_genesis_data > 1 {
-			config.PrintError("error: Found more than one genesis data")
-		}
 	}
 
 	return true, nil
 }
 
-func NodeSignatureMaker(t *Data) {
-	fullData := t.PreDataHash + config.DELIMITER +
-		t.BlockHash + config.DELIMITER +
-		t.SenderUID + config.DELIMITER +
-		utils.Int64ToStr(t.SenderIndex) + config.DELIMITER +
-		t.SenderPubKey + config.DELIMITER +
-		t.Signature + config.DELIMITER +
-		t.ReceiverUID + config.DELIMITER +
-		t.Data + config.DELIMITER +
-		t.DataHash + config.DELIMITER +
-		utils.Int64ToStr(t.SenderRole) + config.DELIMITER +
-		utils.Int64ToStr(t.ReceiverRole) + config.DELIMITER +
-		utils.Int64ToStr(t.TimeStamp)
+func BlockHashMaker(b *Block) {
+	b.BlockMeta.NodeUID = config.NODE_UID
 
-	signature, _ := utils.Sign(config.BLV_INFO.PRIVATE_KEY, fullData)
+	blockMetaRoot := b.BlockMeta.PreBlockHash +
+		b.BlockMeta.NodeUID +
+		utils.Int64ToStr(b.BlockMeta.TimeStamp)
 
-	t.NodeData = NodeData{
-		NodeUID:   config.BLV_INFO.UID,
-		Signature: signature,
-	}
-}
+	blockDataRoot := b.BlockData.SenderUID +
+		utils.Int64ToStr(b.BlockData.SenderRole) +
+		utils.Int64ToStr(b.BlockData.SenderIndex) +
+		b.BlockData.SenderPubKey +
+		b.BlockData.Signature +
+		b.BlockData.ReceiverUID +
+		utils.Int64ToStr(b.BlockData.ReceiverRole) +
+		b.BlockData.Data +
+		utils.Int64ToStr(b.BlockData.TimeStamp)
 
-func Message_maker(t Data) string {
-	return t.SenderUID + config.DELIMITER +
-		t.ReceiverUID + config.DELIMITER +
-		t.Data + config.DELIMITER +
-		t.DataHash + config.DELIMITER +
-		utils.Int64ToStr(t.TimeStamp) + config.DELIMITER
-}
-
-func HashMaker(t *Data) {
-	message := Message_maker(*t)
-	t.MessageHash = utils.D256(message, config.DELIUM_CONFIG.HASH.DELETE_STEP, config.DELIUM_CONFIG.HASH.REPEAT).String
-	t.DataHash = utils.D256(t.Data, config.DELIUM_CONFIG.HASH.DELETE_STEP, config.DELIUM_CONFIG.HASH.REPEAT).String
-	t.BlockHash = utils.D256(t.PreDataHash+t.MessageHash+t.DataHash, config.DELIUM_CONFIG.HASH.DELETE_STEP, config.DELIUM_CONFIG.HASH.REPEAT).String
+	b.BlockHash = utils.D256(blockMetaRoot+blockDataRoot, config.DELIUM_CONFIG.HASH.DELETE_STEP, config.DELIUM_CONFIG.HASH.REPEAT).String
 }

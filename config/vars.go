@@ -9,6 +9,7 @@ import (
 var (
 	// Global ENV
 	MONGO_URI string = GetEnv("MONGO_URI")
+	NODE_UID  string = GetEnv("NODE_UID")
 
 	// Mongodb
 	NO_FILTER primitive.M = bson.M{}
@@ -20,10 +21,7 @@ var (
 	// WebSocket
 	Broadcast = make(chan []byte)
 
-	// Delium config
+	// Get vars form files
 	DELIUM_CONFIG = GetDeliumConfigFile()
-
-	BLV_INFO = GetBlvInfoFile()
-
 	DNS_SEED_LIST = GetDnsSeedListFile()
 )
