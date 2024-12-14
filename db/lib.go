@@ -33,12 +33,10 @@ func Genesis_check() (bool, error) {
 
 	// No genesis block
 	if len(db_genesis_blocks) == 0 {
-
 		Block_insert_result, Block_insert_result_err := InsertOne(config.DATA_COLL, genesis_block, "hash")
 		if !Block_insert_result {
 			return false, Block_insert_result_err
 		}
-
 	}
 
 	return true, nil

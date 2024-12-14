@@ -16,13 +16,3 @@ type Blv_info_json struct {
 	PUBLIC_KEY  string
 	UID         string
 }
-
-type dns_seed struct {
-	uid     string
-	pubkey  string
-	address string
-}
-
-type Dns_seed_list struct {
-	dns_list []dns_seed
-}

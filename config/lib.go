@@ -45,30 +45,14 @@ func GetDeliumConfigFile() Delium_json_config {
 	return jsonConfig
 }
 
-func GetBlvInfoFile() Blv_info_json {
-	file, err := os.Open(pathMaker("blv_info.json"))
-	if err != nil {
-		PrintError("Error opening blv_info.json file")
-	}
-	defer file.Close()
-
-	var blv_info Blv_info_json
-	decoder := json.NewDecoder(file)
-	if err := decoder.Decode(&blv_info); err != nil {
-		PrintError("Error decoding blv_info.json")
-	}
-
-	return blv_info
-}
-
-func GetDnsSeedListFile() Dns_seed_list {
+func GetDnsSeedListFile() []string {
 	file, err := os.Open(pathMaker("dns_seed.json"))
 	if err != nil {
 		PrintError("Error opening dns_seed.json file")
 	}
 	defer file.Close()
 
-	var dns_seed Dns_seed_list
+	var dns_seed []string
 	decoder := json.NewDecoder(file)
 	if err := decoder.Decode(&dns_seed); err != nil {
 		PrintError("Error decoding dns_seed.json")

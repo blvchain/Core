@@ -1,9 +1,4 @@
-{
-    "dns_list": [
-        {
-            "uid": "",
-            "pubkey": "",
-            "address": ""
-        }
-    ]
-}
+[
+    "testuid1",
+    "testuid2"
+]
