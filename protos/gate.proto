@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package gate;
+
+option go_package = "blvchain/core/protos";
+
+
+// Add data
+service AddData {
+    rpc addData (AddDataRequest) returns (AddDataResult);
+}
+
+message AddDataRequest {
+    string senderUID = 1;
+    int64 senderRole = 2;
+    string senderPubKey = 3;
+    string senderSignature = 4;
+    string receiverUID = 5;
+    int64 receiverRole = 6;
+    string data = 7;
+    int64 timeStamp = 8;
+}
+
+message AddDataResult {
+    bool isSuccess = 1;
+    string log = 2;
+}
+
+// Read data
+service ReadData {
+    rpc readData (ReqadDataRequest) returns (ReqadDataResult);
+}
+
+message ReqadDataRequest {
+    int32 type = 1;
+    int32 limit = 2;
+    int32 skip = 3;
+}
+
+message ReqadDataResult {
+    string isSuccess = 1;
+    string log = 2;
+    string data = 3;
+}
+
