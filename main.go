@@ -45,7 +45,7 @@ func main() {
 		protos.RegisterAddDataServer(grpcServer, &protos.AddDataService{})
 		protos.RegisterReadDataServer(grpcServer, &protos.ReadDataService{})
 
-		log.Println("gRPC server is running on port: ", config.GRPC_PORT)
+		log.Println("gRPC server is running on port", config.GRPC_PORT)
 		if err := grpcServer.Serve(listener); err != nil {
 			log.Fatalf("Failed to serve: %v", err)
 		}

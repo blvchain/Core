@@ -11,35 +11,37 @@ service AddData {
 }
 
 message AddDataRequest {
-    string senderUID = 1;
-    int64 senderRole = 2;
-    string senderPubKey = 3;
-    string senderSignature = 4;
-    string receiverUID = 5;
-    int64 receiverRole = 6;
-    string data = 7;
-    int64 timeStamp = 8;
+    string SenderUID = 1;
+    int64 SenderRole = 2;
+    string SenderPubKey = 3;
+    string SenderSignature = 4;
+    string ReceiverUID = 5;
+    int64 ReceiverRole = 6;
+    string Data = 7;
+    int64 TimeStamp = 8;
+    string NodeUID = 9;
 }
 
 message AddDataResult {
-    bool isSuccess = 1;
-    string log = 2;
+    bool IsSuccess = 1;
+    string Log = 2;
 }
 
 // Read data
 service ReadData {
-    rpc readData (ReqadDataRequest) returns (ReqadDataResult);
+    rpc readData (ReadDataRequest) returns (ReadDataResult);
 }
 
-message ReqadDataRequest {
-    int32 type = 1;
-    int32 limit = 2;
-    int32 skip = 3;
+message ReadDataRequest {
+    int32 Type = 1;
+    int32 Limit = 2;
+    int32 Skip = 3;
+    string NodeUID = 4;
 }
 
-message ReqadDataResult {
-    string isSuccess = 1;
-    string log = 2;
-    string data = 3;
+message ReadDataResult {
+    string IsSuccess = 1;
+    string Log = 2;
+    string Data = 3;
 }
 

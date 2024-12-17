@@ -134,7 +134,7 @@ const (
 //
 // Read data
 type ReadDataClient interface {
-	ReadData(ctx context.Context, in *ReqadDataRequest, opts ...grpc.CallOption) (*ReqadDataResult, error)
+	ReadData(ctx context.Context, in *ReadDataRequest, opts ...grpc.CallOption) (*ReadDataResult, error)
 }
 
 type readDataClient struct {
@@ -145,9 +145,9 @@ func NewReadDataClient(cc grpc.ClientConnInterface) ReadDataClient {
 	return &readDataClient{cc}
 }
 
-func (c *readDataClient) ReadData(ctx context.Context, in *ReqadDataRequest, opts ...grpc.CallOption) (*ReqadDataResult, error) {
+func (c *readDataClient) ReadData(ctx context.Context, in *ReadDataRequest, opts ...grpc.CallOption) (*ReadDataResult, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ReqadDataResult)
+	out := new(ReadDataResult)
 	err := c.cc.Invoke(ctx, ReadData_ReadData_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -161,7 +161,7 @@ func (c *readDataClient) ReadData(ctx context.Context, in *ReqadDataRequest, opt
 //
 // Read data
 type ReadDataServer interface {
-	ReadData(context.Context, *ReqadDataRequest) (*ReqadDataResult, error)
+	ReadData(context.Context, *ReadDataRequest) (*ReadDataResult, error)
 	mustEmbedUnimplementedReadDataServer()
 }
 
@@ -172,7 +172,7 @@ type ReadDataServer interface {
 // pointer dereference when methods are called.
 type UnimplementedReadDataServer struct{}
 
-func (UnimplementedReadDataServer) ReadData(context.Context, *ReqadDataRequest) (*ReqadDataResult, error) {
+func (UnimplementedReadDataServer) ReadData(context.Context, *ReadDataRequest) (*ReadDataResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ReadData not implemented")
 }
 func (UnimplementedReadDataServer) mustEmbedUnimplementedReadDataServer() {}
@@ -197,7 +197,7 @@ func RegisterReadDataServer(s grpc.ServiceRegistrar, srv ReadDataServer) {
 }
 
 func _ReadData_ReadData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ReqadDataRequest)
+	in := new(ReadDataRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -209,7 +209,7 @@ func _ReadData_ReadData_Handler(srv interface{}, ctx context.Context, dec func(i
 		FullMethod: ReadData_ReadData_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ReadDataServer).ReadData(ctx, req.(*ReqadDataRequest))
+		return srv.(ReadDataServer).ReadData(ctx, req.(*ReadDataRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
