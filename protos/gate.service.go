@@ -3,10 +3,11 @@ package protos
 import (
 	context "context"
 	"fmt"
+	"reflect"
 )
 
 func (s *AddDataService) AddData(ctx context.Context, req *AddDataRequest) (*AddDataResult, error) {
-	fmt.Println(req.NodeUID)
+	fmt.Println(reflect.TypeOf(req.SenderRole))
 	return &AddDataResult{
 		IsSuccess: true,
 		Log:       "Data successfully added.",

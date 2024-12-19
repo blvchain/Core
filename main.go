@@ -4,24 +4,26 @@ import (
 	"context"
 	"log"
 	"net"
+	"net/http"
 
 	"blvchain/core/config"
 	"blvchain/core/db"
 	"blvchain/core/protos"
 	"blvchain/core/utils"
+	"blvchain/core/websocket"
 
 	"google.golang.org/grpc"
 )
 
 func main() {
 
-	client, err := db.ConnectToMongoDB()
-	if err != nil {
-		log.Fatal(err)
+	client, client_err := db.ConnectToMongoDB()
+	if client_err != nil {
+		log.Fatal(client_err)
 	}
 	defer func() {
-		if err = client.Disconnect(context.TODO()); err != nil {
-			log.Fatal(err)
+		if client_err = client.Disconnect(context.TODO()); client_err != nil {
+			log.Fatal(client_err)
 		}
 	}()
 
@@ -35,20 +37,37 @@ func main() {
 	if check_genesis {
 
 		// gRPC
-		listener, err := net.Listen("tcp", config.GRPC_PORT)
-		if err != nil {
-			log.Fatalf("Failed to listen: %v", err)
-		}
-		grpcServer := grpc.NewServer()
+		go func() {
+			grpcListener, grpcListener_err := net.Listen("tcp", config.GRPC_PORT)
+			if grpcListener_err != nil {
+				log.Fatalf("Failed to listen gRPC: %v", grpcListener_err)
+			}
+			grpcServer := grpc.NewServer()
 
-		// Register the services
-		protos.RegisterAddDataServer(grpcServer, &protos.AddDataService{})
-		protos.RegisterReadDataServer(grpcServer, &protos.ReadDataService{})
+			// Register the services
+			protos.RegisterAddDataServer(grpcServer, &protos.AddDataService{})
+			protos.RegisterReadDataServer(grpcServer, &protos.ReadDataService{})
 
-		log.Println("gRPC server is running on port", config.GRPC_PORT)
-		if err := grpcServer.Serve(listener); err != nil {
-			log.Fatalf("Failed to serve: %v", err)
-		}
+			log.Println("gRPC server is running on port", config.GRPC_PORT)
+
+			if grpcServer_err := grpcServer.Serve(grpcListener); grpcServer_err != nil {
+				log.Fatalf("Failed to serve: %v", grpcServer_err)
+			}
+
+		}()
+
+		// WebSocket
+		go func() {
+			http.HandleFunc("/ws", websocket.Server)
+			log.Println("WebSocket Server is running on port", config.WEBSOCKET_PORT)
+			websocketListener_err := http.ListenAndServe(config.WEBSOCKET_PORT, nil)
+			if websocketListener_err != nil {
+				log.Fatalf("Failed to listen WebSocket: %v", websocketListener_err)
+			}
+		}()
+
+		// Prevent main from exiting
+		select {}
 
 	} else {
 		// Print error if gensis conditions fail
