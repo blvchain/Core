@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"blvchain/core/config"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"fmt"
@@ -64,4 +65,13 @@ func AddQueryParams(baseURL string, params map[string]string) (string, error) {
 	u.RawQuery = q.Encode()
 
 	return u.String(), nil
+}
+
+func NodeUidChecker(nodeUID string) bool {
+	for _, item := range config.DNS_SEED_LIST {
+		if item == nodeUID {
+			return true
+		}
+	}
+	return false
 }
