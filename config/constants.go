@@ -1,7 +1,9 @@
 package config
 
 const (
-	FILE_PATH string = "./config/"
+	DEV_MODE         bool   = true
+	CONFIG_FILE_PATH string = "./config/"
+	LOG_FILE_PATH    string = "./log/core.log"
 
 	// Mongo
 	ZERO_STRING string = "0"

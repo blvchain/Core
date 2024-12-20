@@ -26,6 +26,10 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
+var manager = ClientManager{
+	clients: make(map[string]*websocket.Conn),
+}
+
 func Server(w http.ResponseWriter, r *http.Request) {
 
 	// Upgrade the HTTP connection to a WebSocket connection
@@ -36,10 +40,17 @@ func Server(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
+	// Node connection
+	clientUID := r.URL.Query().Get("uid")
+	manager.AddClient(clientUID, conn)
+	defer manager.RemoveClient(clientUID)
+	log.Printf("Node '%s' connected\n", clientUID)
+
 	// Handle incoming messages
 	for {
 		messageType, message, err := conn.ReadMessage()
 		if err != nil {
+			log.Printf("Node '%s' disconnected, %v\n", clientUID, err)
 			break
 		}
 		log.Printf("Received: %s\n", message)

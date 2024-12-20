@@ -16,7 +16,7 @@ func PrintError(err string) {
 }
 
 func pathMaker(fileName string) string {
-	return FILE_PATH + fileName
+	return CONFIG_FILE_PATH + fileName
 }
 
 // Get env from .env file in /config and return one value of the key

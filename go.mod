@@ -9,6 +9,8 @@ require (
 	google.golang.org/protobuf v1.35.2
 )
 
+require github.com/natefinch/lumberjack v2.0.0+incompatible // indirect
+
 require (
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
 	github.com/gorilla/websocket v1.5.3
