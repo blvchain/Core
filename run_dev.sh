@@ -1,5 +1,7 @@
-echo "Loading environment variables..."
-source config/.env
+# echo "Loading environment variables..."
+# source config/.env
 
-echo "Starting development server..."
-go run main.go
+# echo "Starting development server..."
+# go run main.go
+
+air
