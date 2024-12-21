@@ -4,7 +4,9 @@ import (
 	"blvchain/core/config"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"encoding/json"
 	"fmt"
+	"log"
 	"math/big"
 	"net/url"
 	"strconv"
@@ -74,4 +76,12 @@ func NodeUidChecker(nodeUID string) bool {
 		}
 	}
 	return false
+}
+
+func Data_to_JSON(data any) []byte {
+	byte_data, err := json.Marshal(data)
+	if err != nil {
+		log.Fatalf("Error marshalling to JSON: %v", err)
+	}
+	return byte_data
 }

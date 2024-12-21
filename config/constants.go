@@ -35,4 +35,8 @@ const (
 	// API ports
 	WEBSOCKET_PORT string = ":8080"
 	GRPC_PORT      string = ":50051"
+
+	// Web socket request types
+	WS_SEND_NEW_DATA int = 1
+	WS_GET_DATA      int = 2
 )

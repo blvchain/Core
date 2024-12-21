@@ -1,7 +1,9 @@
 package websocket
 
 import (
+	"blvchain/core/config"
 	"blvchain/core/utils"
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -48,19 +50,32 @@ func Server(w http.ResponseWriter, r *http.Request) {
 
 	// Handle incoming messages
 	for {
-		messageType, message, err := conn.ReadMessage()
+		_, messageData, err := conn.ReadMessage()
 		if err != nil {
 			log.Printf("Node '%s' disconnected, %v\n", clientUID, err)
 			break
 		}
-		log.Printf("Received: %s\n", message)
+		log.Printf("Received: %s\n", messageData)
 
-		// Echo the message back to the client
-		err = conn.WriteMessage(messageType, message)
-		if err != nil {
-			log.Println("Error writing message:", err)
+		var msg WSMessage
+		if err := json.Unmarshal(messageData, &msg); err != nil {
+			log.Println("Error parsing message:", err)
 			break
 		}
+
+		// Process messages
+		if msg.ReqType == config.WS_SEND_NEW_DATA {
+			err = conn.WriteMessage(websocket.TextMessage, messageData)
+			if err != nil {
+				log.Println("Error writing message:", err)
+				break
+			}
+		}
+
+		if msg.ReqType == config.WS_GET_DATA {
+
+		}
+
 	}
 
 }
