@@ -1,6 +1,6 @@
 module blvchain/core
 
-go 1.23.3
+go 1.23.4
 
 require (
 	github.com/joho/godotenv v1.5.1
@@ -9,7 +9,12 @@ require (
 	google.golang.org/protobuf v1.35.2
 )
 
-require github.com/natefinch/lumberjack v2.0.0+incompatible // indirect
+require (
+	github.com/BurntSushi/toml v1.4.0 // indirect
+	github.com/natefinch/lumberjack v2.0.0+incompatible
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
+)
 
 require (
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
