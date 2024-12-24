@@ -18,9 +18,6 @@ var (
 
 	DATA_COLL *mongo.Collection
 
-	// WebSocket
-	Broadcast = make(chan []byte)
-
 	// Get vars form files
 	DELIUM_CONFIG = GetDeliumConfigFile()
 	DNS_SEED_LIST = GetDnsSeedListFile()

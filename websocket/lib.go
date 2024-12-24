@@ -1,19 +1,29 @@
 package websocket
 
 import (
+	"log"
+
 	"github.com/gorilla/websocket"
 )
 
-// AddClient adds a client to the map
-func (cm *ClientManager) AddClient(id string, conn *websocket.Conn) {
-	cm.mu.Lock()
-	defer cm.mu.Unlock()
-	cm.clients[id] = conn
+func (cm *ClientManager) AddClient(uid string, conn *websocket.Conn) {
+	cm.clients[uid] = conn
 }
 
-// RemoveClient removes a client from the map
-func (cm *ClientManager) RemoveClient(id string) {
-	cm.mu.Lock()
-	defer cm.mu.Unlock()
-	delete(cm.clients, id)
+func (cm *ClientManager) RemoveClient(uid string) {
+	if conn, ok := cm.clients[uid]; ok {
+		conn.Close()
+		delete(cm.clients, uid)
+	}
+}
+
+func (cm *ClientManager) Broadcast(message []byte) {
+	for uid, conn := range cm.clients {
+		err := conn.WriteMessage(websocket.TextMessage, message)
+		if err != nil {
+			log.Printf("Failed to send message to client '%s': %v\n", uid, err)
+			conn.Close()
+			delete(cm.clients, uid) // Remove client if sending fails
+		}
+	}
 }

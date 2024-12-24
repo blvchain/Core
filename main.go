@@ -68,7 +68,8 @@ func main() {
 
 		// WebSocket
 		go func() {
-			http.HandleFunc("/", websocket.Server)
+			http.HandleFunc("/", websocket.NodeServer)
+
 			log.Println("WebSocket Server is running on port", config.WEBSOCKET_PORT)
 			websocketListener_err := http.ListenAndServe(config.WEBSOCKET_PORT, nil)
 			if websocketListener_err != nil {

@@ -28,12 +28,11 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-var manager = ClientManager{
+var Manager = ClientManager{
 	clients: make(map[string]*websocket.Conn),
 }
 
-func Server(w http.ResponseWriter, r *http.Request) {
-
+func NodeServer(w http.ResponseWriter, r *http.Request) {
 	// Upgrade the HTTP connection to a WebSocket connection
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -44,8 +43,8 @@ func Server(w http.ResponseWriter, r *http.Request) {
 
 	// Node connection
 	clientUID := r.URL.Query().Get("uid")
-	manager.AddClient(clientUID, conn)
-	defer manager.RemoveClient(clientUID)
+	Manager.AddClient(clientUID, conn)
+	defer Manager.RemoveClient(clientUID)
 	log.Printf("Node '%s' connected\n", clientUID)
 
 	// Handle incoming messages
@@ -63,19 +62,25 @@ func Server(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		// Process messages
-		if msg.ReqType == config.WS_SEND_NEW_DATA {
-			err = conn.WriteMessage(websocket.TextMessage, messageData)
-			if err != nil {
-				log.Println("Error writing message:", err)
-				break
-			}
-		}
+		// Handle specific message types
+		switch msg.ReqType {
 
-		if msg.ReqType == config.WS_GET_DATA {
+		// 1. Send new data to this node to add it
+		case config.WS_SEND_NEW_DATA:
 
+			// err = conn.WriteMessage(websocket.TextMessage, messageData)
+			// if err != nil {
+			// 	log.Println("Error writing message:", err)
+			// }
+
+		// 2. Request to get new data
+		case config.WS_GET_DATA:
+
+			// Manager.Broadcast(messageData)
+
+		default:
+			log.Printf("Request type from node %v is not valid. \n %v", clientUID, msg.ReqType)
 		}
 
 	}
-
 }
