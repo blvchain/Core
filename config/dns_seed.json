@@ -1,4 +1,10 @@
 [
-    "testuid1",
-    "testuid2"
+    {
+        "UID": "testuid1",
+        "Address": "ws://localhost:8081"
+    },
+    {
+        "UID": "testuid2",
+        "Address": "ws://localhost:8082"
+    }
 ]

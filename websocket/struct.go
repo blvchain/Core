@@ -1,6 +1,9 @@
 package websocket
 
 import (
+	"blvchain/core/db"
+	"sync"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -9,6 +12,17 @@ type ClientManager struct {
 }
 
 type WSMessage struct {
-	ReqType int         `json:"reqType"`
-	Data    interface{} `json:"data"`
+	ReqType int      `json:"reqType"`
+	Block   db.Block `json:"block"`
+}
+
+type WebSocketClient struct {
+	conn      *websocket.Conn
+	mutex     sync.Mutex // To ensure thread-safe writes
+	serverURL string
+}
+
+type WSResponse struct {
+	Status string
+	Data   string
 }

@@ -3,6 +3,9 @@ package db
 import (
 	"blvchain/core/config"
 	"blvchain/core/utils"
+	"errors"
+	"fmt"
+	"reflect"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -60,4 +63,59 @@ func BlockHashMaker(b *Block) {
 		utils.Int64ToStr(b.BlockData.TimeStamp)
 
 	b.BlockHash = utils.D256(blockMetaRoot+blockDataRoot, config.DELIUM_CONFIG.HASH.DELETE_STEP, config.DELIUM_CONFIG.HASH.REPEAT).String
+}
+
+func MessageMaker(b Block) string {
+	return b.BlockData.SenderUID +
+		utils.Int64ToStr(b.BlockData.SenderRole) +
+		utils.Int64ToStr(b.BlockData.SenderIndex) +
+		b.BlockData.SenderPubKey +
+		b.BlockData.Signature +
+		b.BlockData.ReceiverUID +
+		utils.Int64ToStr(b.BlockData.ReceiverRole) +
+		b.BlockData.Data +
+		utils.Int64ToStr(b.BlockData.TimeStamp)
+}
+
+func BlockValidator(block Block) error {
+	testBlock := block
+
+	BlockHashMaker(&testBlock)
+
+	if block.BlockHash != testBlock.BlockHash {
+		return errors.New("hash not match")
+	}
+
+	message := MessageMaker(block)
+	valid, _ := utils.Verify(block.BlockData.SenderPubKey, message, block.BlockData.Signature)
+
+	if !valid {
+		return errors.New("not valid signature")
+	}
+
+	return nil
+}
+
+func StructValidator(s interface{}) error {
+	val := reflect.ValueOf(s)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	if val.Kind() != reflect.Struct {
+		return errors.New("provided value is not a struct")
+	}
+
+	// Iterate through fields
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		fieldType := val.Type().Field(i)
+
+		// Check for zero value
+		if field.IsZero() {
+			return fmt.Errorf("field '%s' is zero or empty", fieldType.Name)
+		}
+	}
+
+	return nil
 }

@@ -10,7 +10,6 @@ import (
 	"math/big"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -46,12 +45,6 @@ func privkeyHexToECDSA(privkey string) (*ecdsa.PrivateKey, error) {
 	return privateKey, nil
 }
 
-func ReplaceHTTPWithWS(url string) string {
-	url = strings.Replace(url, "https://", "ws://", 1)
-	url = strings.Replace(url, "http://", "ws://", 1)
-	return url
-}
-
 func AddQueryParams(baseURL string, params map[string]string) (string, error) {
 	u, err := url.Parse(baseURL)
 	if err != nil {
@@ -71,7 +64,7 @@ func AddQueryParams(baseURL string, params map[string]string) (string, error) {
 
 func NodeUidChecker(nodeUID string) bool {
 	for _, item := range config.DNS_SEED_LIST {
-		if item == nodeUID {
+		if item.UID == nodeUID {
 			return true
 		}
 	}

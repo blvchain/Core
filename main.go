@@ -12,20 +12,10 @@ import (
 	"blvchain/core/utils"
 	"blvchain/core/websocket"
 
-	"github.com/natefinch/lumberjack"
 	"google.golang.org/grpc"
 )
 
 func main() {
-
-	// Set up log rotation using lumberjack
-	if !config.DEV_MODE {
-		log.SetOutput(&lumberjack.Logger{
-			Filename:  config.LOG_FILE_PATH,
-			MaxSize:   2,
-			LocalTime: true,
-		})
-	}
 
 	client, client_err := db.ConnectToMongoDB()
 	if client_err != nil {

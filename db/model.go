@@ -8,12 +8,12 @@ type BlockMeta struct {
 
 type BlockData struct {
 	SenderUID    string `bson:"senderUid,omitempty"`
-	SenderRole   int64  `bson:"senderRole"`
+	SenderRole   int64  `bson:"senderRole,omitempty"`
 	SenderIndex  int64  `bson:"senderIndex,omitempty"`
 	SenderPubKey string `bson:"senderPubKey,omitempty"`
 	Signature    string `bson:"signature,omitempty"`
-	ReceiverUID  string `bson:"receiverUid"`
-	ReceiverRole int64  `bson:"receiverRole"`
+	ReceiverUID  string `bson:"receiverUid,omitempty"`
+	ReceiverRole int64  `bson:"receiverRole,omitempty"`
 	Data         string `bson:"data,omitempty"`
 	TimeStamp    int64  `bson:"timeStamp,omitempty"`
 }

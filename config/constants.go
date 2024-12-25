@@ -3,7 +3,6 @@ package config
 const (
 	DEV_MODE         bool   = true
 	CONFIG_FILE_PATH string = "./config/"
-	LOG_FILE_PATH    string = "./log/core.log"
 
 	// Mongo
 	ZERO_STRING string = "0"
@@ -37,6 +36,7 @@ const (
 	GRPC_PORT      string = ":50051"
 
 	// Web socket request types
-	WS_SEND_NEW_DATA int = 1
-	WS_GET_DATA      int = 2
+	WS_NEW_DATA     int = 1
+	WS_SYNC_DATA    int = 2
+	WS_GET_ALL_DATA int = 3
 )

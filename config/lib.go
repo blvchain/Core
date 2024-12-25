@@ -45,14 +45,14 @@ func GetDeliumConfigFile() Delium_json_config {
 	return jsonConfig
 }
 
-func GetDnsSeedListFile() []string {
+func GetDnsSeedListFile() []Dns_seed_config {
 	file, err := os.Open(pathMaker("dns_seed.json"))
 	if err != nil {
 		PrintError("Error opening dns_seed.json file")
 	}
 	defer file.Close()
 
-	var dns_seed []string
+	var dns_seed []Dns_seed_config
 	decoder := json.NewDecoder(file)
 	if err := decoder.Decode(&dns_seed); err != nil {
 		PrintError("Error decoding dns_seed.json")

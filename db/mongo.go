@@ -17,12 +17,12 @@ func ConnectToMongoDB() (*mongo.Client, error) {
 
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
-		return nil, config.ErrCanNotConnectToMongoDB
+		return nil, err
 	}
 
 	err = client.Ping(context.TODO(), nil)
 	if err != nil {
-		return nil, config.ErrCanNotGetPingFromMongoDB
+		return nil, err
 	}
 
 	return client, nil
@@ -71,11 +71,11 @@ func FindManyBlocksLimited(filter primitive.M, skip string, limit string) ([]Blo
 	findOptions := options.Find().SetSort(config.DESC).SetLimit(utils.StringToInt64(limit)).SetSkip(utils.StringToInt64(skip))
 	cursor, find_err := config.DATA_COLL.Find(context.TODO(), filter, findOptions)
 	if find_err != nil {
-		return result, config.ErrFindMany
+		return result, find_err
 	}
 	cursor_err := cursor.All(context.TODO(), &result)
 	if cursor_err != nil {
-		return result, config.ErrCursor
+		return result, cursor_err
 	}
 
 	if result == nil {
@@ -91,11 +91,11 @@ func FindAllBlocks(filter primitive.M) ([]Block, error) {
 	findOptions := options.Find().SetSort(config.DESC)
 	cursor, find_err := config.DATA_COLL.Find(context.TODO(), filter, findOptions)
 	if find_err != nil {
-		return result, config.ErrFindMany
+		return result, find_err
 	}
 	cursor_err := cursor.All(context.TODO(), &result)
 	if cursor_err != nil {
-		return result, config.ErrCursor
+		return result, cursor_err
 	}
 
 	if result == nil {
