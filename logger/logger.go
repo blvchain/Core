@@ -13,10 +13,10 @@ import (
 const (
 	mainPath     string = "./log/"
 	ws_success   string = mainPath + "websocket/success/log.log"
-	ws_fail      string = mainPath + "websocket/fail"
-	grpc_success string = mainPath + "gRPC/success"
-	grpc_fail    string = mainPath + "gRPC/fail"
-	internal     string = mainPath + "internal"
+	ws_fail      string = mainPath + "websocket/fail/log.log"
+	grpc_success string = mainPath + "gRPC/success/log.log"
+	grpc_fail    string = mainPath + "gRPC/fail/log.log"
+	internal     string = mainPath + "internal/log.log"
 )
 
 var (

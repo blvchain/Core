@@ -6,7 +6,6 @@ import (
 	"blvchain/core/logger"
 	"blvchain/core/utils"
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -39,7 +38,7 @@ func NodeServer(w http.ResponseWriter, r *http.Request) {
 	// Upgrade the HTTP connection to a WebSocket connection
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println("Failed to upgrade:", err)
+		logger.WS_F_LOGGER.Println("Failed to upgrade:", err)
 		return
 	}
 	defer conn.Close()
@@ -48,20 +47,20 @@ func NodeServer(w http.ResponseWriter, r *http.Request) {
 	clientUID := r.URL.Query().Get("uid")
 	Manager.AddClient(clientUID, conn)
 	defer Manager.RemoveClient(clientUID)
-	log.Printf("Node '%s' connected\n", clientUID)
+	logger.WS_S_LOGGER.Printf("Node '%s' connected\n", clientUID)
 
 	// Handle incoming messages
 	for {
 		_, messageData, err := conn.ReadMessage()
 		if err != nil {
-			log.Printf("Node '%s' disconnected, %v\n", clientUID, err)
+			logger.WS_F_LOGGER.Printf("Node '%s' disconnected, %v\n", clientUID, err)
 			break
 		}
 		logger.WS_S_LOGGER.Printf("Received: %s\n", messageData)
 
 		var msg WSMessage
 		if err := json.Unmarshal(messageData, &msg); err != nil {
-			log.Println("Error parsing message:", err)
+			logger.WS_F_LOGGER.Println("Error parsing message:", err)
 			break
 		}
 
@@ -75,22 +74,24 @@ func NodeServer(w http.ResponseWriter, r *http.Request) {
 			structValidation_err := db.StructValidator(msg.Block)
 
 			if structValidation_err != nil {
+				logger.WS_F_LOGGER.Printf("Error in node '%v' message structure validation: , %v\n", clientUID, structValidation_err)
 				var err WSResponse = WSResponse{
 					Status: "fail",
 					Data:   structValidation_err.Error(),
 				}
-				Messenger(err, conn)
+				Messenger(err, conn, clientUID)
 			} else {
 
 				// check block validation
 				validation_err := db.BlockValidator(msg.Block)
 
 				if validation_err != nil {
+					logger.WS_F_LOGGER.Printf("Error in node '%v' block validation: , %v\n", clientUID, validation_err)
 					var err WSResponse = WSResponse{
 						Status: "fail",
 						Data:   validation_err.Error(),
 					}
-					Messenger(err, conn)
+					Messenger(err, conn, clientUID)
 				} else {
 
 					// check hash
@@ -99,24 +100,28 @@ func NodeServer(w http.ResponseWriter, r *http.Request) {
 					if len(founded_blocks) == 0 {
 						Block_insert_result, Block_insert_result_err := db.InsertOne(config.DATA_COLL, msg.Block, "hash")
 						if !Block_insert_result {
+							logger.INTERNAL_LOGGER.Printf("Error in adding block '%v' to db from node '%v' : \n %v", msg.Block.BlockHash, clientUID, Block_insert_result_err)
 							var err WSResponse = WSResponse{
 								Status: "fail",
 								Data:   Block_insert_result_err.Error(),
 							}
-							Messenger(err, conn)
+							Messenger(err, conn, clientUID)
+						} else {
+							logger.WS_F_LOGGER.Printf("Block '%v' successfully added from '%v' ", msg.Block.BlockHash, clientUID)
+							var message WSResponse = WSResponse{
+								Status: "success",
+								Data:   "Block '" + msg.Block.BlockHash + "' added to db.",
+							}
+							Messenger(message, conn, clientUID)
 						}
 
-						var err WSResponse = WSResponse{
-							Status: "success",
-							Data:   "Block '" + msg.Block.BlockHash + "' added to db.",
-						}
-						Messenger(err, conn)
 					} else {
+						logger.WS_F_LOGGER.Printf("Error in node '%v' block hash is not unique: , %v\n", clientUID, validation_err)
 						var err WSResponse = WSResponse{
 							Status: "fail",
 							Data:   "Block hash is not unique",
 						}
-						Messenger(err, conn)
+						Messenger(err, conn, clientUID)
 					}
 
 				}
@@ -127,7 +132,7 @@ func NodeServer(w http.ResponseWriter, r *http.Request) {
 
 			// err = conn.WriteMessage(websocket.TextMessage, messageData)
 			// if err != nil {
-			// 	log.Println("Error writing message:", err)
+			// 	logger.WS_F_LOGGER.Println("Error writing message:", err)
 			// }
 
 		// 3. Request to get all data
@@ -135,20 +140,20 @@ func NodeServer(w http.ResponseWriter, r *http.Request) {
 
 			// err = conn.WriteMessage(websocket.TextMessage, messageData)
 			// if err != nil {
-			// 	log.Println("Error writing message:", err)
+			// 	logger.WS_F_LOGGER.Println("Error writing message:", err)
 			// }
 
 		default:
-			log.Printf("Request type from node %v is not valid. \n %v", clientUID, msg.ReqType)
+			logger.WS_F_LOGGER.Printf("Request type from node '%v' is not valid. \n Message: %v", clientUID, msg.ReqType)
 		}
 
 	}
 }
 
-func Messenger(message WSResponse, conn *websocket.Conn) {
+func Messenger(message WSResponse, conn *websocket.Conn, uid string) {
 	messageByte, _ := json.Marshal(message)
 	err := conn.WriteMessage(websocket.TextMessage, messageByte)
 	if err != nil {
-		log.Println("Error writing message:", err)
+		logger.WS_F_LOGGER.Printf("Error writing message '%v' to node '%v'", err, uid)
 	}
 }

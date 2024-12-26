@@ -2,14 +2,13 @@ package main
 
 import (
 	"context"
-	"log"
 	"net"
 	"net/http"
 
 	"blvchain/core/config"
 	"blvchain/core/db"
+	"blvchain/core/logger"
 	"blvchain/core/protos"
-	"blvchain/core/utils"
 	"blvchain/core/websocket"
 
 	"google.golang.org/grpc"
@@ -19,11 +18,11 @@ func main() {
 
 	client, client_err := db.ConnectToMongoDB()
 	if client_err != nil {
-		log.Fatal(client_err)
+		logger.INTERNAL_LOGGER.Fatal(client_err)
 	}
 	defer func() {
 		if client_err = client.Disconnect(context.TODO()); client_err != nil {
-			log.Fatal(client_err)
+			logger.INTERNAL_LOGGER.Fatal(client_err)
 		}
 	}()
 
@@ -40,7 +39,7 @@ func main() {
 		go func() {
 			grpcListener, grpcListener_err := net.Listen("tcp", config.GRPC_PORT)
 			if grpcListener_err != nil {
-				log.Fatalf("Failed to listen gRPC: %v", grpcListener_err)
+				logger.GRPC_F_LOGGER.Fatalf("Failed to listen gRPC: %v", grpcListener_err)
 			}
 			grpcServer := grpc.NewServer()
 
@@ -48,10 +47,10 @@ func main() {
 			protos.RegisterAddDataServer(grpcServer, &protos.AddDataService{})
 			protos.RegisterReadDataServer(grpcServer, &protos.ReadDataService{})
 
-			log.Println("gRPC server is running on port", config.GRPC_PORT)
+			logger.GRPC_S_LOGGER.Println("gRPC server is running on port", config.GRPC_PORT)
 
 			if grpcServer_err := grpcServer.Serve(grpcListener); grpcServer_err != nil {
-				log.Fatalf("Failed to serve: %v", grpcServer_err)
+				logger.GRPC_F_LOGGER.Fatalf("Failed to serve: %v", grpcServer_err)
 			}
 
 		}()
@@ -60,10 +59,10 @@ func main() {
 		go func() {
 			http.HandleFunc("/", websocket.NodeServer)
 
-			log.Println("WebSocket Server is running on port", config.WEBSOCKET_PORT)
+			logger.WS_S_LOGGER.Println("WebSocket Server is running on port", config.WEBSOCKET_PORT)
 			websocketListener_err := http.ListenAndServe(config.WEBSOCKET_PORT, nil)
 			if websocketListener_err != nil {
-				log.Fatalf("Failed to listen WebSocket: %v", websocketListener_err)
+				logger.WS_F_LOGGER.Fatalf("Failed to listen WebSocket: %v", websocketListener_err)
 			}
 		}()
 
@@ -72,6 +71,6 @@ func main() {
 
 	} else {
 		// Print error if gensis conditions fail
-		utils.PrintError(check_genesis_err)
+		logger.INTERNAL_LOGGER.Fatal(check_genesis_err)
 	}
 }
