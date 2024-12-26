@@ -3,6 +3,7 @@ package websocket
 import (
 	"blvchain/core/config"
 	"blvchain/core/db"
+	"blvchain/core/logger"
 	"blvchain/core/utils"
 	"encoding/json"
 	"log"
@@ -56,7 +57,7 @@ func NodeServer(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Node '%s' disconnected, %v\n", clientUID, err)
 			break
 		}
-		log.Printf("Received: %s\n", messageData)
+		logger.WS_S_LOGGER.Printf("Received: %s\n", messageData)
 
 		var msg WSMessage
 		if err := json.Unmarshal(messageData, &msg); err != nil {
