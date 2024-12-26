@@ -36,7 +36,7 @@ const (
 	GRPC_PORT      string = ":50051"
 
 	// Web socket request types
-	WS_NEW_DATA     int = 1
-	WS_SYNC_DATA    int = 2
-	WS_GET_ALL_DATA int = 3
+	WS_NEW_BLOCK      int = 1
+	WS_SYNC_BLOCKS    int = 2
+	WS_GET_ALL_BLOCKS int = 3
 )

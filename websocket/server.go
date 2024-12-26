@@ -68,7 +68,7 @@ func NodeServer(w http.ResponseWriter, r *http.Request) {
 		switch msg.ReqType {
 
 		// 1. Request to add new data to db
-		case config.WS_NEW_DATA:
+		case config.WS_NEW_BLOCK:
 
 			// check all data validation
 			structValidation_err := db.StructValidator(msg.Block)
@@ -128,7 +128,7 @@ func NodeServer(w http.ResponseWriter, r *http.Request) {
 			}
 
 		// 2. Request to sync data and get missing data
-		case config.WS_SYNC_DATA:
+		case config.WS_SYNC_BLOCKS:
 
 			// err = conn.WriteMessage(websocket.TextMessage, messageData)
 			// if err != nil {
@@ -136,7 +136,7 @@ func NodeServer(w http.ResponseWriter, r *http.Request) {
 			// }
 
 		// 3. Request to get all data
-		case config.WS_GET_ALL_DATA:
+		case config.WS_GET_ALL_BLOCKS:
 
 			// err = conn.WriteMessage(websocket.TextMessage, messageData)
 			// if err != nil {
