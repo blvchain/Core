@@ -21,7 +21,6 @@ func Genesis_check() (bool, error) {
 		BlockData: BlockData{
 			SenderUID:    config.GENESIS_SENDER_UID,
 			SenderRole:   config.GENESIS_SENDER_ROLE,
-			SenderIndex:  1,
 			SenderPubKey: config.GENESIS_PUBKEY,
 			Signature:    config.GENESIS_SIGNATURE,
 			ReceiverUID:  config.GENESIS_RECEIVER_UID,
@@ -36,7 +35,7 @@ func Genesis_check() (bool, error) {
 
 	// No genesis block
 	if len(db_genesis_blocks) == 0 {
-		Block_insert_result, Block_insert_result_err := InsertOne(config.DATA_COLL, genesis_block, "hash")
+		Block_insert_result, Block_insert_result_err := InsertOneBlock(genesis_block)
 		if !Block_insert_result {
 			return false, Block_insert_result_err
 		}
@@ -54,7 +53,6 @@ func BlockHashMaker(b *Block) {
 
 	blockDataRoot := b.BlockData.SenderUID +
 		utils.Int64ToStr(b.BlockData.SenderRole) +
-		utils.Int64ToStr(b.BlockData.SenderIndex) +
 		b.BlockData.SenderPubKey +
 		b.BlockData.Signature +
 		b.BlockData.ReceiverUID +
@@ -68,7 +66,6 @@ func BlockHashMaker(b *Block) {
 func MessageMaker(b Block) string {
 	return b.BlockData.SenderUID +
 		utils.Int64ToStr(b.BlockData.SenderRole) +
-		utils.Int64ToStr(b.BlockData.SenderIndex) +
 		b.BlockData.SenderPubKey +
 		b.BlockData.Signature +
 		b.BlockData.ReceiverUID +

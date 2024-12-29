@@ -19,7 +19,6 @@ message AddDataRequest {
     int64 ReceiverRole = 6;
     string Data = 7;
     int64 TimeStamp = 8;
-    string NodeUID = 9;
 }
 
 message AddDataResult {
@@ -36,7 +35,6 @@ message ReadDataRequest {
     int32 Type = 1;
     int32 Limit = 2;
     int32 Skip = 3;
-    string NodeUID = 4;
 }
 
 message ReadDataResult {

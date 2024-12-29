@@ -27,7 +27,7 @@ func main() {
 	}()
 
 	dataBase := client.Database(config.DATABASE_NAME)
-	config.DATA_COLL = dataBase.Collection(config.DATA_COLLECTION_NAME)
+	config.BLOCK_COLL = dataBase.Collection(config.BLOCK_COLLECTION_NAME)
 
 	// Genesis makers
 	check_genesis, check_genesis_err := db.Genesis_check()
@@ -57,7 +57,8 @@ func main() {
 
 		// WebSocket
 		go func() {
-			http.HandleFunc("/", websocket.NodeServer)
+			http.HandleFunc("/add_new_block", websocket.AddNewBlock)
+			http.HandleFunc("/get_block", websocket.GetBlock)
 
 			logger.WS_S_LOGGER.Println("WebSocket Server is running on port", config.WEBSOCKET_PORT)
 			websocketListener_err := http.ListenAndServe(config.WEBSOCKET_PORT, nil)

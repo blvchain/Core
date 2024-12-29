@@ -11,18 +11,29 @@ type ClientManager struct {
 	clients map[string]*websocket.Conn // Map of client UIDs to WebSocket connections
 }
 
-type WSMessage struct {
-	ReqType int      `json:"reqType"`
-	Block   db.Block `json:"block"`
-}
-
 type WebSocketClient struct {
 	conn      *websocket.Conn
 	mutex     sync.Mutex // To ensure thread-safe writes
 	serverURL string
 }
 
-type WSResponse struct {
-	Status string
-	Data   string
+// * Request
+type AddNewBlock_Req struct {
+	Block db.Block `json:"block"`
+}
+
+type GetBlock_Req struct {
+	BlockHash string `json:"blockHash"`
+}
+
+// * Response
+type AddNewBlock_Res struct {
+	Status string `json:"status"`
+	Detail string `json:"detail"`
+}
+
+type GetBlock_Res struct {
+	Status string   `json:"status"`
+	Detail string   `json:"detail"`
+	Block  db.Block `json:"block"`
 }

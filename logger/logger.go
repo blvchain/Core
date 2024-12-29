@@ -17,11 +17,12 @@ const (
 	grpc_success string = mainPath + "gRPC/success/log.log"
 	grpc_fail    string = mainPath + "gRPC/fail/log.log"
 	internal     string = mainPath + "internal/log.log"
+	signature    string = mainPath + "signature/log.log"
 )
 
 var (
-	WS_S_LOGGER, WS_F_LOGGER, GRPC_S_LOGGER, GRPC_F_LOGGER, INTERNAL_LOGGER                                    *log.Logger
-	ws_f_logger_output, ws_s_logger_output, grpc_s_logger_output, grpc_f_logger_output, internal_logger_output io.Writer
+	WS_S_LOGGER, WS_F_LOGGER, GRPC_S_LOGGER, GRPC_F_LOGGER, INTERNAL_LOGGER, SIGNATURE_LOGGER                                           *log.Logger
+	ws_f_logger_output, ws_s_logger_output, grpc_s_logger_output, grpc_f_logger_output, internal_logger_output, signature_logger_output io.Writer
 )
 
 func init() {
@@ -58,6 +59,13 @@ func init() {
 		LocalTime: true,
 	}
 
+	// Signature
+	signature_logger := &lumberjack.Logger{
+		Filename:  signature,
+		MaxSize:   2,
+		LocalTime: true,
+	}
+
 	// Dev logger
 	if config.DEV_MODE {
 		ws_s_logger_output = io.MultiWriter(ws_s_logger, os.Stdout)
@@ -67,6 +75,7 @@ func init() {
 		grpc_f_logger_output = io.MultiWriter(grpc_f_logger, os.Stderr)
 
 		internal_logger_output = io.MultiWriter(internal_logger, os.Stderr)
+		signature_logger_output = io.MultiWriter(signature_logger, os.Stderr)
 	} else {
 		ws_s_logger_output = ws_s_logger
 		ws_f_logger_output = ws_f_logger
@@ -75,6 +84,7 @@ func init() {
 		grpc_f_logger_output = grpc_f_logger
 
 		internal_logger_output = internal_logger
+		signature_logger_output = signature_logger
 	}
 
 	// Logger
@@ -85,4 +95,5 @@ func init() {
 	GRPC_F_LOGGER = log.New(grpc_f_logger_output, "", log.Ldate|log.Ltime)
 
 	INTERNAL_LOGGER = log.New(internal_logger_output, "", log.Ldate|log.Ltime)
+	SIGNATURE_LOGGER = log.New(signature_logger_output, "", log.Ldate|log.Ltime)
 }

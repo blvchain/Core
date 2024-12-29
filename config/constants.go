@@ -11,12 +11,7 @@ const (
 	// DB
 	DATABASE_NAME string = "BLVchain"
 
-	DATA_COLLECTION_NAME string = "data"
-
-	// NODE message type
-	NODE_NEW_DATA      int = 1
-	NODE_GET_ALL_DATAS int = 2
-	NODE_SYNC_DATAS    int = 3
+	BLOCK_COLLECTION_NAME string = "Block"
 
 	// Genesis
 	GENESIS_SENDER_UID     string = "00000000000000000000000000000000"
@@ -36,7 +31,9 @@ const (
 	GRPC_PORT      string = ":50051"
 
 	// Web socket request types
-	WS_NEW_BLOCK      int = 1
-	WS_SYNC_BLOCKS    int = 2
-	WS_GET_ALL_BLOCKS int = 3
+	WS_NEW_BLOCK int = 1
+	WS_GET_BLOCK int = 2
+
+	SUCCESS string = "success"
+	FAIL    string = "fail"
 )

@@ -16,7 +16,7 @@ var (
 	DESC      primitive.M = bson.M{"_id": -1}
 	ASC       primitive.M = bson.M{"_id": 1}
 
-	DATA_COLL *mongo.Collection
+	BLOCK_COLL *mongo.Collection
 
 	// Get vars form files
 	DELIUM_CONFIG = GetDeliumConfigFile()

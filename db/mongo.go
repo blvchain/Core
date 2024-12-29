@@ -28,19 +28,19 @@ func ConnectToMongoDB() (*mongo.Client, error) {
 	return client, nil
 }
 
-func InsertOne(collection *mongo.Collection, document interface{}, unique_key string) (bool, error) {
+func InsertOneBlock(document interface{}) (bool, error) {
 
-	_, index_err := collection.Indexes().CreateOne(
+	_, index_err := config.BLOCK_COLL.Indexes().CreateOne(
 		context.Background(),
 		mongo.IndexModel{
-			Keys:    bson.M{unique_key: 1},
+			Keys:    bson.M{"blockHash": 1},
 			Options: options.Index().SetUnique(true),
 		},
 	)
 	if index_err != nil {
 		return false, index_err
 	}
-	_, err := collection.InsertOne(context.TODO(), document)
+	_, err := config.BLOCK_COLL.InsertOne(context.TODO(), document)
 	if err != nil {
 		return false, err
 	}
@@ -48,9 +48,9 @@ func InsertOne(collection *mongo.Collection, document interface{}, unique_key st
 	return true, nil
 }
 
-func FindOne(collection *mongo.Collection, filter primitive.M, result interface{}) error {
+func FindOneBlock(filter primitive.M, result interface{}) error {
 	findOptions := options.FindOne()
-	err := collection.FindOne(context.TODO(), filter, findOptions).Decode(result)
+	err := config.BLOCK_COLL.FindOne(context.TODO(), filter, findOptions).Decode(result)
 	if err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ func FindManyBlocksLimited(filter primitive.M, skip string, limit string) ([]Blo
 	}
 
 	findOptions := options.Find().SetSort(config.DESC).SetLimit(utils.StringToInt64(limit)).SetSkip(utils.StringToInt64(skip))
-	cursor, find_err := config.DATA_COLL.Find(context.TODO(), filter, findOptions)
+	cursor, find_err := config.BLOCK_COLL.Find(context.TODO(), filter, findOptions)
 	if find_err != nil {
 		return result, find_err
 	}
@@ -89,7 +89,7 @@ func FindAllBlocks(filter primitive.M) ([]Block, error) {
 	var result []Block
 
 	findOptions := options.Find().SetSort(config.DESC)
-	cursor, find_err := config.DATA_COLL.Find(context.TODO(), filter, findOptions)
+	cursor, find_err := config.BLOCK_COLL.Find(context.TODO(), filter, findOptions)
 	if find_err != nil {
 		return result, find_err
 	}
