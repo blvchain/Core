@@ -22,8 +22,8 @@ func AddNewBlock(w http.ResponseWriter, r *http.Request) {
 
 	// Node connection
 	clientUID := r.URL.Query().Get("uid")
-	Manager.AddClient(clientUID, conn)
-	defer Manager.RemoveClient(clientUID)
+	ServerManager.AddClient(clientUID, conn)
+	defer ServerManager.RemoveClient(clientUID)
 	logger.WS_S_LOGGER.Printf("Node '%s' connected\n", clientUID)
 
 	// Handle incoming messages
@@ -33,7 +33,6 @@ func AddNewBlock(w http.ResponseWriter, r *http.Request) {
 			logger.WS_F_LOGGER.Printf("Node '%s' disconnected, %v\n", clientUID, err)
 			break
 		}
-		logger.WS_S_LOGGER.Printf("Received: %s\n", messageData)
 
 		var msg AddNewBlock_Req
 		if err := json.Unmarshal(messageData, &msg); err != nil {
@@ -130,8 +129,8 @@ func GetBlock(w http.ResponseWriter, r *http.Request) {
 
 	// Node connection
 	clientUID := r.URL.Query().Get("uid")
-	Manager.AddClient(clientUID, conn)
-	defer Manager.RemoveClient(clientUID)
+	ServerManager.AddClient(clientUID, conn)
+	defer ServerManager.RemoveClient(clientUID)
 	logger.WS_S_LOGGER.Printf("Node '%s' connected\n", clientUID)
 
 	// Handle incoming messages
@@ -141,7 +140,6 @@ func GetBlock(w http.ResponseWriter, r *http.Request) {
 			logger.WS_F_LOGGER.Printf("Node '%s' disconnected, %v\n", clientUID, err)
 			break
 		}
-		logger.WS_S_LOGGER.Printf("Received: %s\n", messageData)
 
 		var msg GetBlock_Req
 		if err := json.Unmarshal(messageData, &msg); err != nil {

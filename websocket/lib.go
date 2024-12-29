@@ -27,8 +27,12 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-var Manager = ClientManager{
+var ServerManager = ServerClientManager{
 	clients: make(map[string]*websocket.Conn),
+}
+
+var ClientManager = OutgoingClientManager{
+	servers: make(map[string]*websocket.Conn),
 }
 
 func Messenger(message any, conn *websocket.Conn, uid string) {
@@ -39,13 +43,35 @@ func Messenger(message any, conn *websocket.Conn, uid string) {
 	}
 }
 
-func (cm *ClientManager) AddClient(uid string, conn *websocket.Conn) {
+func (cm *ServerClientManager) AddClient(uid string, conn *websocket.Conn) {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+
 	cm.clients[uid] = conn
 }
 
-func (cm *ClientManager) RemoveClient(uid string) {
+func (cm *ServerClientManager) RemoveClient(uid string) {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+
 	if conn, ok := cm.clients[uid]; ok {
 		conn.Close()
 		delete(cm.clients, uid)
+	}
+}
+
+func (cm *ServerClientManager) BroadcastMessage(message any) {
+	messageByte, messageByte_err := json.Marshal(message)
+	if messageByte_err != nil {
+		logger.INTERNAL_LOGGER.Printf("Failed to marshal message \n %v", message)
+	}
+
+	cm.mutex.RLock()
+	defer cm.mutex.RUnlock()
+
+	for uid, conn := range cm.clients {
+		if err := conn.WriteMessage(websocket.TextMessage, messageByte); err != nil {
+			logger.WS_F_LOGGER.Printf("Error writing message '%v' to node '%v'", err, uid)
+		}
 	}
 }

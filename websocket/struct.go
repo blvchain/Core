@@ -7,14 +7,14 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type ClientManager struct {
+type ServerClientManager struct {
 	clients map[string]*websocket.Conn // Map of client UIDs to WebSocket connections
+	mutex   sync.RWMutex               // To handle concurrent access
 }
 
-type WebSocketClient struct {
-	conn      *websocket.Conn
-	mutex     sync.Mutex // To ensure thread-safe writes
-	serverURL string
+type OutgoingClientManager struct {
+	servers map[string]*websocket.Conn // Map of server UIDs to WebSocket connections
+	mutex   sync.RWMutex               // To handle concurrent access
 }
 
 // * Request
