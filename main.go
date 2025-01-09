@@ -9,7 +9,7 @@ import (
 	"blvchain/core/db"
 	"blvchain/core/logger"
 	"blvchain/core/protos"
-	"blvchain/core/websocket/server"
+	"blvchain/core/ws"
 
 	"google.golang.org/grpc"
 )
@@ -57,8 +57,8 @@ func main() {
 
 		// WebSocket
 		go func() {
-			http.HandleFunc("/add_new_block", server.AddNewBlock)
-			http.HandleFunc("/get_block", server.GetBlock)
+			http.HandleFunc("/add_new_block", ws.AddNewBlock)
+			http.HandleFunc("/get_block", ws.GetBlock)
 
 			logger.WS_S_LOGGER.Println("WebSocket Server is running on port", config.WEBSOCKET_PORT)
 			websocketListener_err := http.ListenAndServe(config.WEBSOCKET_PORT, nil)
