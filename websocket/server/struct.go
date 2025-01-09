@@ -1,4 +1,4 @@
-package websocket
+package server
 
 import (
 	"blvchain/core/db"
@@ -7,12 +7,12 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type ServerClientManager struct {
+type ServerManager struct {
 	clients map[string]*websocket.Conn // Map of client UIDs to WebSocket connections
 	mutex   sync.RWMutex               // To handle concurrent access
 }
 
-type OutgoingClientManager struct {
+type ClientManager struct {
 	servers map[string]*websocket.Conn // Map of server UIDs to WebSocket connections
 	mutex   sync.RWMutex               // To handle concurrent access
 }

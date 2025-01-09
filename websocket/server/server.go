@@ -1,4 +1,4 @@
-package websocket
+package server
 
 import (
 	"blvchain/core/config"
@@ -22,8 +22,8 @@ func AddNewBlock(w http.ResponseWriter, r *http.Request) {
 
 	// Node connection
 	clientUID := r.URL.Query().Get("uid")
-	ServerManager.AddClient(clientUID, conn)
-	defer ServerManager.RemoveClient(clientUID)
+	ServerManagerVar.AddClient(clientUID, conn)
+	defer ServerManagerVar.RemoveClient(clientUID)
 	logger.WS_S_LOGGER.Printf("Node '%s' connected\n", clientUID)
 
 	// Handle incoming messages
@@ -129,8 +129,8 @@ func GetBlock(w http.ResponseWriter, r *http.Request) {
 
 	// Node connection
 	clientUID := r.URL.Query().Get("uid")
-	ServerManager.AddClient(clientUID, conn)
-	defer ServerManager.RemoveClient(clientUID)
+	ServerManagerVar.AddClient(clientUID, conn)
+	defer ServerManagerVar.RemoveClient(clientUID)
 	logger.WS_S_LOGGER.Printf("Node '%s' connected\n", clientUID)
 
 	// Handle incoming messages
