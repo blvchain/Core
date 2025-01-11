@@ -1,17 +1,33 @@
 package protos
 
 import (
+	"blvchain/core/logger"
 	context "context"
-	"fmt"
-	"reflect"
 )
 
 func (s *AddDataService) AddData(ctx context.Context, req *AddDataRequest) (*AddDataResult, error) {
-	fmt.Println(reflect.TypeOf(req.SenderRole))
-	return &AddDataResult{
-		IsSuccess: true,
-		Log:       "Data successfully added.",
-	}, nil
+
+	// Check input data
+	if err := validateAddDataRequest(req); err != nil {
+		// Invalid data
+
+		logger.GRPC_F_LOGGER.Println("Validation failed:", err)
+
+		return &AddDataResult{
+			IsSuccess: false,
+			Log:       err.Error(),
+		}, nil
+
+	} else {
+		// Valid data
+
+		return &AddDataResult{
+			IsSuccess: true,
+			Log:       "Data successfully added.",
+		}, nil
+
+	}
+
 }
 
 func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*ReadDataResult, error) {

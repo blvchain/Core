@@ -9,7 +9,7 @@ import (
 var (
 	// Global ENV
 	MONGO_URI string = GetEnv("MONGO_URI")
-	NODE_UID  string = GetEnv("NODE_UID")
+	SELF_UID  string = GetEnv("SELF_UID")
 
 	// Mongodb
 	NO_FILTER primitive.M = bson.M{}

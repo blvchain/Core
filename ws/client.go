@@ -54,7 +54,7 @@ func (cm *ClientManager) DisconnectFromServers() {
 
 func MonitorAndReconnectToServers(cm *ClientManager) {
 	for {
-		time.Sleep(5 * time.Second) // Wait for 5 seconds
+		time.Sleep(config.RECONNECT_SLEEP_TIME * time.Second) // Wait for 5 seconds
 
 		cm.mutex.Lock()
 

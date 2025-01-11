@@ -45,7 +45,7 @@ func Genesis_check() (bool, error) {
 }
 
 func BlockHashMaker(b *Block) {
-	b.BlockMeta.NodeUID = config.NODE_UID
+	b.BlockMeta.NodeUID = config.SELF_UID
 
 	blockMetaRoot := b.BlockMeta.PreBlockHash +
 		b.BlockMeta.NodeUID +
