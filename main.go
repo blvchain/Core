@@ -35,7 +35,7 @@ func main() {
 	// Check gensis block and dns seed in DB in first run of Node
 	if check_genesis {
 
-		// gRPC
+		//* gRPC
 		go func() {
 			grpcListener, grpcListener_err := net.Listen("tcp", config.GRPC_PORT)
 			if grpcListener_err != nil {
@@ -55,8 +55,13 @@ func main() {
 
 		}()
 
-		// WebSocket
+		//* WebSocket
 		go func() {
+
+			//* Connect to other servers
+			ws.ClientManagerVar.ConnectToServers(config.DNS_SEED_LIST)
+
+			//* Local server gateways
 			http.HandleFunc("/add_new_block", ws.AddNewBlock)
 			http.HandleFunc("/get_block", ws.GetBlock)
 
@@ -65,6 +70,12 @@ func main() {
 			if websocketListener_err != nil {
 				logger.WS_F_LOGGER.Fatalf("Failed to listen WebSocket: %v", websocketListener_err)
 			}
+
+		}()
+
+		// Monitor and reconnect to missed nodes
+		go func() {
+			ws.MonitorAndReconnectToServers(&ws.ClientManagerVar)
 		}()
 
 		// Prevent main from exiting

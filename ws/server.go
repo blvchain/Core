@@ -7,10 +7,37 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/gorilla/websocket"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+func messanger(message any, conn *websocket.Conn, uid string) {
+	messageByte, _ := json.Marshal(message)
+	err := conn.WriteMessage(websocket.TextMessage, messageByte)
+	if err != nil {
+		logger.WS_F_LOGGER.Printf("Error writing message '%v' to node '%v'", err, uid)
+	}
+}
+
+func (cm *ServerManager) addClientToLocalServer(uid string, conn *websocket.Conn) {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+
+	cm.clients[uid] = conn
+}
+
+func (cm *ServerManager) removeClientFromLocalServer(uid string) {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+
+	if conn, ok := cm.clients[uid]; ok {
+		conn.Close()
+		delete(cm.clients, uid)
+	}
+}
+
+// End point functions
 func AddNewBlock(w http.ResponseWriter, r *http.Request) {
 	// Upgrade the HTTP connection to a WebSocket connection
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -22,8 +49,8 @@ func AddNewBlock(w http.ResponseWriter, r *http.Request) {
 
 	// Node connection
 	clientUID := r.URL.Query().Get("uid")
-	ServerManagerVar.AddClient(clientUID, conn)
-	defer ServerManagerVar.RemoveClient(clientUID)
+	ServerManagerVar.addClientToLocalServer(clientUID, conn)
+	defer ServerManagerVar.removeClientFromLocalServer(clientUID)
 	logger.WS_S_LOGGER.Printf("Node '%s' connected\n", clientUID)
 
 	// Handle incoming messages
@@ -51,7 +78,7 @@ func AddNewBlock(w http.ResponseWriter, r *http.Request) {
 				Status: config.FAIL,
 				Detail: structValidation_err.Error(),
 			}
-			Messenger(err, conn, clientUID)
+			messanger(err, conn, clientUID)
 
 		} else {
 
@@ -66,7 +93,7 @@ func AddNewBlock(w http.ResponseWriter, r *http.Request) {
 					Status: config.FAIL,
 					Detail: validation_err.Error(),
 				}
-				Messenger(err, conn, clientUID)
+				messanger(err, conn, clientUID)
 
 			} else {
 
@@ -86,7 +113,7 @@ func AddNewBlock(w http.ResponseWriter, r *http.Request) {
 							Status: config.FAIL,
 							Detail: Block_insert_result_err.Error(),
 						}
-						Messenger(err, conn, clientUID)
+						messanger(err, conn, clientUID)
 
 					} else {
 
@@ -96,7 +123,7 @@ func AddNewBlock(w http.ResponseWriter, r *http.Request) {
 							Status: config.SUCCESS,
 							Detail: "Block '" + msg.Block.BlockHash + "' added to db.",
 						}
-						Messenger(message, conn, clientUID)
+						messanger(message, conn, clientUID)
 
 					}
 
@@ -108,7 +135,7 @@ func AddNewBlock(w http.ResponseWriter, r *http.Request) {
 						Status: config.FAIL,
 						Detail: "Block hash is not unique",
 					}
-					Messenger(err, conn, clientUID)
+					messanger(err, conn, clientUID)
 
 				}
 
@@ -129,8 +156,8 @@ func GetBlock(w http.ResponseWriter, r *http.Request) {
 
 	// Node connection
 	clientUID := r.URL.Query().Get("uid")
-	ServerManagerVar.AddClient(clientUID, conn)
-	defer ServerManagerVar.RemoveClient(clientUID)
+	ServerManagerVar.addClientToLocalServer(clientUID, conn)
+	defer ServerManagerVar.removeClientFromLocalServer(clientUID)
 	logger.WS_S_LOGGER.Printf("Node '%s' connected\n", clientUID)
 
 	// Handle incoming messages
@@ -158,7 +185,7 @@ func GetBlock(w http.ResponseWriter, r *http.Request) {
 				Status: config.FAIL,
 				Detail: founded_block_err.Error(),
 			}
-			Messenger(err, conn, clientUID)
+			messanger(err, conn, clientUID)
 		} else {
 			// Send founded block
 			logger.WS_S_LOGGER.Printf("Send data of block '%v' to node '%v'", msg.BlockHash, clientUID)
@@ -167,7 +194,7 @@ func GetBlock(w http.ResponseWriter, r *http.Request) {
 				Detail: "Block founded",
 				Block:  block,
 			}
-			Messenger(err, conn, clientUID)
+			messanger(err, conn, clientUID)
 		}
 
 	}

@@ -7,32 +7,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func Messenger(message any, conn *websocket.Conn, uid string) {
-	messageByte, _ := json.Marshal(message)
-	err := conn.WriteMessage(websocket.TextMessage, messageByte)
-	if err != nil {
-		logger.WS_F_LOGGER.Printf("Error writing message '%v' to node '%v'", err, uid)
-	}
-}
-
-func (cm *ServerManager) AddClient(uid string, conn *websocket.Conn) {
-	cm.mutex.Lock()
-	defer cm.mutex.Unlock()
-
-	cm.clients[uid] = conn
-}
-
-func (cm *ServerManager) RemoveClient(uid string) {
-	cm.mutex.Lock()
-	defer cm.mutex.Unlock()
-
-	if conn, ok := cm.clients[uid]; ok {
-		conn.Close()
-		delete(cm.clients, uid)
-	}
-}
-
-func (cm *ServerManager) BroadcastMessage(message any) {
+func (cm *ServerManager) BroadcastMessageFromLocalServer(message any) {
 	messageByte, messageByte_err := json.Marshal(message)
 	if messageByte_err != nil {
 		logger.INTERNAL_LOGGER.Printf("Failed to marshal message \n %v", message)
@@ -46,4 +21,30 @@ func (cm *ServerManager) BroadcastMessage(message any) {
 			logger.WS_F_LOGGER.Printf("Error writing message '%v' to node '%v'", err, uid)
 		}
 	}
+}
+
+// SendMessage sends a message to the server identified by its UID.
+func (cm *ClientManager) SendMessageToOneServer(uid string, message any) bool {
+	cm.mutex.RLock()
+	conn, ok := cm.servers[uid]
+	cm.mutex.RUnlock()
+
+	if !ok {
+		logger.WS_F_LOGGER.Printf("No connection found for server UID: %s", uid)
+		return false
+	}
+
+	messageByte, messageByte_err := json.Marshal(message)
+	if messageByte_err != nil {
+		logger.INTERNAL_LOGGER.Printf("Failed to marshal message \n %v", message)
+	}
+
+	if err := conn.WriteMessage(websocket.TextMessage, messageByte); err != nil {
+		logger.WS_F_LOGGER.Printf("Failed to send message to server %s: %v", uid, err)
+		return false
+	}
+
+	logger.WS_S_LOGGER.Printf("Message sent to server %s: %s\n", uid, message)
+	return true
+
 }
