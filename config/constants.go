@@ -34,7 +34,4 @@ const (
 	WS_NEW_BLOCK         int = 1
 	WS_GET_BLOCK         int = 2
 	RECONNECT_SLEEP_TIME     = 60
-
-	SUCCESS string = "success"
-	FAIL    string = "fail"
 )

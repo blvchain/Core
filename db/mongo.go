@@ -48,9 +48,8 @@ func InsertOneBlock(document interface{}) (bool, error) {
 	return true, nil
 }
 
-func FindOneBlock(filter primitive.M, result interface{}) error {
-	findOptions := options.FindOne()
-	err := config.BLOCK_COLL.FindOne(context.TODO(), filter, findOptions).Decode(result)
+func FindOneBlock(blockHash string, result interface{}) error {
+	err := config.BLOCK_COLL.FindOne(context.TODO(), bson.M{"blockHash": blockHash}).Decode(result)
 	if err != nil {
 		return err
 	}

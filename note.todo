@@ -1,0 +1,6 @@
+% BLVchain
+    x WebSocket
+        - merge all routes in one path, if possible
+
+    x gRPC
+        -

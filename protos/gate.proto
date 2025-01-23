@@ -33,12 +33,13 @@ service ReadData {
 
 message ReadDataRequest {
     int32 Type = 1;
-    int32 Limit = 2;
-    int32 Skip = 3;
+    string Filter = 2;
+    int32 Limit = 3;
+    int32 Skip = 4;
 }
 
 message ReadDataResult {
-    string IsSuccess = 1;
+    bool IsSuccess = 1;
     string Log = 2;
     string Data = 3;
 }

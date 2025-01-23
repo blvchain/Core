@@ -62,8 +62,7 @@ func main() {
 			ws.ClientManagerVar.ConnectToServers(config.DNS_SEED_LIST)
 
 			//* Local server gateways
-			http.HandleFunc("/add_new_block", ws.AddNewBlock)
-			http.HandleFunc("/get_block", ws.GetBlock)
+			http.HandleFunc("/", ws.WS_Server_Handler)
 
 			logger.WS_S_LOGGER.Println("WebSocket Server is running on port", config.WEBSOCKET_PORT)
 			websocketListener_err := http.ListenAndServe(config.WEBSOCKET_PORT, nil)

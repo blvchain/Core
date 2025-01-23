@@ -10,14 +10,11 @@ func (s *AddDataService) AddData(ctx context.Context, req *AddDataRequest) (*Add
 	// Check input data
 	if err := validateAddDataRequest(req); err != nil {
 		// Invalid data
-
 		logger.GRPC_F_LOGGER.Println("Validation failed:", err)
-
 		return &AddDataResult{
 			IsSuccess: false,
 			Log:       err.Error(),
 		}, nil
-
 	} else {
 		// Valid data
 
@@ -31,10 +28,25 @@ func (s *AddDataService) AddData(ctx context.Context, req *AddDataRequest) (*Add
 }
 
 func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*ReadDataResult, error) {
-	// Add your business logic here
-	return &ReadDataResult{
-		IsSuccess: "true",
-		Log:       "Read successful.",
-		Data:      "Sample data...",
-	}, nil
+
+	// Check input data
+	if err := validateReadDataRequest(req); err != nil {
+		// Invalid data
+		logger.GRPC_F_LOGGER.Println("Validation failed:", err)
+		return &ReadDataResult{
+			IsSuccess: false,
+			Log:       err.Error(),
+			Data:      "",
+		}, nil
+	} else {
+		// Valid data
+
+		return &ReadDataResult{
+			IsSuccess: true,
+			Log:       "Read successful.",
+			Data:      "Sample data...",
+		}, nil
+
+	}
+
 }
