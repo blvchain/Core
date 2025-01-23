@@ -5,7 +5,7 @@ import (
 	context "context"
 )
 
-func (s *AddDataService) AddData(ctx context.Context, req *AddDataRequest) (*AddDataResult, error) {
+func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataResult, error) {
 
 	// Check input data
 	if err := validateAddDataRequest(req); err != nil {
@@ -36,7 +36,6 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 		return &ReadDataResult{
 			IsSuccess: false,
 			Log:       err.Error(),
-			Data:      "",
 		}, nil
 	} else {
 		// Valid data
@@ -44,7 +43,7 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 		return &ReadDataResult{
 			IsSuccess: true,
 			Log:       "Read successful.",
-			Data:      "Sample data...",
+			// Data:      "Sample data...",
 		}, nil
 
 	}

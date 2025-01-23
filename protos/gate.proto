@@ -4,22 +4,34 @@ package gate;
 
 option go_package = "blvchain/core/protos";
 
-
-// Add data
-service AddData {
-    rpc addData (AddDataRequest) returns (AddDataResult);
+// Block
+message BlockMeta {
+    string PreBlockHash = 1;
+    string NodeUID = 2;
+    int64 TimeStamp = 3;
 }
-
-message AddDataRequest {
+message BlockData {
     string SenderUID = 1;
     int64 SenderRole = 2;
     string SenderPubKey = 3;
-    string SenderSignature = 4;
+    string Signature = 4;
     string ReceiverUID = 5;
     int64 ReceiverRole = 6;
     string Data = 7;
     int64 TimeStamp = 8;
 }
+message Block {
+    string BlockHash = 1;
+    BlockMeta BlockMeta = 2;
+    BlockData BlockData = 3;
+}
+
+
+// Add data
+service AddData {
+    rpc addData (BlockData) returns (AddDataResult);
+}
+
 
 message AddDataResult {
     bool IsSuccess = 1;
@@ -32,7 +44,7 @@ service ReadData {
 }
 
 message ReadDataRequest {
-    int32 Type = 1;
+    int32 Method = 1;
     string Filter = 2;
     int32 Limit = 3;
     int32 Skip = 4;
@@ -41,6 +53,6 @@ message ReadDataRequest {
 message ReadDataResult {
     bool IsSuccess = 1;
     string Log = 2;
-    string Data = 3;
+    Block Data = 3;
 }
 

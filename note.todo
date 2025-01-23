@@ -1,6 +1,9 @@
 % BLVchain
     x WebSocket
-        - merge all routes in one path, if possible
+        - 
 
     x gRPC
-        -
+        - make grpc endpointys
+            % Read data
+                - get data and return if it exists
+                - get data from other nodes and save it and return if data is not exists

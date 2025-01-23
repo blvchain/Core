@@ -28,7 +28,7 @@ const (
 //
 // Add data
 type AddDataClient interface {
-	AddData(ctx context.Context, in *AddDataRequest, opts ...grpc.CallOption) (*AddDataResult, error)
+	AddData(ctx context.Context, in *BlockData, opts ...grpc.CallOption) (*AddDataResult, error)
 }
 
 type addDataClient struct {
@@ -39,7 +39,7 @@ func NewAddDataClient(cc grpc.ClientConnInterface) AddDataClient {
 	return &addDataClient{cc}
 }
 
-func (c *addDataClient) AddData(ctx context.Context, in *AddDataRequest, opts ...grpc.CallOption) (*AddDataResult, error) {
+func (c *addDataClient) AddData(ctx context.Context, in *BlockData, opts ...grpc.CallOption) (*AddDataResult, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AddDataResult)
 	err := c.cc.Invoke(ctx, AddData_AddData_FullMethodName, in, out, cOpts...)
@@ -55,7 +55,7 @@ func (c *addDataClient) AddData(ctx context.Context, in *AddDataRequest, opts ..
 //
 // Add data
 type AddDataServer interface {
-	AddData(context.Context, *AddDataRequest) (*AddDataResult, error)
+	AddData(context.Context, *BlockData) (*AddDataResult, error)
 	mustEmbedUnimplementedAddDataServer()
 }
 
@@ -66,7 +66,7 @@ type AddDataServer interface {
 // pointer dereference when methods are called.
 type UnimplementedAddDataServer struct{}
 
-func (UnimplementedAddDataServer) AddData(context.Context, *AddDataRequest) (*AddDataResult, error) {
+func (UnimplementedAddDataServer) AddData(context.Context, *BlockData) (*AddDataResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddData not implemented")
 }
 func (UnimplementedAddDataServer) mustEmbedUnimplementedAddDataServer() {}
@@ -91,7 +91,7 @@ func RegisterAddDataServer(s grpc.ServiceRegistrar, srv AddDataServer) {
 }
 
 func _AddData_AddData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddDataRequest)
+	in := new(BlockData)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func _AddData_AddData_Handler(srv interface{}, ctx context.Context, dec func(int
 		FullMethod: AddData_AddData_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AddDataServer).AddData(ctx, req.(*AddDataRequest))
+		return srv.(AddDataServer).AddData(ctx, req.(*BlockData))
 	}
 	return interceptor(ctx, in, info, handler)
 }

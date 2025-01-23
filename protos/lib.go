@@ -2,7 +2,7 @@ package protos
 
 import "errors"
 
-func validateAddDataRequest(req *AddDataRequest) error {
+func validateAddDataRequest(req *BlockData) error {
 
 	if req.SenderUID == "" {
 		return errors.New("senderUID is required")
@@ -16,7 +16,7 @@ func validateAddDataRequest(req *AddDataRequest) error {
 		return errors.New("senderPubKey is required")
 	}
 
-	if req.SenderSignature == "" {
+	if req.Signature == "" {
 		return errors.New("senderSignature is required")
 	}
 
@@ -45,7 +45,7 @@ func validateReadDataRequest(req *ReadDataRequest) error {
 		return errors.New("filter is required")
 	}
 
-	if req.Type < 0 {
+	if req.Method < 0 {
 		return errors.New("type must be bigger than zero")
 	}
 
