@@ -74,20 +74,20 @@ func validateAuth(ctx context.Context) error {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		logger.GRPC_F_LOGGER.Println("Missing metadata from ")
-		return status.Errorf(codes.Unauthenticated, "missing metadata")
+		return status.Errorf(codes.Unauthenticated, "Missing metadata")
 	}
 
 	// Get API key from metadata
 	apiKeys := md["auth"]
 	if len(apiKeys) == 0 {
-		logger.GRPC_F_LOGGER.Println("missing API key")
-		return status.Errorf(codes.Unauthenticated, "missing API key")
+		logger.GRPC_F_LOGGER.Println("Missing API key")
+		return status.Errorf(codes.Unauthenticated, "Missing API key")
 	}
 
 	apiKey := apiKeys[0]
 	if !config.API_KEY_LIST[apiKey] {
-		logger.GRPC_F_LOGGER.Println("unauthorized client")
-		return status.Errorf(codes.PermissionDenied, "unauthorized client")
+		logger.GRPC_F_LOGGER.Println("Unauthorized client")
+		return status.Errorf(codes.PermissionDenied, "Unauthorized client")
 	}
 
 	return nil

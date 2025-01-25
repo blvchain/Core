@@ -1,9 +1,20 @@
 % BLVchain
-    x WebSocket
-        - 
+    ! WebSocket
+        - Test WebSocket
 
-    x gRPC
-        - make grpc endpointys
-            % Read data
-                - get data and return if it exists
-                - get data from other nodes and save it and return if data is not exists
+    ! gRPC
+        % Read data
+            - get data and return if it exists
+            - get data from other nodes and save it and return if data is not exists
+
+        % Add data
+            - Add data if it is valid
+            - Send added data to other nodes
+
+        x Make auth protection
+
+    ! DB
+        - Add replicaSat for mongodb
+
+    ! General
+        - Add config file for builded app and make path for it
