@@ -21,4 +21,5 @@ var (
 	// Get vars form files
 	DELIUM_CONFIG = GetDeliumConfigFile()
 	DNS_SEED_LIST = GetDnsSeedListFile()
+	API_KEY_LIST  = GetApiKeyFile()
 )

@@ -7,6 +7,15 @@ import (
 
 func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataResult, error) {
 
+	//* Invalid data
+	// Check auth from metadata
+	if err := validateAuth(ctx); err != nil {
+		return &AddDataResult{
+			IsSuccess: false,
+			Log:       err.Error(),
+		}, err
+	}
+
 	// Check input data
 	if err := validateAddDataRequest(req); err != nil {
 		// Invalid data
@@ -16,7 +25,7 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 			Log:       err.Error(),
 		}, nil
 	} else {
-		// Valid data
+		//* Valid data
 
 		return &AddDataResult{
 			IsSuccess: true,
@@ -29,6 +38,15 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 
 func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*ReadDataResult, error) {
 
+	//* Invalid data
+	// Check auth from metadata
+	if err := validateAuth(ctx); err != nil {
+		return &ReadDataResult{
+			IsSuccess: false,
+			Log:       err.Error(),
+		}, err
+	}
+
 	// Check input data
 	if err := validateReadDataRequest(req); err != nil {
 		// Invalid data
@@ -38,7 +56,7 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 			Log:       err.Error(),
 		}, nil
 	} else {
-		// Valid data
+		//* Valid data
 
 		return &ReadDataResult{
 			IsSuccess: true,

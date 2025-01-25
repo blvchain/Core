@@ -1,6 +1,15 @@
 package protos
 
-import "errors"
+import (
+	"blvchain/core/config"
+	"blvchain/core/logger"
+	context "context"
+	"errors"
+
+	codes "google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	status "google.golang.org/grpc/status"
+)
 
 func validateAddDataRequest(req *BlockData) error {
 
@@ -17,7 +26,7 @@ func validateAddDataRequest(req *BlockData) error {
 	}
 
 	if req.Signature == "" {
-		return errors.New("senderSignature is required")
+		return errors.New("signature is required")
 	}
 
 	if req.ReceiverUID == "" {
@@ -55,6 +64,30 @@ func validateReadDataRequest(req *ReadDataRequest) error {
 
 	if req.Skip < 0 {
 		return errors.New("skip must be bigger than zero")
+	}
+
+	return nil
+}
+
+func validateAuth(ctx context.Context) error {
+	// Extract metadata
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		logger.GRPC_F_LOGGER.Println("Missing metadata from ")
+		return status.Errorf(codes.Unauthenticated, "missing metadata")
+	}
+
+	// Get API key from metadata
+	apiKeys := md["auth"]
+	if len(apiKeys) == 0 {
+		logger.GRPC_F_LOGGER.Println("missing API key")
+		return status.Errorf(codes.Unauthenticated, "missing API key")
+	}
+
+	apiKey := apiKeys[0]
+	if !config.API_KEY_LIST[apiKey] {
+		logger.GRPC_F_LOGGER.Println("unauthorized client")
+		return status.Errorf(codes.PermissionDenied, "unauthorized client")
 	}
 
 	return nil
