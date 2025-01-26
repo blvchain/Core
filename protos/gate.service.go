@@ -63,7 +63,6 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 			Log:       "Read successful.",
 			// Data:      "Sample data...",
 		}, nil
-
 	}
 
 }

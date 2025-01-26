@@ -54,8 +54,8 @@ func validateReadDataRequest(req *ReadDataRequest) error {
 		return errors.New("filter is required")
 	}
 
-	if req.Method < 0 {
-		return errors.New("type must be bigger than zero")
+	if req.Method == "" {
+		return errors.New("method is required")
 	}
 
 	if req.Limit < 0 {

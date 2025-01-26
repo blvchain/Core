@@ -44,7 +44,7 @@ service ReadData {
 }
 
 message ReadDataRequest {
-    int32 Method = 1;
+    string Method = 1;
     string Filter = 2;
     int32 Limit = 3;
     int32 Skip = 4;

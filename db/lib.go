@@ -116,3 +116,20 @@ func StructValidator(s interface{}) error {
 
 	return nil
 }
+
+func AreBlocksIdentical(blocks []Block) bool {
+
+	if len(blocks) == 0 {
+		return false
+	}
+
+	firstBlock := blocks[0]
+
+	for _, block := range blocks[1:] {
+		if !reflect.DeepEqual(firstBlock, block) {
+			return false
+		}
+	}
+
+	return true
+}

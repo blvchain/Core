@@ -6,9 +6,51 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/gorilla/websocket"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
+
+func (cm *ServerManager) addClientToLocalServer(uid string, conn *websocket.Conn) {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+
+	cm.clients[uid] = conn
+}
+
+func (cm *ServerManager) removeClientFromLocalServer(uid string) {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+
+	if conn, ok := cm.clients[uid]; ok {
+		conn.Close()
+		delete(cm.clients, uid)
+	}
+}
+
+func (cm *ServerManager) BroadcastMessageFromLocalServer(message any) {
+	messageByte, messageByte_err := json.Marshal(message)
+	if messageByte_err != nil {
+		logger.INTERNAL_LOGGER.Printf("Failed to marshal message \n %v", message)
+	}
+
+	cm.mutex.RLock()
+	defer cm.mutex.RUnlock()
+
+	for uid, conn := range cm.clients {
+		if err := conn.WriteMessage(websocket.TextMessage, messageByte); err != nil {
+			logger.WS_F_LOGGER.Printf("Error writing message '%v' to node '%v'", err, uid)
+		}
+	}
+}
+
+func messanger(message any, conn *websocket.Conn, uid string) {
+	messageByte, _ := json.Marshal(message)
+	err := conn.WriteMessage(websocket.TextMessage, messageByte)
+	if err != nil {
+		logger.WS_F_LOGGER.Printf("Error writing message '%v' to node '%v'", err, uid)
+	}
+}
 
 func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 	// Upgrade the HTTP connection to a WebSocket connection
@@ -84,17 +126,28 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 					founded_blocks, _ := db.FindAllBlocks(bson.M{"blockHash": msg.Block.BlockHash})
 
 					if len(founded_blocks) == 0 {
-
 						// Block hash is unique
-						Block_insert_result, Block_insert_result_err := db.InsertOneBlock(msg.Block)
 
-						if !Block_insert_result {
-							// Internal error to add data to DB
-							logger.INTERNAL_LOGGER.Printf("Error in adding block '%v' to db from node '%v' : \n %v", msg.Block.BlockHash, clientUID, Block_insert_result_err)
+						// Check preBlockHash
+						var founded_preHashBlock db.Block
+						founded_preHash_block_err := db.FindOneBlock(msg.Block.BlockHash, &founded_preHashBlock)
+
+						if founded_preHash_block_err != nil {
+							// No data about preBlockHash as blockHash in db
+							// Getting data of block from other nodes
+
 						} else {
-							// Successfully added data to DB
-							logger.WS_F_LOGGER.Printf("Block '%v' successfully added from '%v' ", msg.Block.BlockHash, clientUID)
-							res.IsSuccess = true
+							// preBlockHash found in db
+							Block_insert_result, Block_insert_result_err := db.InsertOneBlock(msg.Block)
+
+							if !Block_insert_result {
+								// Internal error to add data to DB
+								logger.INTERNAL_LOGGER.Printf("Error in adding block '%v' to db from node '%v' : \n %v", msg.Block.BlockHash, clientUID, Block_insert_result_err)
+							} else {
+								// Successfully added data to DB
+								logger.WS_F_LOGGER.Printf("Block '%v' successfully added from '%v' ", msg.Block.BlockHash, clientUID)
+								res.IsSuccess = true
+							}
 						}
 
 					} else {
