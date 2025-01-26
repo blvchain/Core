@@ -31,7 +31,7 @@ func (cm *ServerManager) removeClientFromLocalServer(uid string) {
 func (cm *ServerManager) BroadcastMessageFromLocalServer(message any) {
 	messageByte, messageByte_err := json.Marshal(message)
 	if messageByte_err != nil {
-		logger.INTERNAL_LOGGER.Printf("Failed to marshal message \n %v", message)
+		logger.INTERNAL_LOGGER.Printf("Error: Failed to marshal message \n %v", message)
 	}
 
 	cm.mutex.RLock()
@@ -39,7 +39,7 @@ func (cm *ServerManager) BroadcastMessageFromLocalServer(message any) {
 
 	for uid, conn := range cm.clients {
 		if err := conn.WriteMessage(websocket.TextMessage, messageByte); err != nil {
-			logger.WS_F_LOGGER.Printf("Error writing message '%v' to node '%v'", err, uid)
+			logger.WS_F_LOGGER.Printf("Error: Error writing message '%v' to node '%v'", err, uid)
 		}
 	}
 }
@@ -48,7 +48,7 @@ func messanger(message any, conn *websocket.Conn, uid string) {
 	messageByte, _ := json.Marshal(message)
 	err := conn.WriteMessage(websocket.TextMessage, messageByte)
 	if err != nil {
-		logger.WS_F_LOGGER.Printf("Error writing message '%v' to node '%v'", err, uid)
+		logger.WS_F_LOGGER.Printf("Error: Error writing message '%v' to node '%v'", err, uid)
 	}
 }
 
@@ -56,7 +56,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 	// Upgrade the HTTP connection to a WebSocket connection
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		logger.WS_F_LOGGER.Println("Failed to upgrade:", err)
+		logger.WS_F_LOGGER.Println("Error: Failed to upgrade:", err)
 		return
 	}
 	defer conn.Close()
@@ -65,7 +65,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 	clientUID := r.URL.Query().Get("uid")
 	ServerManagerVar.addClientToLocalServer(clientUID, conn)
 	defer ServerManagerVar.removeClientFromLocalServer(clientUID)
-	logger.WS_S_LOGGER.Printf("Node '%s' connected\n", clientUID)
+	logger.WS_S_LOGGER.Printf("Success: Node '%s' connected\n", clientUID)
 
 	// Handle incoming messages
 	for {
@@ -73,13 +73,13 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 		// Handle disconnected clients
 		_, messageData, err := conn.ReadMessage()
 		if err != nil {
-			logger.WS_F_LOGGER.Printf("Node '%s' disconnected, %v\n", clientUID, err)
+			logger.WS_F_LOGGER.Printf("Error: Node '%s' disconnected, %v\n", clientUID, err)
 			break
 		}
 
 		var msg WS_Req
 		if err := json.Unmarshal(messageData, &msg); err != nil {
-			logger.WS_F_LOGGER.Println("Error parsing message:", err)
+			logger.WS_F_LOGGER.Println("Error: Error parsing message:", err)
 			break
 		}
 
@@ -95,10 +95,10 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 
 			if founded_block_err == mongo.ErrNoDocuments {
 				// Not found any block with this hash
-				logger.WS_F_LOGGER.Printf("Not found block '%v'. Req from node '%v'", msg.Block.BlockHash, clientUID)
+				logger.WS_F_LOGGER.Printf("Error: Not found block '%v'. Req from node '%v'", msg.Block.BlockHash, clientUID)
 			} else {
 				// Send founded block
-				logger.WS_S_LOGGER.Printf("Send data of block '%v' to node '%v'", msg.Block.BlockHash, clientUID)
+				logger.WS_S_LOGGER.Printf("Success: Send data of block '%v' to node '%v'", msg.Block.BlockHash, clientUID)
 				res.IsSuccess = true
 			}
 
@@ -111,7 +111,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 
 			if structValidation_err != nil {
 				// Structure failed
-				logger.WS_F_LOGGER.Printf("Error in node '%v' message structure validation: , %v\n", clientUID, structValidation_err)
+				logger.WS_F_LOGGER.Printf("Error: Error in node '%v' message structure validation: , %v\n", clientUID, structValidation_err)
 			} else {
 
 				// check block validation
@@ -119,7 +119,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 
 				if validation_err != nil {
 					// Block validation failed
-					logger.WS_F_LOGGER.Printf("Error in node '%v' block validation: , %v\n", clientUID, validation_err)
+					logger.WS_F_LOGGER.Printf("Error: Error in node '%v' block validation: , %v\n", clientUID, validation_err)
 				} else {
 
 					// check hash
@@ -130,11 +130,37 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 
 						// Check preBlockHash
 						var founded_preHashBlock db.Block
-						founded_preHash_block_err := db.FindOneBlock(msg.Block.BlockHash, &founded_preHashBlock)
+						founded_preHash_block_err := db.FindOneBlock(msg.Block.BlockMeta.PreBlockHash, &founded_preHashBlock)
 
 						if founded_preHash_block_err != nil {
 							// No data about preBlockHash as blockHash in db
 							// Getting data of block from other nodes
+							blocksFromServers := ClientManagerVar.GetBlockFromServers(msg.Block.BlockMeta.PreBlockHash)
+
+							if len(blocksFromServers) == 0 {
+								// No data found at all!
+								logger.WS_F_LOGGER.Printf("Error: Cannot find blockPreHash data in other Nodes. Data from node %v and whole data is: %v", clientUID, msg)
+							} else {
+								// Found some data from other nodes
+								isIdentical := db.AreBlocksIdentical(blocksFromServers)
+
+								if isIdentical {
+									// identical blocks
+									preHashBlockValidation_err := db.BlockValidator(blocksFromServers[0])
+
+									if preHashBlockValidation_err != nil {
+										// NOT valid preBlock
+										logger.WS_F_LOGGER.Printf("Error: Error in preBlock data '%v' validation.", preHashBlockValidation_err)
+									} else {
+										//! Valid preBlock
+
+									}
+
+								} else {
+									// Not identical blocks
+									logger.WS_F_LOGGER.Printf("Error in finding blockPreHash data in other Nodes. Data from node %v and whole data is: %v", clientUID, msg)
+								}
+							}
 
 						} else {
 							// preBlockHash found in db
@@ -142,17 +168,17 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 
 							if !Block_insert_result {
 								// Internal error to add data to DB
-								logger.INTERNAL_LOGGER.Printf("Error in adding block '%v' to db from node '%v' : \n %v", msg.Block.BlockHash, clientUID, Block_insert_result_err)
+								logger.INTERNAL_LOGGER.Printf("Error: Error in adding block '%v' to db from node '%v' : \n %v", msg.Block.BlockHash, clientUID, Block_insert_result_err)
 							} else {
 								// Successfully added data to DB
-								logger.WS_F_LOGGER.Printf("Block '%v' successfully added from '%v' ", msg.Block.BlockHash, clientUID)
+								logger.WS_S_LOGGER.Printf("Success: Block '%v' successfully added from '%v' ", msg.Block.BlockHash, clientUID)
 								res.IsSuccess = true
 							}
 						}
 
 					} else {
 						// Block hash is NOT unique
-						logger.WS_F_LOGGER.Printf("Error in node '%v' block hash is not unique: , %v\n", clientUID, validation_err)
+						logger.WS_F_LOGGER.Printf("Error: Error in node '%v' block hash is not unique: , %v\n", clientUID, validation_err)
 					}
 				}
 			}

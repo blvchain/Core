@@ -1,6 +1,7 @@
 % BLVchain
     ! WebSocket
         - Test WebSocket
+        - add read and add block to other servers in client
 
     ! gRPC
         % Read data

@@ -119,10 +119,6 @@ func StructValidator(s interface{}) error {
 
 func AreBlocksIdentical(blocks []Block) bool {
 
-	if len(blocks) == 0 {
-		return false
-	}
-
 	firstBlock := blocks[0]
 
 	for _, block := range blocks[1:] {
