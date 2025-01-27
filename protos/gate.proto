@@ -44,15 +44,21 @@ service ReadData {
 }
 
 message ReadDataRequest {
-    string Method = 1;
-    string Filter = 2;
-    int32 Limit = 3;
-    int32 Skip = 4;
+    string senderUID = 1;
+    int64 senderRole = 2;
+    string receiverUID = 3;
+    int64 receiverRole = 4;
+    string blockHash = 5;
+    string preBlockHash = 6;
+    int64 timeStampFrom = 7;
+    int64 timeStampTo = 8;
+    int64 Limit = 9;
+    int64 Skip = 10;
 }
 
 message ReadDataResult {
     bool IsSuccess = 1;
     string Log = 2;
-    Block Data = 3;
+    repeated Block Data = 3;
 }
 

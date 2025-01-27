@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"blvchain/core/config"
-	"blvchain/core/utils"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -57,17 +56,10 @@ func FindOneBlock(blockHash string, result interface{}) error {
 	return nil
 }
 
-func FindManyBlocksLimited(filter primitive.M, skip string, limit string) ([]Block, error) {
+func FindManyBlocksLimited(filter primitive.M, skip int64, limit int64) ([]Block, error) {
 	var result []Block
 
-	if skip == "" {
-		skip = "0"
-	}
-	if limit == "" {
-		limit = "1"
-	}
-
-	findOptions := options.Find().SetSort(config.DESC).SetLimit(utils.StringToInt64(limit)).SetSkip(utils.StringToInt64(skip))
+	findOptions := options.Find().SetSort(config.DESC).SetLimit(limit).SetSkip(skip).SetProjection(bson.M{"_id": 0})
 	cursor, find_err := config.BLOCK_COLL.Find(context.TODO(), filter, findOptions)
 	if find_err != nil {
 		return result, find_err

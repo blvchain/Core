@@ -50,20 +50,23 @@ func validateAddDataRequest(req *BlockData) error {
 
 func validateReadDataRequest(req *ReadDataRequest) error {
 
-	if req.Filter == "" {
-		return errors.New("filter is required")
-	}
-
-	if req.Method == "" {
-		return errors.New("method is required")
-	}
-
-	if req.Limit < 0 {
-		return errors.New("limit must be bigger than zero")
+	if req.Limit < 0 || req.Limit > 100 {
+		return errors.New("limit must be between 1-100")
 	}
 
 	if req.Skip < 0 {
-		return errors.New("skip must be bigger than zero")
+		return errors.New("skip must be zero or bigger than zero")
+	}
+
+	if req.SenderUID == "" &&
+		req.SenderRole == 0 &&
+		req.ReceiverUID == "" &&
+		req.ReceiverRole == 0 &&
+		req.BlockHash == "" &&
+		req.PreBlockHash == "" &&
+		req.TimeStampFrom == 0 &&
+		req.TimeStampTo == 0 {
+		return errors.New("no filters provided in the request")
 	}
 
 	return nil

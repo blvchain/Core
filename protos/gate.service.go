@@ -58,7 +58,7 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 			// valid signature
 			// find last sernder block for make preHashBlock
 			var preBlockHash string
-			sender_last_blocks, sender_last_blocks_err := db.FindManyBlocksLimited(bson.M{"senderuid": req.SenderUID}, config.ZERO_STRING, config.ONE_STRING)
+			sender_last_blocks, sender_last_blocks_err := db.FindManyBlocksLimited(bson.M{"senderuid": req.SenderUID}, 0, 1)
 
 			if sender_last_blocks_err != nil {
 				logger.INTERNAL_LOGGER.Printf("Error: Error in finding many blocks for uid %v from api key %v", req.SenderUID, apiKey)
@@ -151,18 +151,55 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 	} else {
 		//* Valid data
 
-		// message ReadDataRequest {
-		// string Method = 1;
-		// string Filter = 2;
-		// int32 Limit = 3;
-		// int32 Skisp = 4;
-		// }
+		filter := bson.M{}
 
-		return &ReadDataResult{
-			IsSuccess: true,
-			Log:       "Read successful.",
-			// Data:      "Sample data...",
-		}, nil
+		if req.SenderUID != "" {
+			filter["blockData.senderUid"] = req.SenderUID
+		}
+		if req.SenderRole != 0 {
+			filter["blockData.senderRole"] = req.SenderRole
+		}
+		if req.ReceiverUID != "" {
+			filter["blockData.receiverUid"] = req.ReceiverUID
+		}
+		if req.ReceiverRole != 0 {
+			filter["blockData.receiverRole"] = req.ReceiverRole
+		}
+		if req.BlockHash != "" {
+			filter["blockHash"] = req.BlockHash
+		}
+		if req.PreBlockHash != "" {
+			filter["blockMeta.preBlockHash"] = req.PreBlockHash
+		}
+		if req.TimeStampFrom != 0 || req.TimeStampTo != 0 {
+			timeFilter := bson.M{}
+			if req.TimeStampFrom != 0 {
+				timeFilter["$gte"] = req.TimeStampFrom
+			}
+			if req.TimeStampTo != 0 {
+				timeFilter["$lte"] = req.TimeStampTo
+			}
+			filter["blockData.timeStamp"] = timeFilter
+		}
+
+		blocks, err := db.FindManyBlocksLimited(filter, req.Skip, req.Limit)
+
+		if err != nil {
+			// Not found any block with this hash
+			logger.WS_F_LOGGER.Printf("Error: Error in finding blocks based on request '%v', by api key '%v'", req, apiKey)
+			return &ReadDataResult{
+				IsSuccess: false,
+				Log:       err.Error(),
+			}, err
+		} else {
+			// Send founded block
+			logger.WS_S_LOGGER.Printf("Success: Send blocks to api key '%v'. Blocks: \n %v", apiKey, blocks)
+			return &ReadDataResult{
+				IsSuccess: true,
+				Log:       "",
+				Data:      blocks,
+			}, nil
+		}
+
 	}
-
 }
