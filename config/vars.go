@@ -18,6 +18,8 @@ var (
 
 	BLOCK_COLL *mongo.Collection
 
+	FIRST_BLOCK_HASH string
+
 	// Get vars form files
 	DELIUM_CONFIG = GetDeliumConfigFile()
 	DNS_SEED_LIST = GetDnsSeedListFile()

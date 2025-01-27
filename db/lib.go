@@ -41,6 +41,8 @@ func Genesis_check() (bool, error) {
 		}
 	}
 
+	config.FIRST_BLOCK_HASH = genesis_block.BlockHash
+
 	return true, nil
 }
 
@@ -63,15 +65,15 @@ func BlockHashMaker(b *Block) {
 	b.BlockHash = utils.D256(blockMetaRoot+blockDataRoot, config.DELIUM_CONFIG.HASH.DELETE_STEP, config.DELIUM_CONFIG.HASH.REPEAT).String
 }
 
-func MessageMaker(b Block) string {
-	return b.BlockData.SenderUID +
-		utils.Int64ToStr(b.BlockData.SenderRole) +
-		b.BlockData.SenderPubKey +
-		b.BlockData.Signature +
-		b.BlockData.ReceiverUID +
-		utils.Int64ToStr(b.BlockData.ReceiverRole) +
-		b.BlockData.Data +
-		utils.Int64ToStr(b.BlockData.TimeStamp)
+func MessageMaker(b BlockData) string {
+	return b.SenderUID +
+		utils.Int64ToStr(b.SenderRole) +
+		b.SenderPubKey +
+		b.Signature +
+		b.ReceiverUID +
+		utils.Int64ToStr(b.ReceiverRole) +
+		b.Data +
+		utils.Int64ToStr(b.TimeStamp)
 }
 
 func BlockValidator(block Block) error {
@@ -83,7 +85,7 @@ func BlockValidator(block Block) error {
 		return errors.New("hash not match")
 	}
 
-	message := MessageMaker(block)
+	message := MessageMaker(block.BlockData)
 	valid, _ := utils.Verify(block.BlockData.SenderPubKey, message, block.BlockData.Signature)
 
 	if !valid {

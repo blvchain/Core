@@ -1,16 +1,17 @@
 % BLVchain
     ! WebSocket
         - Test WebSocket
-        - add read and add block to other servers in client
+        x add read and add block to other servers in client
 
     ! gRPC
         % Read data
             - get data and return if it exists
             - get data from other nodes and save it and return if data is not exists
+            - Define methods of request
 
         % Add data
-            - Add data if it is valid
-            - Send added data to other nodes
+            x Add data if it is valid
+            x Send added data to other nodes
 
         x Make auth protection
 
