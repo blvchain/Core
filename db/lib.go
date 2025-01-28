@@ -69,7 +69,6 @@ func MessageMaker(b BlockData) string {
 	return b.SenderUID +
 		utils.Int64ToStr(b.SenderRole) +
 		b.SenderPubKey +
-		b.Signature +
 		b.ReceiverUID +
 		utils.Int64ToStr(b.ReceiverRole) +
 		b.Data +

@@ -41,11 +41,12 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 		message := req.SenderUID +
 			utils.Int64ToStr(req.SenderRole) +
 			req.SenderPubKey +
-			req.Signature +
 			req.ReceiverUID +
 			utils.Int64ToStr(req.ReceiverRole) +
 			req.Data +
 			utils.Int64ToStr(req.TimeStamp)
+
+		fmt.Println(message)
 
 		valid, _ := utils.Verify(req.SenderPubKey, message, req.Signature)
 
@@ -60,18 +61,18 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 			// valid signature
 			// find last sernder block for make preHashBlock
 			var preBlockHash string
-			sender_last_blocks, sender_last_blocks_err := db.FindManyBlocksLimited(bson.M{"senderuid": req.SenderUID}, 0, 1)
+			sender_last_blocks, sender_last_blocks_err := db.FindManyBlocksLimited(bson.M{"blockData.senderUid": req.SenderUID}, 0, 1)
 
 			if sender_last_blocks_err != nil {
-				logger.INTERNAL_LOGGER.Printf("Error: Error in finding many blocks for uid %v from api key %v", req.SenderUID, apiKey)
-				return &AddDataResult{
-					IsSuccess: false,
-					Log:       "Internal server error",
-				}, nil
-			}
-
-			if len(sender_last_blocks) == 0 {
-				preBlockHash = config.FIRST_BLOCK_HASH
+				if sender_last_blocks_err == mongo.ErrNoDocuments {
+					preBlockHash = config.FIRST_BLOCK_HASH
+				} else {
+					logger.INTERNAL_LOGGER.Printf("Error: Error in finding many blocks for uid %v from api key %v. Error: %v", req.SenderUID, apiKey, sender_last_blocks_err)
+					return &AddDataResult{
+						IsSuccess: false,
+						Log:       "Internal server error",
+					}, nil
+				}
 			} else {
 				preBlockHash = sender_last_blocks[0].BlockHash
 			}

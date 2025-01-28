@@ -5,13 +5,10 @@
 
     ! gRPC
         % Read data
-            x get data and return if it NOT exists
-            x (It cuse attack, so not needed) get data from other nodes and save it and return if data is not exists
-            x Define methods of request
+            x Test and debug
 
         % Add data
-            x Add data if it is valid
-            x Send added data to other nodes
+            - Test and debug
 
         x Make auth protection
 
