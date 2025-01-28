@@ -185,21 +185,53 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 		blocks, err := db.FindManyBlocksLimited(filter, req.Skip, req.Limit)
 
 		if err != nil {
-			// Not found any block with this hash
+			// Error in finding blocks
 			logger.WS_F_LOGGER.Printf("Error: Error in finding blocks based on request '%v', by api key '%v'", req, apiKey)
 			return &ReadDataResult{
 				IsSuccess: false,
 				Log:       err.Error(),
 			}, err
 		} else {
-			// Send founded block
-			logger.WS_S_LOGGER.Printf("Success: Send blocks to api key '%v'. Blocks: \n %v", apiKey, blocks)
-			return &ReadDataResult{
-				IsSuccess: true,
-				Log:       "",
-				Data:      blocks,
-			}, nil
-		}
 
+			if len(blocks) == 0 {
+				// Not found any block with this hash
+				logger.WS_S_LOGGER.Printf("Success: Not found any block with details '%v' for api key '%v'", req, apiKey)
+				return &ReadDataResult{
+					IsSuccess: true,
+					Log:       "Not found any block with these details",
+				}, nil
+
+			} else {
+				// Send founded block
+				var grpcBlocks []*Block
+				for _, dbBlock := range blocks {
+					grpcBlocks = append(grpcBlocks, &Block{
+						BlockHash: dbBlock.BlockHash,
+						BlockMeta: &BlockMeta{
+							PreBlockHash: dbBlock.BlockMeta.PreBlockHash,
+							NodeUID:      dbBlock.BlockMeta.NodeUID,
+							TimeStamp:    dbBlock.BlockMeta.TimeStamp,
+						},
+						BlockData: &BlockData{
+							SenderUID:    dbBlock.BlockData.SenderUID,
+							SenderRole:   dbBlock.BlockData.SenderRole,
+							SenderPubKey: dbBlock.BlockData.SenderPubKey,
+							Signature:    dbBlock.BlockData.Signature,
+							ReceiverUID:  dbBlock.BlockData.ReceiverUID,
+							ReceiverRole: dbBlock.BlockData.ReceiverRole,
+							Data:         dbBlock.BlockData.Data,
+							TimeStamp:    dbBlock.BlockData.TimeStamp,
+						},
+					})
+				}
+
+				logger.WS_S_LOGGER.Printf("Success: Send blocks to api key '%v'. Blocks: \n %v", apiKey, blocks)
+				return &ReadDataResult{
+					IsSuccess: true,
+					Log:       "",
+					Data:      grpcBlocks,
+				}, nil
+			}
+		}
 	}
 }
