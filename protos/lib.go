@@ -60,10 +60,12 @@ func validateReadDataRequest(req *ReadDataRequest) error {
 
 	if req.SenderUID == "" &&
 		req.SenderRole == 0 &&
+		req.SenderPubKey == "" &&
 		req.ReceiverUID == "" &&
 		req.ReceiverRole == 0 &&
 		req.BlockHash == "" &&
 		req.PreBlockHash == "" &&
+		req.NodeUID == "" &&
 		req.TimeStampFrom == 0 &&
 		req.TimeStampTo == 0 {
 		return errors.New("no filters provided in the request")

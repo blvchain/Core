@@ -2,7 +2,7 @@ package db
 
 type BlockMeta struct {
 	PreBlockHash string `bson:"preBlockHash,omitempty"`
-	NodeUID      string `bson:"nodeId,omitempty"`
+	NodeUID      string `bson:"nodeUid,omitempty"`
 	TimeStamp    int64  `bson:"timeStamp,omitempty"`
 }
 

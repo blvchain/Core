@@ -7,8 +7,10 @@ import (
 	"blvchain/core/utils"
 	"blvchain/core/ws"
 	context "context"
+	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 )
@@ -134,6 +136,7 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 	// Check auth from metadata
 	apiKey, auth_err := validateAuth(ctx)
 	if auth_err != nil {
+		logger.GRPC_F_LOGGER.Println("Auth failed:", auth_err)
 		return &ReadDataResult{
 			IsSuccess: false,
 			Log:       auth_err.Error(),
@@ -151,25 +154,31 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 	} else {
 		//* Valid data
 
-		filter := bson.M{}
+		filter := []bson.M{}
 
 		if req.SenderUID != "" {
-			filter["blockData.senderUid"] = req.SenderUID
+			filter = append(filter, bson.M{"blockData.senderUid": req.SenderUID})
 		}
 		if req.SenderRole != 0 {
-			filter["blockData.senderRole"] = req.SenderRole
+			filter = append(filter, bson.M{"blockData.senderRole": req.SenderRole})
+		}
+		if req.SenderPubKey != "" {
+			filter = append(filter, bson.M{"blockData.senderPubKey": req.SenderPubKey})
 		}
 		if req.ReceiverUID != "" {
-			filter["blockData.receiverUid"] = req.ReceiverUID
+			filter = append(filter, bson.M{"blockData.receiverUid": req.ReceiverUID})
 		}
 		if req.ReceiverRole != 0 {
-			filter["blockData.receiverRole"] = req.ReceiverRole
+			filter = append(filter, bson.M{"blockData.receiverRole": req.ReceiverRole})
 		}
 		if req.BlockHash != "" {
-			filter["blockHash"] = req.BlockHash
+			filter = append(filter, bson.M{"blockHash": req.BlockHash})
 		}
 		if req.PreBlockHash != "" {
-			filter["blockMeta.preBlockHash"] = req.PreBlockHash
+			filter = append(filter, bson.M{"blockMeta.preBlockHash": req.PreBlockHash})
+		}
+		if req.NodeUID != "" {
+			filter = append(filter, bson.M{"blockMeta.nodeUid": req.NodeUID})
 		}
 		if req.TimeStampFrom != 0 || req.TimeStampTo != 0 {
 			timeFilter := bson.M{}
@@ -179,59 +188,62 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 			if req.TimeStampTo != 0 {
 				timeFilter["$lte"] = req.TimeStampTo
 			}
-			filter["blockData.timeStamp"] = timeFilter
+			filter = append(filter, bson.M{"blockData.timeStamp": timeFilter})
 		}
 
-		blocks, err := db.FindManyBlocksLimited(filter, req.Skip, req.Limit)
+		fmt.Println(filter)
+
+		blocks, err := db.FindManyBlocksLimited(bson.M{"$and": filter}, req.Skip, req.Limit)
 
 		if err != nil {
-			// Error in finding blocks
-			logger.WS_F_LOGGER.Printf("Error: Error in finding blocks based on request '%v', by api key '%v'", req, apiKey)
-			return &ReadDataResult{
-				IsSuccess: false,
-				Log:       err.Error(),
-			}, err
-		} else {
 
-			if len(blocks) == 0 {
+			if err == mongo.ErrNoDocuments {
 				// Not found any block with this hash
 				logger.WS_S_LOGGER.Printf("Success: Not found any block with details '%v' for api key '%v'", req, apiKey)
 				return &ReadDataResult{
 					IsSuccess: true,
 					Log:       "Not found any block with these details",
 				}, nil
-
 			} else {
-				// Send founded block
-				var grpcBlocks []*Block
-				for _, dbBlock := range blocks {
-					grpcBlocks = append(grpcBlocks, &Block{
-						BlockHash: dbBlock.BlockHash,
-						BlockMeta: &BlockMeta{
-							PreBlockHash: dbBlock.BlockMeta.PreBlockHash,
-							NodeUID:      dbBlock.BlockMeta.NodeUID,
-							TimeStamp:    dbBlock.BlockMeta.TimeStamp,
-						},
-						BlockData: &BlockData{
-							SenderUID:    dbBlock.BlockData.SenderUID,
-							SenderRole:   dbBlock.BlockData.SenderRole,
-							SenderPubKey: dbBlock.BlockData.SenderPubKey,
-							Signature:    dbBlock.BlockData.Signature,
-							ReceiverUID:  dbBlock.BlockData.ReceiverUID,
-							ReceiverRole: dbBlock.BlockData.ReceiverRole,
-							Data:         dbBlock.BlockData.Data,
-							TimeStamp:    dbBlock.BlockData.TimeStamp,
-						},
-					})
-				}
-
-				logger.WS_S_LOGGER.Printf("Success: Send blocks to api key '%v'. Blocks: \n %v", apiKey, blocks)
+				// Error in finding blocks
+				logger.WS_F_LOGGER.Printf("Error: Error in finding blocks based on request '%v', by api key '%v'. Error: %v", req, apiKey, err)
 				return &ReadDataResult{
-					IsSuccess: true,
-					Log:       "",
-					Data:      grpcBlocks,
-				}, nil
+					IsSuccess: false,
+					Log:       err.Error(),
+				}, err
 			}
+
+		} else {
+
+			// Send founded block
+			var grpcBlocks []*Block
+			for _, dbBlock := range blocks {
+				grpcBlocks = append(grpcBlocks, &Block{
+					BlockHash: dbBlock.BlockHash,
+					BlockMeta: &BlockMeta{
+						PreBlockHash: dbBlock.BlockMeta.PreBlockHash,
+						NodeUID:      dbBlock.BlockMeta.NodeUID,
+						TimeStamp:    dbBlock.BlockMeta.TimeStamp,
+					},
+					BlockData: &BlockData{
+						SenderUID:    dbBlock.BlockData.SenderUID,
+						SenderRole:   dbBlock.BlockData.SenderRole,
+						SenderPubKey: dbBlock.BlockData.SenderPubKey,
+						Signature:    dbBlock.BlockData.Signature,
+						ReceiverUID:  dbBlock.BlockData.ReceiverUID,
+						ReceiverRole: dbBlock.BlockData.ReceiverRole,
+						Data:         dbBlock.BlockData.Data,
+						TimeStamp:    dbBlock.BlockData.TimeStamp,
+					},
+				})
+			}
+
+			logger.WS_S_LOGGER.Printf("Success: Send blocks to api key '%v'. Blocks: \n %v", apiKey, blocks)
+			return &ReadDataResult{
+				IsSuccess: true,
+				Log:       "",
+				Data:      grpcBlocks,
+			}, nil
 		}
 	}
 }

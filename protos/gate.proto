@@ -44,16 +44,19 @@ service ReadData {
 }
 
 message ReadDataRequest {
-    string senderUID = 1;
-    int64 senderRole = 2;
-    string receiverUID = 3;
-    int64 receiverRole = 4;
-    string blockHash = 5;
-    string preBlockHash = 6;
-    int64 timeStampFrom = 7;
-    int64 timeStampTo = 8;
-    int64 Limit = 9;
-    int64 Skip = 10;
+    int64 Limit = 1;
+    int64 Skip = 2;
+    string SenderUID = 3;
+    int64 SenderRole = 4;
+    string SenderPubKey = 5;
+    string ReceiverUID = 6;
+    int64 ReceiverRole = 7;
+    string BlockHash = 8;
+    string PreBlockHash = 9;
+    string NodeUID = 10;
+    int64 TimeStampFrom = 11;
+    int64 TimeStampTo = 12;
+
 }
 
 message ReadDataResult {
