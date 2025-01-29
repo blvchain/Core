@@ -24,4 +24,9 @@ var (
 	DELIUM_CONFIG = GetDeliumConfigFile()
 	DNS_SEED_LIST = GetDnsSeedListFile()
 	API_KEY_LIST  = GetApiKeyFile()
+
+	// Terminal variables
+	DATABASE_NAME  = DefineENV("DB", "BLVchain")
+	WEBSOCKET_PORT = DefineENV("WP", ":8080")
+	GRPC_PORT      = DefineENV("GP", ":50051")
 )

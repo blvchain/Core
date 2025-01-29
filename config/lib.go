@@ -76,3 +76,12 @@ func GetApiKeyFile() map[string]bool {
 
 	return allowedClients
 }
+
+func DefineENV(name string, defaultValue string) string {
+	port := os.Getenv(name)
+	if port == "" {
+		port = defaultValue
+	}
+
+	return port
+}

@@ -1,0 +1,1 @@
+DB=BLVchain3 WP=:8083 GP=:50053 go run main.go
