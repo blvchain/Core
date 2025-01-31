@@ -4,6 +4,7 @@ import (
 	"blvchain/core/db"
 	"blvchain/core/logger"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -116,6 +117,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 
 				// check block validation
 				validation_err := db.BlockValidator(msg.Block)
+				fmt.Println(msg)
 
 				if validation_err != nil {
 					// Block validation failed

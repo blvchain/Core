@@ -7,7 +7,6 @@ import (
 	"blvchain/core/utils"
 	"blvchain/core/ws"
 	context "context"
-	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -45,8 +44,6 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 			utils.Int64ToStr(req.ReceiverRole) +
 			req.Data +
 			utils.Int64ToStr(req.TimeStamp)
-
-		fmt.Println(message)
 
 		valid, _ := utils.Verify(req.SenderPubKey, message, req.Signature)
 
@@ -191,8 +188,6 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 			}
 			filter = append(filter, bson.M{"blockData.timeStamp": timeFilter})
 		}
-
-		fmt.Println(filter)
 
 		blocks, err := db.FindManyBlocksLimited(bson.M{"$and": filter}, req.Skip, req.Limit)
 

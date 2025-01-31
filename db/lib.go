@@ -29,7 +29,24 @@ func Genesis_check() (bool, error) {
 			TimeStamp:    config.GENESIS_TIMESTAMP,
 		},
 	}
-	BlockHashMaker(&genesis_block)
+
+	// creating genesis block hash
+	genesis_block.BlockMeta.NodeUID = config.GENESIS_NODE_UID
+
+	blockMetaRoot := genesis_block.BlockMeta.PreBlockHash +
+		genesis_block.BlockMeta.NodeUID +
+		utils.Int64ToStr(genesis_block.BlockMeta.TimeStamp)
+
+	blockDataRoot := genesis_block.BlockData.SenderUID +
+		utils.Int64ToStr(genesis_block.BlockData.SenderRole) +
+		genesis_block.BlockData.SenderPubKey +
+		genesis_block.BlockData.Signature +
+		genesis_block.BlockData.ReceiverUID +
+		utils.Int64ToStr(genesis_block.BlockData.ReceiverRole) +
+		genesis_block.BlockData.Data +
+		utils.Int64ToStr(genesis_block.BlockData.TimeStamp)
+
+	genesis_block.BlockHash = utils.D256(blockMetaRoot+blockDataRoot, config.DELIUM_CONFIG.HASH.DELETE_STEP, config.DELIUM_CONFIG.HASH.REPEAT).String
 
 	db_genesis_blocks, _ := FindAllBlocks(bson.M{"blockMeta.preBlockHash": config.GENESIS_BLOCK_PREHASH})
 

@@ -59,7 +59,7 @@ func main() {
 		go func() {
 
 			//* Connect to other servers
-			// ws.ClientManagerVar.ConnectToServers(config.DNS_SEED_LIST)
+			ws.ClientManagerVar.ConnectToServers(config.DNS_SEED_LIST)
 
 			//* Local server gateways
 			http.HandleFunc("/", ws.WS_Server_Handler)
@@ -73,9 +73,9 @@ func main() {
 		}()
 
 		// Monitor and reconnect to missed nodes
-		// go func() {
-		// 	ws.MonitorAndReconnectToServers(&ws.ClientManagerVar)
-		// }()
+		go func() {
+			ws.MonitorAndReconnectToServers(&ws.ClientManagerVar)
+		}()
 
 		// Prevent main from exiting
 		select {}
