@@ -1,19 +1,17 @@
 % BLVchain
     ! WebSocket
-        - Test WebSocket
-        x add read and add block to other servers in client
+        - Debug reconnect to nodes that lost connection
+
 
     ! gRPC
         % Read data
-            x Test and debug
+            - add read data type of ws to grpc too
+            - add get data from other nodes with ws if not exists
 
         % Add data
-            x Test and debug
+            - get prehashblock data from other nodes if not exists
 
         x Make auth protection
-
-    ! DB
-        x (NOT needed) Add replicaSat for mongodb
 
     ! General
         - Add config file for builded app and make path for it

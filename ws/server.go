@@ -4,7 +4,6 @@ import (
 	"blvchain/core/db"
 	"blvchain/core/logger"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -117,7 +116,6 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 
 				// check block validation
 				validation_err := db.BlockValidator(msg.Block)
-				fmt.Println(msg)
 
 				if validation_err != nil {
 					// Block validation failed
@@ -134,7 +132,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 						var founded_preHashBlock db.Block
 						founded_preHash_block_err := db.FindOneBlock(msg.Block.BlockMeta.PreBlockHash, &founded_preHashBlock)
 
-						if founded_preHash_block_err != nil {
+						if founded_preHash_block_err == mongo.ErrNoDocuments {
 							// No data about preBlockHash as blockHash in db
 							// Getting data of block from other nodes
 							blocksFromServers := ClientManagerVar.GetBlockFromServers(msg.Block.BlockMeta.PreBlockHash)
