@@ -31,22 +31,7 @@ func Genesis_check() (bool, error) {
 	}
 
 	// creating genesis block hash
-	genesis_block.BlockMeta.NodeUID = config.GENESIS_NODE_UID
-
-	blockMetaRoot := genesis_block.BlockMeta.PreBlockHash +
-		genesis_block.BlockMeta.NodeUID +
-		utils.Int64ToStr(genesis_block.BlockMeta.TimeStamp)
-
-	blockDataRoot := genesis_block.BlockData.SenderUID +
-		utils.Int64ToStr(genesis_block.BlockData.SenderRole) +
-		genesis_block.BlockData.SenderPubKey +
-		genesis_block.BlockData.Signature +
-		genesis_block.BlockData.ReceiverUID +
-		utils.Int64ToStr(genesis_block.BlockData.ReceiverRole) +
-		genesis_block.BlockData.Data +
-		utils.Int64ToStr(genesis_block.BlockData.TimeStamp)
-
-	genesis_block.BlockHash = utils.D256(blockMetaRoot+blockDataRoot, config.DELIUM_CONFIG.HASH.DELETE_STEP, config.DELIUM_CONFIG.HASH.REPEAT).String
+	BlockHashMaker(&genesis_block, config.GENESIS_NODE_UID)
 
 	db_genesis_blocks, _ := FindAllBlocks(bson.M{"blockMeta.preBlockHash": config.GENESIS_BLOCK_PREHASH})
 
@@ -63,8 +48,8 @@ func Genesis_check() (bool, error) {
 	return true, nil
 }
 
-func BlockHashMaker(b *Block) {
-	b.BlockMeta.NodeUID = config.SELF_UID
+func BlockHashMaker(b *Block, nodeUID string) {
+	b.BlockMeta.NodeUID = nodeUID
 
 	blockMetaRoot := b.BlockMeta.PreBlockHash +
 		b.BlockMeta.NodeUID +
@@ -95,7 +80,7 @@ func MessageMaker(b BlockData) string {
 func BlockValidator(block Block) error {
 	testBlock := block
 
-	BlockHashMaker(&testBlock)
+	BlockHashMaker(&testBlock, block.BlockMeta.NodeUID)
 
 	if block.BlockHash != testBlock.BlockHash {
 		return errors.New("hash not match")

@@ -92,7 +92,7 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 					TimeStamp:    req.TimeStamp,
 				},
 			}
-			db.BlockHashMaker(&block)
+			db.BlockHashMaker(&block, block.BlockMeta.NodeUID)
 
 			db_blocks, _ := db.FindAllBlocks(bson.M{"blockHash": block.BlockHash})
 
