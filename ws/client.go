@@ -74,19 +74,25 @@ func MonitorAndReconnectToServers(cm *ClientManager) {
 		cm.mutex.Lock()
 
 		for _, dns_seed := range config.DNS_SEED_LIST {
-			if cm.servers[dns_seed.UID] == nil { // If the server is disconnected
-				if dns_seed.UID != config.SELF_UID {
-					logger.WS_F_LOGGER.Printf("Attempting to reconnect to server: %v", dns_seed.Address)
 
-					conn, _, err := websocket.DefaultDialer.Dial(wsAddressMaker(dns_seed.Address), nil)
-					if err != nil {
-						logger.WS_F_LOGGER.Printf("Failed to connect to server %s (%s): %v\n", dns_seed.UID, dns_seed.Address, err)
-					} else {
-						cm.servers[dns_seed.UID] = conn
-						logger.WS_S_LOGGER.Printf("Connected to server %s (%s)\n", dns_seed.UID, dns_seed.Address)
-					}
+			// Check the connection
+			var pingError error = nil
+			conn, ok := cm.servers[dns_seed.UID]
+
+			if ok {
+				pingError = conn.WriteMessage(websocket.PingMessage, []byte{})
+			}
+
+			if (cm.servers[dns_seed.UID] == nil || pingError != nil) && dns_seed.UID != config.SELF_UID {
+				// If the server is disconnected
+				logger.WS_F_LOGGER.Printf("Attempting to reconnect to server: %v", dns_seed.Address)
+
+				conn, _, err := websocket.DefaultDialer.Dial(wsAddressMaker(dns_seed.Address), nil)
+				if err != nil {
+					logger.WS_F_LOGGER.Printf("Failed to connect to server %s (%s): %v\n", dns_seed.UID, dns_seed.Address, err)
 				} else {
-					continue
+					cm.servers[dns_seed.UID] = conn
+					logger.WS_S_LOGGER.Printf("Connected to server %s (%s)\n", dns_seed.UID, dns_seed.Address)
 				}
 			}
 		}

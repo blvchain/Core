@@ -1,6 +1,6 @@
 % BLVchain
     ! WebSocket
-        - Debug reconnect to nodes that lost connection
+        x Debug reconnect to nodes that lost connection
 
 
     ! gRPC

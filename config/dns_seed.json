@@ -1,10 +1,10 @@
 [
     {
-        "UID": "testuid1",
+        "UID": "testuid2",
         "Address": "ws://localhost:8082"
     },
     {
-        "UID": "testuid2",
+        "UID": "testuid3",
         "Address": "ws://localhost:8083"
     }
 ]
