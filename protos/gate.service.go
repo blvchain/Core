@@ -49,7 +49,7 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 
 		if !valid {
 			// Block validation failed
-			logger.WS_F_LOGGER.Printf("WARNING!!!: Error in data %v signature validation from %v", req, apiKey)
+			logger.GRPC_F_LOGGER.Printf("WARNING!!!: Error in data %v signature validation from %v", req, apiKey)
 			return &AddDataResult{
 				IsSuccess: false,
 				Log:       "Signature validation failed",
@@ -57,12 +57,12 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 		} else {
 			// valid signature
 			// find last sernder block for make preHashBlock
-			var preBlockHash string
+			var preBlock db.Block
 			sender_last_blocks, sender_last_blocks_err := db.FindManyBlocksLimited(bson.M{"blockData.senderUid": req.SenderUID}, 0, 1)
 
 			if sender_last_blocks_err != nil {
 				if sender_last_blocks_err == mongo.ErrNoDocuments {
-					preBlockHash = config.FIRST_BLOCK_HASH
+					preBlock.BlockHash = config.FIRST_BLOCK_HASH
 				} else {
 					logger.INTERNAL_LOGGER.Printf("Error: Error in finding many blocks for uid %v from api key %v. Error: %v", req.SenderUID, apiKey, sender_last_blocks_err)
 					return &AddDataResult{
@@ -71,13 +71,13 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 					}, nil
 				}
 			} else {
-				preBlockHash = sender_last_blocks[0].BlockHash
+				preBlock = sender_last_blocks[0]
 			}
 
 			// make block to add in db
 			var block db.Block = db.Block{
 				BlockMeta: db.BlockMeta{
-					PreBlockHash: preBlockHash,
+					PreBlockHash: preBlock.BlockHash,
 					NodeUID:      config.SELF_UID,
 					TimeStamp:    utils.NowTimeInt64UnixMilli(),
 				},
@@ -193,7 +193,7 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 
 		if err != nil {
 
-			if err == mongo.ErrNoDocuments {
+			if err == mongo.ErrNoDocuments || len(blocks) == 0 {
 				// Not found any block with this hash
 				logger.WS_S_LOGGER.Printf("Success: Not found any block with details '%v' for api key '%v'", req, apiKey)
 				return &ReadDataResult{
@@ -202,7 +202,7 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 				}, nil
 			} else {
 				// Error in finding blocks
-				logger.WS_F_LOGGER.Printf("Error: Error in finding blocks based on request '%v', by api key '%v'. Error: %v", req, apiKey, err)
+				logger.GRPC_F_LOGGER.Printf("Error: Error in finding blocks based on request '%v', by api key '%v'. Error: %v", req, apiKey, err)
 				return &ReadDataResult{
 					IsSuccess: false,
 					Log:       err.Error(),

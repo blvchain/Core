@@ -91,15 +91,43 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 		//* Get block data
 		if msg.Method == "get" {
 
-			founded_block_err := db.FindOneBlock(msg.Block.BlockHash, &res.Block)
+			filter := []bson.M{}
 
-			if founded_block_err == mongo.ErrNoDocuments {
+			if msg.Block.BlockData.SenderUID != "" {
+				filter = append(filter, bson.M{"blockData.senderUid": msg.Block.BlockData.SenderUID})
+			}
+			if msg.Block.BlockData.SenderRole != 0 {
+				filter = append(filter, bson.M{"blockData.senderRole": msg.Block.BlockData.SenderRole})
+			}
+			if msg.Block.BlockData.SenderPubKey != "" {
+				filter = append(filter, bson.M{"blockData.senderPubKey": msg.Block.BlockData.SenderPubKey})
+			}
+			if msg.Block.BlockData.ReceiverUID != "" {
+				filter = append(filter, bson.M{"blockData.receiverUid": msg.Block.BlockData.ReceiverUID})
+			}
+			if msg.Block.BlockData.ReceiverRole != 0 {
+				filter = append(filter, bson.M{"blockData.receiverRole": msg.Block.BlockData.ReceiverRole})
+			}
+			if msg.Block.BlockHash != "" {
+				filter = append(filter, bson.M{"blockHash": msg.Block.BlockHash})
+			}
+			if msg.Block.BlockMeta.PreBlockHash != "" {
+				filter = append(filter, bson.M{"blockMeta.preBlockHash": msg.Block.BlockMeta.PreBlockHash})
+			}
+			if msg.Block.BlockMeta.NodeUID != "" {
+				filter = append(filter, bson.M{"blockMeta.nodeUid": msg.Block.BlockMeta.NodeUID})
+			}
+
+			founded_block, founded_block_err := db.FindManyBlocksLimited(bson.M{"$and": filter}, 0, 1)
+
+			if founded_block_err == mongo.ErrNoDocuments || len(founded_block) == 0 {
 				// Not found any block with this hash
 				logger.WS_F_LOGGER.Printf("Error: Not found block '%v'. Req from node '%v'", msg.Block.BlockHash, clientUID)
 			} else {
 				// Send founded block
 				logger.WS_S_LOGGER.Printf("Success: Send data of block '%v' to node '%v'", msg.Block.BlockHash, clientUID)
 				res.IsSuccess = true
+				res.Block = founded_block[0]
 			}
 
 		}
@@ -127,75 +155,16 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 
 					if len(founded_blocks) == 0 {
 						// Block hash is unique
+						// preBlockHash found in db
+						Block_insert_result, Block_insert_result_err := db.InsertOneBlock(msg.Block)
 
-						// Check preBlockHash
-						var founded_preHashBlock db.Block
-						founded_preHash_block_err := db.FindOneBlock(msg.Block.BlockMeta.PreBlockHash, &founded_preHashBlock)
-
-						if founded_preHash_block_err == mongo.ErrNoDocuments {
-							// No data about preBlockHash as blockHash in db
-							// Getting data of block from other nodes
-							blocksFromServers := ClientManagerVar.GetBlockFromServers(msg.Block.BlockMeta.PreBlockHash)
-
-							if len(blocksFromServers) == 0 {
-								// No data found at all!
-								logger.WS_F_LOGGER.Printf("WARNING!!!: Cannot find blockPreHash data in other Nodes. Data from node %v and whole data is: %v", clientUID, msg)
-							} else {
-								// Found some data from other nodes
-								isIdentical := db.AreBlocksIdentical(blocksFromServers)
-
-								if isIdentical {
-									// identical blocks
-									preHashBlockValidation_err := db.BlockValidator(blocksFromServers[0])
-
-									if preHashBlockValidation_err != nil {
-										// NOT valid preBlock
-										logger.WS_F_LOGGER.Printf("WARNING!!!: Error in preBlock data '%v' validation.", preHashBlockValidation_err)
-									} else {
-										// Valid preBlock
-										// Add preBlock to local db
-										preBlock_insert_result, preBlock_insert_result_err := db.InsertOneBlock(blocksFromServers[0])
-
-										if !preBlock_insert_result {
-											// Internal error to add preBlock to DB
-											logger.INTERNAL_LOGGER.Printf("Error: Error in adding preBlock '%v' to db from other nodes. Insert error:\n %v", blocksFromServers[0].BlockHash, preBlock_insert_result_err)
-										} else {
-											// Successfully added preBlock to DB
-											logger.WS_S_LOGGER.Printf("Success: preBlock '%v' successfully added from other nodes.", blocksFromServers[0].BlockHash)
-										}
-
-										// Add Block to local db
-										Block_insert_result, Block_insert_result_err := db.InsertOneBlock(msg.Block)
-
-										if !Block_insert_result {
-											// Internal error to add data to DB
-											logger.INTERNAL_LOGGER.Printf("Error: Error in adding block '%v' to db from node '%v' : \n %v", msg.Block.BlockHash, clientUID, Block_insert_result_err)
-										} else {
-											// Successfully added data to DB
-											logger.WS_S_LOGGER.Printf("Success: Block '%v' successfully added from '%v' ", msg.Block.BlockHash, clientUID)
-											res.IsSuccess = true
-										}
-
-									}
-
-								} else {
-									// Not identical blocks
-									logger.WS_F_LOGGER.Printf("WARNING!!!: Error in identicalation blockPreHash data from other Nodes. Blocks:\n %v ", blocksFromServers)
-								}
-							}
-
+						if !Block_insert_result {
+							// Internal error to add data to DB
+							logger.INTERNAL_LOGGER.Printf("Error: Error in adding block '%v' to db from node '%v' : \n %v", msg.Block.BlockHash, clientUID, Block_insert_result_err)
 						} else {
-							// preBlockHash found in db
-							Block_insert_result, Block_insert_result_err := db.InsertOneBlock(msg.Block)
-
-							if !Block_insert_result {
-								// Internal error to add data to DB
-								logger.INTERNAL_LOGGER.Printf("Error: Error in adding block '%v' to db from node '%v' : \n %v", msg.Block.BlockHash, clientUID, Block_insert_result_err)
-							} else {
-								// Successfully added data to DB
-								logger.WS_S_LOGGER.Printf("Success: Block '%v' successfully added from '%v' ", msg.Block.BlockHash, clientUID)
-								res.IsSuccess = true
-							}
+							// Successfully added data to DB
+							logger.WS_S_LOGGER.Printf("Success: Block '%v' successfully added from '%v' ", msg.Block.BlockHash, clientUID)
+							res.IsSuccess = true
 						}
 
 					} else {
