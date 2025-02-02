@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"blvchain/core/config"
 	"blvchain/core/db"
 	"blvchain/core/logger"
 	"encoding/json"
@@ -83,13 +84,13 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		// Make response var
-		var res WS_Res = WS_Res{
-			IsSuccess: false,
-		}
-
 		//* Get block data
 		if msg.Method == "get" {
+
+			// Make response var
+			var res WS_Res = WS_Res{
+				IsSuccess: false,
+			}
 
 			filter := []bson.M{}
 
@@ -130,10 +131,18 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 				res.Block = founded_block[0]
 			}
 
+			// Send response to client
+			messanger(res, conn, clientUID)
 		}
 
 		//* Add new block
 		if msg.Method == "add" {
+
+			// Make response var
+			var res WS_Res = WS_Res{
+				IsSuccess: false,
+			}
+
 			// check all data validation
 			structValidation_err := db.StructValidator(msg.Block)
 
@@ -173,9 +182,33 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 			}
+
+			// Send response to client
+			messanger(res, conn, clientUID)
 		}
 
-		//* Send response to client
-		messanger(res, conn, clientUID)
+		//* Add new block
+		if msg.Method == "sync" {
+
+			// Make response var
+			var res WS_Sync_Res = WS_Sync_Res{
+				IsSuccess: false,
+			}
+
+			filter := bson.M{"blockMeta.timeStamp": bson.M{"$gt": msg.Block.BlockMeta.TimeStamp}}
+
+			founded_block, founded_block_err := db.FindManyBlocksLimitedASE(filter, 0, config.MAX_LIMIT_OF_DATA_SYNC)
+
+			if founded_block_err == nil || len(founded_block) != 0 {
+				// Send founded block
+				logger.WS_S_LOGGER.Printf("Success: Send data of %v block made after %v to node '%v'", len(founded_block), msg.Block.BlockMeta.TimeStamp, clientUID)
+				res.IsSuccess = true
+				res.Blocks = founded_block
+			}
+
+			// Send response to client
+			messanger(res, conn, clientUID)
+		}
+
 	}
 }

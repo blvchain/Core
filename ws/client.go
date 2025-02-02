@@ -100,6 +100,94 @@ func MonitorAndReconnectToServers(cm *ClientManager) {
 		cm.mutex.Unlock()
 	}
 }
+func SyncData(cm *ClientManager) {
+	for {
+		time.Sleep(config.SYNC_DATA_SLEEP_TIME * time.Second) // Wait for 5 seconds
+
+		cm.mutex.Lock()
+		// Send request to servers
+		for uid, conn := range cm.servers {
+
+			// Get last block in db
+			founded_block, _ := db.FindManyBlocksLimited(config.NO_FILTER, 0, 1)
+
+			var req WS_Req = WS_Req{
+				Method: "sync",
+				Block:  founded_block[0],
+			}
+
+			messageByte, messageByte_err := json.Marshal(req)
+			if messageByte_err != nil {
+				logger.INTERNAL_LOGGER.Printf("Failed to marshal message \n %v", req)
+			}
+
+			if err := conn.WriteMessage(websocket.TextMessage, messageByte); err != nil {
+				// Error in sending message
+				logger.WS_F_LOGGER.Printf("Error writing message '%v' to node '%v'", err, uid)
+				continue
+			} else {
+				// Message sent
+				_, responseData, err := conn.ReadMessage()
+				if err != nil {
+					// Error in reading response message
+					logger.WS_F_LOGGER.Printf("Error reading response from node '%v': %v", uid, err)
+					continue
+				} else {
+					// Successfully get the response
+					var thisResponse WS_Sync_Res
+					if err := json.Unmarshal(responseData, &thisResponse); err != nil {
+						// Error in unmarshaling byte data
+						logger.WS_F_LOGGER.Println("Error parsing message:", err)
+						continue
+					} else {
+						if thisResponse.IsSuccess {
+							if len(thisResponse.Blocks) != 0 {
+
+								var newBlocks []interface{}
+								for _, dbBlock := range thisResponse.Blocks {
+									newBlocks = append(newBlocks, db.Block{
+										BlockHash: dbBlock.BlockHash,
+										BlockMeta: db.BlockMeta{
+											PreBlockHash: dbBlock.BlockMeta.PreBlockHash,
+											NodeUID:      dbBlock.BlockMeta.NodeUID,
+											TimeStamp:    dbBlock.BlockMeta.TimeStamp,
+										},
+										BlockData: db.BlockData{
+											SenderUID:    dbBlock.BlockData.SenderUID,
+											SenderRole:   dbBlock.BlockData.SenderRole,
+											SenderPubKey: dbBlock.BlockData.SenderPubKey,
+											Signature:    dbBlock.BlockData.Signature,
+											ReceiverUID:  dbBlock.BlockData.ReceiverUID,
+											ReceiverRole: dbBlock.BlockData.ReceiverRole,
+											Data:         dbBlock.BlockData.Data,
+											TimeStamp:    dbBlock.BlockData.TimeStamp,
+										},
+									})
+								}
+
+								result, err := db.InsertManyBlock(newBlocks)
+
+								if err != nil {
+									logger.INTERNAL_LOGGER.Printf("Error: CanNot add data of %v block made after %v from node '%v'", config.MAX_LIMIT_OF_DATA_SYNC, founded_block[0].BlockMeta.TimeStamp, uid)
+								}
+
+								if result {
+									logger.WS_S_LOGGER.Printf("Success: Added data of %v block made after %v to node '%v'", len(thisResponse.Blocks), founded_block[0].BlockMeta.TimeStamp, uid)
+									continue
+								}
+
+							} else {
+								continue
+							}
+						} else {
+							continue
+						}
+					}
+				}
+			}
+		}
+	}
+}
 
 // SendMessage sends a message to the server identified by its UID.
 func (cm *ClientManager) SendMessageToOneServer(uid string, message any) bool {

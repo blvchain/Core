@@ -77,6 +77,11 @@ func main() {
 			ws.MonitorAndReconnectToServers(&ws.ClientManagerVar)
 		}()
 
+		// Sync missed data
+		go func() {
+			ws.SyncData(&ws.ClientManagerVar)
+		}()
+
 		// Prevent main from exiting
 		select {}
 

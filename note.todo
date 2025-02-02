@@ -1,18 +1,14 @@
 % BLVchain
     ! WebSocket
-        x Debug reconnect to nodes that lost connection
-        x add read data type of grpc to WebSocket too
         - Add data sync
 
 
     ! gRPC
         % Read data
-            x add get data from other nodes with ws if not exists
+
 
         % Add data
-            x (Not needed) get prehashblock data from other nodes if not exists
 
-        x Make auth protection
 
     ! General
         - Add config file for builded app and make path for it

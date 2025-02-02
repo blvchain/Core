@@ -26,3 +26,8 @@ type WS_Res struct {
 	IsSuccess bool     `json:"isSuccess"`
 	Block     db.Block `json:"block"`
 }
+
+type WS_Sync_Res struct {
+	IsSuccess bool       `json:"isSuccess"`
+	Blocks    []db.Block `json:"blocks"`
+}
