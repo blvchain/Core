@@ -18,6 +18,7 @@ type BlockData struct {
 }
 
 type Block struct {
+	ID        string    `bson:"_id,omitempty"`
 	BlockHash string    `bson:"blockHash,omitempty"`
 	BlockMeta BlockMeta `bson:"blockMeta,omitempty"`
 	BlockData BlockData `bson:"blockData,omitempty"`

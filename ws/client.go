@@ -146,6 +146,7 @@ func SyncData(cm *ClientManager) {
 								var newBlocks []interface{}
 								for _, dbBlock := range thisResponse.Blocks {
 									newBlocks = append(newBlocks, db.Block{
+										ID:        dbBlock.ID,
 										BlockHash: dbBlock.BlockHash,
 										BlockMeta: db.BlockMeta{
 											PreBlockHash: dbBlock.BlockMeta.PreBlockHash,

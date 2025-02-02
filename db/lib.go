@@ -14,6 +14,7 @@ func Genesis_check() (bool, error) {
 
 	// Check for genesis Block
 	var genesis_block Block = Block{
+		ID: config.GENESIS_DOC_ID,
 		BlockMeta: BlockMeta{
 			PreBlockHash: config.GENESIS_BLOCK_PREHASH,
 			TimeStamp:    config.GENESIS_TIMESTAMP,
