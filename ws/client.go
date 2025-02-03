@@ -4,6 +4,7 @@ import (
 	"blvchain/core/config"
 	"blvchain/core/db"
 	"blvchain/core/logger"
+	"blvchain/core/utils"
 	"encoding/json"
 	"time"
 
@@ -144,24 +145,40 @@ func FirstTimeSyncData(cm *ClientManager) bool {
 
 								var newBlocks []interface{}
 								for _, dbBlock := range thisResponse.Blocks {
-									newBlocks = append(newBlocks, db.Block{
-										ID: dbBlock.ID,
-										BlockMeta: db.BlockMeta{
-											PreBlockHash: dbBlock.BlockMeta.PreBlockHash,
-											NodeUID:      dbBlock.BlockMeta.NodeUID,
-											TimeStamp:    dbBlock.BlockMeta.TimeStamp,
-										},
-										BlockData: db.BlockData{
-											SenderUID:    dbBlock.BlockData.SenderUID,
-											SenderRole:   dbBlock.BlockData.SenderRole,
-											SenderPubKey: dbBlock.BlockData.SenderPubKey,
-											Signature:    dbBlock.BlockData.Signature,
-											ReceiverUID:  dbBlock.BlockData.ReceiverUID,
-											ReceiverRole: dbBlock.BlockData.ReceiverRole,
-											Data:         dbBlock.BlockData.Data,
-											TimeStamp:    dbBlock.BlockData.TimeStamp,
-										},
-									})
+									//* Valid data
+									// check block validation
+									message := dbBlock.BlockData.SenderUID +
+										utils.Int64ToStr(dbBlock.BlockData.SenderRole) +
+										dbBlock.BlockData.SenderPubKey +
+										dbBlock.BlockData.ReceiverUID +
+										utils.Int64ToStr(dbBlock.BlockData.ReceiverRole) +
+										dbBlock.BlockData.Data +
+										utils.Int64ToStr(dbBlock.BlockData.TimeStamp)
+
+									valid, _ := utils.Verify(dbBlock.BlockData.SenderPubKey, message, dbBlock.BlockData.Signature)
+
+									if valid {
+										newBlocks = append(newBlocks, db.Block{
+											ID: dbBlock.ID,
+											BlockMeta: db.BlockMeta{
+												PreBlockHash: dbBlock.BlockMeta.PreBlockHash,
+												NodeUID:      dbBlock.BlockMeta.NodeUID,
+												TimeStamp:    dbBlock.BlockMeta.TimeStamp,
+											},
+											BlockData: db.BlockData{
+												SenderUID:    dbBlock.BlockData.SenderUID,
+												SenderRole:   dbBlock.BlockData.SenderRole,
+												SenderPubKey: dbBlock.BlockData.SenderPubKey,
+												Signature:    dbBlock.BlockData.Signature,
+												ReceiverUID:  dbBlock.BlockData.ReceiverUID,
+												ReceiverRole: dbBlock.BlockData.ReceiverRole,
+												Data:         dbBlock.BlockData.Data,
+												TimeStamp:    dbBlock.BlockData.TimeStamp,
+											},
+										})
+									} else {
+										logger.WS_F_LOGGER.Printf("WARNING!!! : Block validation error from node '%v'. Block data:\n%v", uid, dbBlock)
+									}
 								}
 
 								result, err := db.InsertManyBlock(newBlocks)
@@ -230,25 +247,43 @@ func SyncData(cm *ClientManager) {
 							if len(thisResponse.Blocks) > config.MIN_LIMIT_OF_DATA_SYNC {
 
 								var newBlocks []interface{}
+
 								for _, dbBlock := range thisResponse.Blocks {
-									newBlocks = append(newBlocks, db.Block{
-										ID: dbBlock.ID,
-										BlockMeta: db.BlockMeta{
-											PreBlockHash: dbBlock.BlockMeta.PreBlockHash,
-											NodeUID:      dbBlock.BlockMeta.NodeUID,
-											TimeStamp:    dbBlock.BlockMeta.TimeStamp,
-										},
-										BlockData: db.BlockData{
-											SenderUID:    dbBlock.BlockData.SenderUID,
-											SenderRole:   dbBlock.BlockData.SenderRole,
-											SenderPubKey: dbBlock.BlockData.SenderPubKey,
-											Signature:    dbBlock.BlockData.Signature,
-											ReceiverUID:  dbBlock.BlockData.ReceiverUID,
-											ReceiverRole: dbBlock.BlockData.ReceiverRole,
-											Data:         dbBlock.BlockData.Data,
-											TimeStamp:    dbBlock.BlockData.TimeStamp,
-										},
-									})
+
+									//* Valid data
+									// check block validation
+									message := dbBlock.BlockData.SenderUID +
+										utils.Int64ToStr(dbBlock.BlockData.SenderRole) +
+										dbBlock.BlockData.SenderPubKey +
+										dbBlock.BlockData.ReceiverUID +
+										utils.Int64ToStr(dbBlock.BlockData.ReceiverRole) +
+										dbBlock.BlockData.Data +
+										utils.Int64ToStr(dbBlock.BlockData.TimeStamp)
+
+									valid, _ := utils.Verify(dbBlock.BlockData.SenderPubKey, message, dbBlock.BlockData.Signature)
+
+									if valid {
+										newBlocks = append(newBlocks, db.Block{
+											ID: dbBlock.ID,
+											BlockMeta: db.BlockMeta{
+												PreBlockHash: dbBlock.BlockMeta.PreBlockHash,
+												NodeUID:      dbBlock.BlockMeta.NodeUID,
+												TimeStamp:    dbBlock.BlockMeta.TimeStamp,
+											},
+											BlockData: db.BlockData{
+												SenderUID:    dbBlock.BlockData.SenderUID,
+												SenderRole:   dbBlock.BlockData.SenderRole,
+												SenderPubKey: dbBlock.BlockData.SenderPubKey,
+												Signature:    dbBlock.BlockData.Signature,
+												ReceiverUID:  dbBlock.BlockData.ReceiverUID,
+												ReceiverRole: dbBlock.BlockData.ReceiverRole,
+												Data:         dbBlock.BlockData.Data,
+												TimeStamp:    dbBlock.BlockData.TimeStamp,
+											},
+										})
+									} else {
+										logger.WS_F_LOGGER.Printf("WARNING!!! : Block validation error from node '%v'. Block data:\n%v", uid, dbBlock)
+									}
 								}
 
 								result, err := db.InsertManyBlock(newBlocks)

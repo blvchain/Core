@@ -1,7 +1,7 @@
 % BLVchain
     ! WebSocket
         ! Client
-            - Add check synced data then add
+            x Add check synced data then add
 
         ! Server
         
