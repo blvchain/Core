@@ -109,8 +109,8 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 			if msg.Block.BlockData.ReceiverRole != 0 {
 				filter = append(filter, bson.M{"blockData.receiverRole": msg.Block.BlockData.ReceiverRole})
 			}
-			if msg.Block.BlockHash != "" {
-				filter = append(filter, bson.M{"blockHash": msg.Block.BlockHash})
+			if msg.Block.ID != "" {
+				filter = append(filter, bson.M{"_id": msg.Block.ID})
 			}
 			if msg.Block.BlockMeta.PreBlockHash != "" {
 				filter = append(filter, bson.M{"blockMeta.preBlockHash": msg.Block.BlockMeta.PreBlockHash})
@@ -123,10 +123,10 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 
 			if founded_block_err == mongo.ErrNoDocuments || len(founded_block) == 0 {
 				// Not found any block with this hash
-				logger.WS_F_LOGGER.Printf("Error: Not found block '%v'. Req from node '%v'", msg.Block.BlockHash, clientUID)
+				logger.WS_F_LOGGER.Printf("Error: Not found block '%v'. Req from node '%v'", msg.Block.ID, clientUID)
 			} else {
 				// Send founded block
-				logger.WS_S_LOGGER.Printf("Success: Send data of block '%v' to node '%v'", msg.Block.BlockHash, clientUID)
+				logger.WS_S_LOGGER.Printf("Success: Send data of block '%v' to node '%v'", msg.Block.ID, clientUID)
 				res.IsSuccess = true
 				res.Block = founded_block[0]
 			}
@@ -160,7 +160,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 				} else {
 
 					// check hash
-					founded_blocks, _ := db.FindAllBlocks(bson.M{"blockHash": msg.Block.BlockHash})
+					founded_blocks, _ := db.FindAllBlocks(bson.M{"_id": msg.Block.ID})
 
 					if len(founded_blocks) == 0 {
 						// Block hash is unique
@@ -169,10 +169,10 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 
 						if !Block_insert_result {
 							// Internal error to add data to DB
-							logger.INTERNAL_LOGGER.Printf("Error: Error in adding block '%v' to db from node '%v' : \n %v", msg.Block.BlockHash, clientUID, Block_insert_result_err)
+							logger.INTERNAL_LOGGER.Printf("Error: Error in adding block '%v' to db from node '%v' : \n %v", msg.Block.ID, clientUID, Block_insert_result_err)
 						} else {
 							// Successfully added data to DB
-							logger.WS_S_LOGGER.Printf("Success: Block '%v' successfully added from '%v' ", msg.Block.BlockHash, clientUID)
+							logger.WS_S_LOGGER.Printf("Success: Block '%v' successfully added from '%v' ", msg.Block.ID, clientUID)
 							res.IsSuccess = true
 						}
 

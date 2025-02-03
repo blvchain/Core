@@ -62,7 +62,7 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 
 			if sender_last_blocks_err != nil {
 				if sender_last_blocks_err == mongo.ErrNoDocuments {
-					preBlock.BlockHash = config.FIRST_BLOCK_HASH
+					preBlock.ID = config.FIRST_BLOCK_HASH
 				} else {
 					logger.INTERNAL_LOGGER.Printf("Error: Error in finding many blocks for uid %v from api key %v. Error: %v", req.SenderUID, apiKey, sender_last_blocks_err)
 					return &AddDataResult{
@@ -77,7 +77,7 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 			// make block to add in db
 			var block db.Block = db.Block{
 				BlockMeta: db.BlockMeta{
-					PreBlockHash: preBlock.BlockHash,
+					PreBlockHash: preBlock.ID,
 					NodeUID:      config.SELF_UID,
 					TimeStamp:    utils.NowTimeInt64UnixMilli(),
 				},
@@ -94,7 +94,7 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 			}
 			db.BlockHashMaker(&block, block.BlockMeta.NodeUID)
 
-			db_blocks, _ := db.FindAllBlocks(bson.M{"blockHash": block.BlockHash})
+			db_blocks, _ := db.FindAllBlocks(bson.M{"_id": block.ID})
 
 			// No genesis block
 			if len(db_blocks) == 0 {
@@ -103,14 +103,14 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 
 				if !Block_insert_result {
 					// Internal error to add data to DB
-					logger.INTERNAL_LOGGER.Printf("Error: Error in adding block '%v' to db from user '%v' : \n %v", block.BlockHash, req.SenderUID, Block_insert_result_err)
+					logger.INTERNAL_LOGGER.Printf("Error: Error in adding block '%v' to db from user '%v' : \n %v", block.ID, req.SenderUID, Block_insert_result_err)
 					return &AddDataResult{
 						IsSuccess: false,
 						Log:       "Internal server error",
 					}, nil
 				} else {
 					// Successfully added data to DB
-					logger.WS_S_LOGGER.Printf("Success: Block '%v' successfully added from user '%v' ", block.BlockHash, req.SenderUID)
+					logger.WS_S_LOGGER.Printf("Success: Block '%v' successfully added from user '%v' ", block.ID, req.SenderUID)
 
 					// Send new block data to other nodes
 					ws.ClientManagerVar.AddBlockToServers(block)
@@ -170,7 +170,7 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 			filter = append(filter, bson.M{"blockData.receiverRole": req.ReceiverRole})
 		}
 		if req.BlockHash != "" {
-			filter = append(filter, bson.M{"blockHash": req.BlockHash})
+			filter = append(filter, bson.M{"_id": req.BlockHash})
 		}
 		if req.PreBlockHash != "" {
 			filter = append(filter, bson.M{"blockMeta.preBlockHash": req.PreBlockHash})
@@ -215,7 +215,7 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 			var grpcBlocks []*Block
 			for _, dbBlock := range blocks {
 				grpcBlocks = append(grpcBlocks, &Block{
-					BlockHash: dbBlock.BlockHash,
+					BlockHash: dbBlock.ID,
 					BlockMeta: &BlockMeta{
 						PreBlockHash: dbBlock.BlockMeta.PreBlockHash,
 						NodeUID:      dbBlock.BlockMeta.NodeUID,

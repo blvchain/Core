@@ -146,8 +146,7 @@ func SyncData(cm *ClientManager) {
 								var newBlocks []interface{}
 								for _, dbBlock := range thisResponse.Blocks {
 									newBlocks = append(newBlocks, db.Block{
-										ID:        dbBlock.ID,
-										BlockHash: dbBlock.BlockHash,
+										ID: dbBlock.ID,
 										BlockMeta: db.BlockMeta{
 											PreBlockHash: dbBlock.BlockMeta.PreBlockHash,
 											NodeUID:      dbBlock.BlockMeta.NodeUID,
@@ -222,7 +221,7 @@ func (cm *ClientManager) GetBlockFromServers(blockHash string) []db.Block {
 	var req WS_Req = WS_Req{
 		Method: "get",
 		Block: db.Block{
-			BlockHash: blockHash,
+			ID: blockHash,
 		},
 	}
 

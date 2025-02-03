@@ -29,16 +29,6 @@ func ConnectToMongoDB() (*mongo.Client, error) {
 
 func InsertOneBlock(document interface{}) (bool, error) {
 
-	_, index_err := config.BLOCK_COLL.Indexes().CreateOne(
-		context.Background(),
-		mongo.IndexModel{
-			Keys:    bson.M{"blockHash": 1},
-			Options: options.Index().SetUnique(true),
-		},
-	)
-	if index_err != nil {
-		return false, index_err
-	}
 	_, err := config.BLOCK_COLL.InsertOne(context.TODO(), document)
 	if err != nil {
 		return false, err
@@ -57,7 +47,7 @@ func InsertManyBlock(document []interface{}) (bool, error) {
 }
 
 func FindOneBlock(blockHash string, result interface{}) error {
-	err := config.BLOCK_COLL.FindOne(context.TODO(), bson.M{"blockHash": blockHash}).Decode(result)
+	err := config.BLOCK_COLL.FindOne(context.TODO(), bson.M{"_id": blockHash}).Decode(result)
 	if err != nil {
 		return err
 	}

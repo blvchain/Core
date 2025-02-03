@@ -14,7 +14,6 @@ func Genesis_check() (bool, error) {
 
 	// Check for genesis Block
 	var genesis_block Block = Block{
-		ID: config.GENESIS_DOC_ID,
 		BlockMeta: BlockMeta{
 			PreBlockHash: config.GENESIS_BLOCK_PREHASH,
 			TimeStamp:    config.GENESIS_TIMESTAMP,
@@ -44,7 +43,7 @@ func Genesis_check() (bool, error) {
 		}
 	}
 
-	config.FIRST_BLOCK_HASH = genesis_block.BlockHash
+	config.FIRST_BLOCK_HASH = genesis_block.ID
 
 	return true, nil
 }
@@ -65,7 +64,7 @@ func BlockHashMaker(b *Block, nodeUID string) {
 		b.BlockData.Data +
 		utils.Int64ToStr(b.BlockData.TimeStamp)
 
-	b.BlockHash = utils.D256(blockMetaRoot+blockDataRoot, config.DELIUM_CONFIG.HASH.DELETE_STEP, config.DELIUM_CONFIG.HASH.REPEAT).String
+	b.ID = utils.D256(blockMetaRoot+blockDataRoot, config.DELIUM_CONFIG.HASH.DELETE_STEP, config.DELIUM_CONFIG.HASH.REPEAT).String
 }
 
 func MessageMaker(b BlockData) string {
@@ -83,7 +82,7 @@ func BlockValidator(block Block) error {
 
 	BlockHashMaker(&testBlock, block.BlockMeta.NodeUID)
 
-	if block.BlockHash != testBlock.BlockHash {
+	if block.ID != testBlock.ID {
 		return errors.New("hash not match")
 	}
 
