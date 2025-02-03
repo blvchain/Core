@@ -69,7 +69,7 @@ func (cm *ClientManager) DisconnectFromServers() {
 
 func MonitorAndReconnectToServers(cm *ClientManager) {
 	for {
-		time.Sleep(config.RECONNECT_SLEEP_TIME * time.Second) // Wait for 5 seconds
+		time.Sleep(config.RECONNECT_SLEEP_TIME * time.Second)
 
 		cm.mutex.Lock()
 
@@ -100,11 +100,97 @@ func MonitorAndReconnectToServers(cm *ClientManager) {
 		cm.mutex.Unlock()
 	}
 }
+
+func FirstTimeSyncData(cm *ClientManager) bool {
+	syncComplete := false
+
+	for !syncComplete { // Keep looping until sync is done
+		time.Sleep(1 * time.Second)
+		cm.mutex.Lock()
+		syncComplete = true // Assume sync is done, but update if more data is found
+
+		for uid, conn := range cm.servers {
+
+			// Get last block in db
+			founded_block, _ := db.FindManyBlocksLimited(config.NO_FILTER, 0, 1)
+
+			var req WS_Req = WS_Req{
+				Method: "sync",
+				Block:  founded_block[0],
+			}
+
+			messageByte, messageByte_err := json.Marshal(req)
+			if messageByte_err != nil {
+				logger.INTERNAL_LOGGER.Printf("Error: Failed to marshal message \n %v", req)
+			}
+
+			if err := conn.WriteMessage(websocket.TextMessage, messageByte); err != nil {
+				logger.WS_F_LOGGER.Printf("Error: Error writing message '%v' to node '%v'", err, uid)
+				continue
+			} else {
+				_, responseData, err := conn.ReadMessage()
+				if err != nil {
+					logger.WS_F_LOGGER.Printf("Error: Error reading response from node '%v': %v", uid, err)
+					continue
+				} else {
+					var thisResponse WS_Sync_Res
+					if err := json.Unmarshal(responseData, &thisResponse); err != nil {
+						logger.WS_F_LOGGER.Println("Error: Error parsing message:", err)
+						continue
+					} else {
+						if thisResponse.IsSuccess {
+							if len(thisResponse.Blocks) > config.MIN_LIMIT_OF_DATA_SYNC {
+								syncComplete = false // More data found, so keep syncing
+
+								var newBlocks []interface{}
+								for _, dbBlock := range thisResponse.Blocks {
+									newBlocks = append(newBlocks, db.Block{
+										ID: dbBlock.ID,
+										BlockMeta: db.BlockMeta{
+											PreBlockHash: dbBlock.BlockMeta.PreBlockHash,
+											NodeUID:      dbBlock.BlockMeta.NodeUID,
+											TimeStamp:    dbBlock.BlockMeta.TimeStamp,
+										},
+										BlockData: db.BlockData{
+											SenderUID:    dbBlock.BlockData.SenderUID,
+											SenderRole:   dbBlock.BlockData.SenderRole,
+											SenderPubKey: dbBlock.BlockData.SenderPubKey,
+											Signature:    dbBlock.BlockData.Signature,
+											ReceiverUID:  dbBlock.BlockData.ReceiverUID,
+											ReceiverRole: dbBlock.BlockData.ReceiverRole,
+											Data:         dbBlock.BlockData.Data,
+											TimeStamp:    dbBlock.BlockData.TimeStamp,
+										},
+									})
+								}
+
+								result, err := db.InsertManyBlock(newBlocks)
+
+								if result {
+									logger.WS_S_LOGGER.Printf("Success: Added %v blocks made after %v from node '%v'", len(thisResponse.Blocks), founded_block[0].BlockMeta.TimeStamp, uid)
+								}
+
+								if err != nil {
+									logger.INTERNAL_LOGGER.Printf("Error: Cannot add data of %v block(s) after %v from node '%v'", config.MAX_LIMIT_OF_DATA_SYNC, founded_block[0].BlockMeta.TimeStamp, uid)
+								}
+
+							}
+						}
+					}
+				}
+			}
+		}
+		cm.mutex.Unlock()
+	}
+
+	return syncComplete
+}
+
 func SyncData(cm *ClientManager) {
 	for {
-		time.Sleep(config.SYNC_DATA_SLEEP_TIME * time.Second) // Wait for 5 seconds
-
+		time.Sleep(config.SYNC_DATA_SLEEP_TIME * time.Second)
 		cm.mutex.Lock()
+
 		// Send request to servers
 		for uid, conn := range cm.servers {
 
@@ -141,7 +227,7 @@ func SyncData(cm *ClientManager) {
 						continue
 					} else {
 						if thisResponse.IsSuccess {
-							if len(thisResponse.Blocks) != 0 {
+							if len(thisResponse.Blocks) > config.MIN_LIMIT_OF_DATA_SYNC {
 
 								var newBlocks []interface{}
 								for _, dbBlock := range thisResponse.Blocks {
@@ -186,6 +272,8 @@ func SyncData(cm *ClientManager) {
 				}
 			}
 		}
+
+		cm.mutex.Unlock()
 	}
 }
 

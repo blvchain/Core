@@ -15,6 +15,7 @@ import (
 )
 
 func main() {
+	syncDone := make(chan bool)
 
 	client, client_err := db.ConnectToMongoDB()
 	if client_err != nil {
@@ -35,26 +36,6 @@ func main() {
 	// Check gensis block and dns seed in DB in first run of Node
 	if check_genesis {
 
-		//* gRPC
-		go func() {
-			grpcListener, grpcListener_err := net.Listen("tcp", config.GRPC_PORT)
-			if grpcListener_err != nil {
-				logger.GRPC_F_LOGGER.Fatalf("Failed to listen gRPC: %v", grpcListener_err)
-			}
-			grpcServer := grpc.NewServer()
-
-			// Register the services
-			protos.RegisterAddDataServer(grpcServer, &protos.AddDataService{})
-			protos.RegisterReadDataServer(grpcServer, &protos.ReadDataService{})
-
-			logger.GRPC_S_LOGGER.Println("gRPC server is running on port", config.GRPC_PORT)
-
-			if grpcServer_err := grpcServer.Serve(grpcListener); grpcServer_err != nil {
-				logger.GRPC_F_LOGGER.Fatalf("Failed to serve: %v", grpcServer_err)
-			}
-
-		}()
-
 		//* WebSocket
 		go func() {
 
@@ -64,7 +45,7 @@ func main() {
 			//* Local server gateways
 			http.HandleFunc("/", ws.WS_Server_Handler)
 
-			logger.WS_S_LOGGER.Println("WebSocket Server is running on port", config.WEBSOCKET_PORT)
+			logger.WS_S_LOGGER.Println("Success: WebSocket Server is running on port", config.WEBSOCKET_PORT)
 			websocketListener_err := http.ListenAndServe(config.WEBSOCKET_PORT, nil)
 			if websocketListener_err != nil {
 				logger.WS_F_LOGGER.Fatalf("Failed to listen WebSocket: %v", websocketListener_err)
@@ -77,16 +58,50 @@ func main() {
 			ws.MonitorAndReconnectToServers(&ws.ClientManagerVar)
 		}()
 
-		// Sync missed data
 		go func() {
-			ws.SyncData(&ws.ClientManagerVar)
+			genesis_sync_result := ws.FirstTimeSyncData(&ws.ClientManagerVar)
+			syncDone <- genesis_sync_result
 		}()
+
+		// Wait for sync to complete before starting gRPC server
+		if <-syncDone {
+
+			logger.INTERNAL_LOGGER.Println("Success: Data sync completed, running gRPC server")
+
+			//* gRPC
+			go func() {
+				grpcListener, grpcListener_err := net.Listen("tcp", config.GRPC_PORT)
+				if grpcListener_err != nil {
+					logger.GRPC_F_LOGGER.Fatalf("Error: Failed to listen gRPC: %v", grpcListener_err)
+				}
+				grpcServer := grpc.NewServer()
+
+				// Register the services
+				protos.RegisterAddDataServer(grpcServer, &protos.AddDataService{})
+				protos.RegisterReadDataServer(grpcServer, &protos.ReadDataService{})
+
+				logger.GRPC_S_LOGGER.Println("Success: gRPC server is running on port", config.GRPC_PORT)
+
+				if grpcServer_err := grpcServer.Serve(grpcListener); grpcServer_err != nil {
+					logger.GRPC_F_LOGGER.Fatalf("Error: Failed to serve: %v", grpcServer_err)
+				}
+
+			}()
+
+			// Sync missed data
+			// go func() {
+			// 	ws.SyncData(&ws.ClientManagerVar)
+			// }()
+
+		} else {
+			logger.INTERNAL_LOGGER.Fatal("Error: Data sync failed")
+		}
 
 		// Prevent main from exiting
 		select {}
 
 	} else {
 		// Print error if gensis conditions fail
-		logger.INTERNAL_LOGGER.Fatal(check_genesis_err)
+		logger.INTERNAL_LOGGER.Printf("Error: %v", check_genesis_err)
 	}
 }

@@ -27,5 +27,6 @@ const (
 	// Web socket request types
 	RECONNECT_SLEEP_TIME   = 1
 	MAX_LIMIT_OF_DATA_SYNC = 100
+	MIN_LIMIT_OF_DATA_SYNC = 2
 	SYNC_DATA_SLEEP_TIME   = 5
 )

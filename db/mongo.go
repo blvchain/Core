@@ -37,8 +37,9 @@ func InsertOneBlock(document interface{}) (bool, error) {
 	return true, nil
 }
 func InsertManyBlock(document []interface{}) (bool, error) {
+	options := options.InsertMany().SetOrdered(false)
 
-	_, err := config.BLOCK_COLL.InsertMany(context.TODO(), document)
+	_, err := config.BLOCK_COLL.InsertMany(context.TODO(), document, options)
 	if err != nil {
 		return false, err
 	}

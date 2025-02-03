@@ -199,13 +199,16 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 
 			founded_block, founded_block_err := db.FindManyBlocksLimitedASE(filter, 0, config.MAX_LIMIT_OF_DATA_SYNC)
 
-			if founded_block_err == nil || len(founded_block) != 0 {
+			if (founded_block_err == nil || len(founded_block) != 0) && len(founded_block) > config.MIN_LIMIT_OF_DATA_SYNC {
 				// Send founded block
-				logger.WS_S_LOGGER.Printf("Success: Send data of %v block made after %v to node '%v'", len(founded_block), msg.Block.BlockMeta.TimeStamp, clientUID)
+				logger.WS_S_LOGGER.Printf("Success: Send data of %v block(s) made after %v to node '%v'", len(founded_block), msg.Block.BlockMeta.TimeStamp, clientUID)
 				res.IsSuccess = true
 				res.Blocks = founded_block
+			} else {
+				if founded_block_err != mongo.ErrNoDocuments {
+					logger.WS_F_LOGGER.Printf("Error: Error in finding blocks made after %v for node %v. \n %v", msg.Block.BlockMeta.TimeStamp, clientUID, founded_block_err)
+				}
 			}
-
 			// Send response to client
 			messanger(res, conn, clientUID)
 		}
