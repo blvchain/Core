@@ -1,16 +1,18 @@
 % BLVchain
     ! WebSocket
-        x Add data sync
-        - auto data sync reapetly
-        
+        ! Client
+            - Add check synced data then add
 
+        ! Server
+        
+        
 
     ! gRPC
         % Read data
 
 
         % Add data
-            - fix issue after get new data from grpc
+            x fix issue after get new data from grpc
 
     ! General
         - Add config file for builded app and make path for it

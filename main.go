@@ -89,9 +89,9 @@ func main() {
 			}()
 
 			// Sync missed data
-			// go func() {
-			// 	ws.SyncData(&ws.ClientManagerVar)
-			// }()
+			go func() {
+				ws.SyncData(&ws.ClientManagerVar)
+			}()
 
 		} else {
 			logger.INTERNAL_LOGGER.Fatal("Error: Data sync failed")

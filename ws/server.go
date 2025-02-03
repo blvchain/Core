@@ -205,7 +205,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 				res.IsSuccess = true
 				res.Blocks = founded_block
 			} else {
-				if founded_block_err != mongo.ErrNoDocuments {
+				if founded_block_err != mongo.ErrNoDocuments && founded_block_err != nil {
 					logger.WS_F_LOGGER.Printf("Error: Error in finding blocks made after %v for node %v. \n %v", msg.Block.BlockMeta.TimeStamp, clientUID, founded_block_err)
 				}
 			}
