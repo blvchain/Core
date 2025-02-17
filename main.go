@@ -54,9 +54,9 @@ func main() {
 		}()
 
 		// Monitor and reconnect to missed nodes
-		go func() {
-			ws.MonitorAndReconnectToServers(&ws.ClientManagerVar)
-		}()
+		// go func() {
+		// 	ws.MonitorAndReconnectToServers(&ws.ClientManagerVar)
+		// }()
 
 		go func() {
 			genesis_sync_result := ws.FirstTimeSyncData(&ws.ClientManagerVar)

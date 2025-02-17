@@ -110,7 +110,7 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 					}, nil
 				} else {
 					// Successfully added data to DB
-					logger.WS_S_LOGGER.Printf("Success: Block '%v' successfully added from user '%v' ", block.ID, req.SenderUID)
+					logger.GRPC_S_LOGGER.Printf("Success: Block '%v' successfully added from user '%v' ", block.ID, req.SenderUID)
 
 					// Send new block data to other nodes
 					ws.ClientManagerVar.AddBlockToServers(block)
@@ -195,7 +195,7 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 
 			if err == mongo.ErrNoDocuments || len(blocks) == 0 {
 				// Not found any block with this hash
-				logger.WS_S_LOGGER.Printf("Success: Not found any block with details '%v' for api key '%v'", req, apiKey)
+				logger.GRPC_S_LOGGER.Printf("Success: Not found any block with details '%v' for api key '%v'", req, apiKey)
 				return &ReadDataResult{
 					IsSuccess: true,
 					Log:       "Not found any block with these details",
@@ -214,27 +214,44 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 			// Send founded block
 			var grpcBlocks []*Block
 			for _, dbBlock := range blocks {
-				grpcBlocks = append(grpcBlocks, &Block{
-					BlockHash: dbBlock.ID,
-					BlockMeta: &BlockMeta{
-						PreBlockHash: dbBlock.BlockMeta.PreBlockHash,
-						NodeUID:      dbBlock.BlockMeta.NodeUID,
-						TimeStamp:    dbBlock.BlockMeta.TimeStamp,
-					},
-					BlockData: &BlockData{
-						SenderUID:    dbBlock.BlockData.SenderUID,
-						SenderRole:   dbBlock.BlockData.SenderRole,
-						SenderPubKey: dbBlock.BlockData.SenderPubKey,
-						Signature:    dbBlock.BlockData.Signature,
-						ReceiverUID:  dbBlock.BlockData.ReceiverUID,
-						ReceiverRole: dbBlock.BlockData.ReceiverRole,
-						Data:         dbBlock.BlockData.Data,
-						TimeStamp:    dbBlock.BlockData.TimeStamp,
-					},
-				})
+
+				//* Valid data
+				// check block validation
+				message := dbBlock.BlockData.SenderUID +
+					utils.Int64ToStr(dbBlock.BlockData.SenderRole) +
+					dbBlock.BlockData.SenderPubKey +
+					dbBlock.BlockData.ReceiverUID +
+					utils.Int64ToStr(dbBlock.BlockData.ReceiverRole) +
+					dbBlock.BlockData.Data +
+					utils.Int64ToStr(dbBlock.BlockData.TimeStamp)
+
+				valid, _ := utils.Verify(dbBlock.BlockData.SenderPubKey, message, dbBlock.BlockData.Signature)
+
+				if valid {
+					grpcBlocks = append(grpcBlocks, &Block{
+						BlockHash: dbBlock.ID,
+						BlockMeta: &BlockMeta{
+							PreBlockHash: dbBlock.BlockMeta.PreBlockHash,
+							NodeUID:      dbBlock.BlockMeta.NodeUID,
+							TimeStamp:    dbBlock.BlockMeta.TimeStamp,
+						},
+						BlockData: &BlockData{
+							SenderUID:    dbBlock.BlockData.SenderUID,
+							SenderRole:   dbBlock.BlockData.SenderRole,
+							SenderPubKey: dbBlock.BlockData.SenderPubKey,
+							Signature:    dbBlock.BlockData.Signature,
+							ReceiverUID:  dbBlock.BlockData.ReceiverUID,
+							ReceiverRole: dbBlock.BlockData.ReceiverRole,
+							Data:         dbBlock.BlockData.Data,
+							TimeStamp:    dbBlock.BlockData.TimeStamp,
+						},
+					})
+				} else {
+					logger.GRPC_F_LOGGER.Printf("WARNING!!! : Block validation error in database. Block data:\n%v", dbBlock)
+				}
 			}
 
-			logger.WS_S_LOGGER.Printf("Success: Send blocks to api key '%v'. Blocks: \n %v", apiKey, blocks)
+			logger.GRPC_F_LOGGER.Printf("Success: Send blocks to api key '%v'. Blocks: \n %v", apiKey, blocks)
 			return &ReadDataResult{
 				IsSuccess: true,
 				Log:       "",

@@ -187,7 +187,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 			messanger(res, conn, clientUID)
 		}
 
-		//* Add new block
+		//* Sync data
 		if msg.Method == "sync" {
 
 			// Make response var
