@@ -4,7 +4,6 @@ import (
 	"blvchain/core/config"
 	"blvchain/core/db"
 	"blvchain/core/logger"
-	"blvchain/core/utils"
 	"encoding/json"
 	"time"
 
@@ -147,38 +146,36 @@ func FirstTimeSyncData(cm *ClientManager) bool {
 								for _, dbBlock := range thisResponse.Blocks {
 									//* Valid data
 									// check block validation
-									message := dbBlock.BlockData.SenderUID +
-										utils.Int64ToStr(dbBlock.BlockData.SenderRole) +
-										dbBlock.BlockData.SenderPubKey +
-										dbBlock.BlockData.ReceiverUID +
-										utils.Int64ToStr(dbBlock.BlockData.ReceiverRole) +
-										dbBlock.BlockData.Data +
-										utils.Int64ToStr(dbBlock.BlockData.TimeStamp)
+									validation_err := db.BlockValidator(dbBlock)
 
-									valid, validation_err := utils.Verify(dbBlock.BlockData.SenderPubKey, dbBlock.BlockData.SenderUID, message, dbBlock.BlockData.Signature)
-
-									if valid {
-										newBlocks = append(newBlocks, db.Block{
-											ID: dbBlock.ID,
-											BlockMeta: db.BlockMeta{
-												PreBlockHash: dbBlock.BlockMeta.PreBlockHash,
-												NodeUID:      dbBlock.BlockMeta.NodeUID,
-												TimeStamp:    dbBlock.BlockMeta.TimeStamp,
-											},
-											BlockData: db.BlockData{
-												SenderUID:    dbBlock.BlockData.SenderUID,
-												SenderRole:   dbBlock.BlockData.SenderRole,
-												SenderPubKey: dbBlock.BlockData.SenderPubKey,
-												Signature:    dbBlock.BlockData.Signature,
-												ReceiverUID:  dbBlock.BlockData.ReceiverUID,
-												ReceiverRole: dbBlock.BlockData.ReceiverRole,
-												Data:         dbBlock.BlockData.Data,
-												TimeStamp:    dbBlock.BlockData.TimeStamp,
-											},
-										})
-									} else {
-										logger.WS_F_LOGGER.Printf("WARNING!!! : Block validation error from node '%v'. Block data:\n%v\nError:\n%v", uid, dbBlock, validation_err)
+									newBlock := db.Block{
+										ID: dbBlock.ID,
+										BlockMeta: db.BlockMeta{
+											PreBlockHash: dbBlock.BlockMeta.PreBlockHash,
+											NodeUID:      dbBlock.BlockMeta.NodeUID,
+											TimeStamp:    dbBlock.BlockMeta.TimeStamp,
+										},
+										BlockData: db.BlockData{
+											SenderUID:    dbBlock.BlockData.SenderUID,
+											SenderRole:   dbBlock.BlockData.SenderRole,
+											SenderPubKey: dbBlock.BlockData.SenderPubKey,
+											Signature:    dbBlock.BlockData.Signature,
+											ReceiverUID:  dbBlock.BlockData.ReceiverUID,
+											ReceiverRole: dbBlock.BlockData.ReceiverRole,
+											Data:         dbBlock.BlockData.Data,
+											TimeStamp:    dbBlock.BlockData.TimeStamp,
+										},
 									}
+
+									if validation_err != nil {
+										// Block validation failed
+										logger.WS_F_LOGGER.Printf("WARNING!!! : Block validation error from node '%v'. Block data:\n%v\nError:\n%v", uid, dbBlock, validation_err)
+										newBlock.Boycott = true
+									} else {
+										newBlock.Boycott = false
+									}
+
+									newBlocks = append(newBlocks, newBlock)
 								}
 
 								result, err := db.InsertManyBlock(newBlocks)
@@ -188,7 +185,7 @@ func FirstTimeSyncData(cm *ClientManager) bool {
 								}
 
 								if err != nil {
-									logger.INTERNAL_LOGGER.Printf("Error: Cannot add data of %v block(s) after %v from node '%v'", config.MAX_LIMIT_OF_DATA_SYNC, founded_block[0].BlockMeta.TimeStamp, uid)
+									logger.INTERNAL_LOGGER.Printf("Error: Cannot add data of %v block(s) after %v from node '%v'", len(thisResponse.Blocks), founded_block[0].BlockMeta.TimeStamp, uid)
 								}
 
 							}
@@ -246,50 +243,48 @@ func SyncData(cm *ClientManager) {
 						if thisResponse.IsSuccess {
 							if len(thisResponse.Blocks) > config.MIN_LIMIT_OF_DATA_SYNC {
 
+								//* Valid data
+								// check block validation
 								var newBlocks []interface{}
-
 								for _, dbBlock := range thisResponse.Blocks {
-
 									//* Valid data
 									// check block validation
-									message := dbBlock.BlockData.SenderUID +
-										utils.Int64ToStr(dbBlock.BlockData.SenderRole) +
-										dbBlock.BlockData.SenderPubKey +
-										dbBlock.BlockData.ReceiverUID +
-										utils.Int64ToStr(dbBlock.BlockData.ReceiverRole) +
-										dbBlock.BlockData.Data +
-										utils.Int64ToStr(dbBlock.BlockData.TimeStamp)
+									validation_err := db.BlockValidator(dbBlock)
 
-									valid, validation_err := utils.Verify(dbBlock.BlockData.SenderPubKey, dbBlock.BlockData.SenderUID, message, dbBlock.BlockData.Signature)
-
-									if valid {
-										newBlocks = append(newBlocks, db.Block{
-											ID: dbBlock.ID,
-											BlockMeta: db.BlockMeta{
-												PreBlockHash: dbBlock.BlockMeta.PreBlockHash,
-												NodeUID:      dbBlock.BlockMeta.NodeUID,
-												TimeStamp:    dbBlock.BlockMeta.TimeStamp,
-											},
-											BlockData: db.BlockData{
-												SenderUID:    dbBlock.BlockData.SenderUID,
-												SenderRole:   dbBlock.BlockData.SenderRole,
-												SenderPubKey: dbBlock.BlockData.SenderPubKey,
-												Signature:    dbBlock.BlockData.Signature,
-												ReceiverUID:  dbBlock.BlockData.ReceiverUID,
-												ReceiverRole: dbBlock.BlockData.ReceiverRole,
-												Data:         dbBlock.BlockData.Data,
-												TimeStamp:    dbBlock.BlockData.TimeStamp,
-											},
-										})
-									} else {
-										logger.WS_F_LOGGER.Printf("WARNING!!! : Block validation error from node '%v'. Block data:\n%v\nError:\n%v", uid, dbBlock, validation_err)
+									newBlock := db.Block{
+										ID: dbBlock.ID,
+										BlockMeta: db.BlockMeta{
+											PreBlockHash: dbBlock.BlockMeta.PreBlockHash,
+											NodeUID:      dbBlock.BlockMeta.NodeUID,
+											TimeStamp:    dbBlock.BlockMeta.TimeStamp,
+										},
+										BlockData: db.BlockData{
+											SenderUID:    dbBlock.BlockData.SenderUID,
+											SenderRole:   dbBlock.BlockData.SenderRole,
+											SenderPubKey: dbBlock.BlockData.SenderPubKey,
+											Signature:    dbBlock.BlockData.Signature,
+											ReceiverUID:  dbBlock.BlockData.ReceiverUID,
+											ReceiverRole: dbBlock.BlockData.ReceiverRole,
+											Data:         dbBlock.BlockData.Data,
+											TimeStamp:    dbBlock.BlockData.TimeStamp,
+										},
 									}
+
+									if validation_err != nil {
+										// Block validation failed
+										logger.WS_F_LOGGER.Printf("WARNING!!! : Block validation error from node '%v'. Block data:\n%v\nError:\n%v", uid, dbBlock, validation_err)
+										newBlock.Boycott = true
+									} else {
+										newBlock.Boycott = false
+									}
+
+									newBlocks = append(newBlocks, newBlock)
 								}
 
 								result, err := db.InsertManyBlock(newBlocks)
 
 								if err != nil {
-									logger.INTERNAL_LOGGER.Printf("Error: CanNot add data of %v block made after %v from node '%v'", config.MAX_LIMIT_OF_DATA_SYNC, founded_block[0].BlockMeta.TimeStamp, uid)
+									logger.INTERNAL_LOGGER.Printf("Error: CanNot add data of %v block made after %v from node '%v'", len(thisResponse.Blocks), founded_block[0].BlockMeta.TimeStamp, uid)
 								}
 
 								if result {

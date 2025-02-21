@@ -4,7 +4,7 @@ import (
 	"blvchain/core/config"
 	"blvchain/core/utils"
 	"errors"
-	"fmt"
+	// "fmt"
 	"reflect"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -14,6 +14,7 @@ func Genesis_check() (bool, error) {
 
 	// Check for genesis Block
 	var genesis_block Block = Block{
+		Boycott: false,
 		BlockMeta: BlockMeta{
 			PreBlockHash: config.GENESIS_BLOCK_PREHASH,
 			TimeStamp:    config.GENESIS_TIMESTAMP,
@@ -97,25 +98,25 @@ func BlockValidator(block Block) error {
 }
 
 func StructValidator(s interface{}) error {
-	val := reflect.ValueOf(s)
-	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
-	}
+	// val := reflect.ValueOf(s)
+	// if val.Kind() == reflect.Ptr {
+	// 	val = val.Elem()
+	// }
 
-	if val.Kind() != reflect.Struct {
-		return errors.New("provided value is not a struct")
-	}
+	// if val.Kind() != reflect.Struct {
+	// 	return errors.New("provided value is not a struct")
+	// }
 
-	// Iterate through fields
-	for i := 0; i < val.NumField(); i++ {
-		field := val.Field(i)
-		fieldType := val.Type().Field(i)
+	// // Iterate through fields
+	// for i := 0; i < val.NumField(); i++ {
+	// 	field := val.Field(i)
+	// 	fieldType := val.Type().Field(i)
 
-		// Check for zero value
-		if field.IsZero() {
-			return fmt.Errorf("field '%s' is zero or empty", fieldType.Name)
-		}
-	}
+	// 	// Check for zero value
+	// 	if field.IsZero() {
+	// 		return fmt.Errorf("field '%s' is zero or empty", fieldType.Name)
+	// 	}
+	// }
 
 	return nil
 }

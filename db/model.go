@@ -19,6 +19,7 @@ type BlockData struct {
 
 type Block struct {
 	ID        string    `bson:"_id,omitempty"`
+	Boycott   bool      `bson:"boycott"`
 	BlockMeta BlockMeta `bson:"blockMeta,omitempty"`
 	BlockData BlockData `bson:"blockData,omitempty"`
 }

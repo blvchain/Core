@@ -52,9 +52,6 @@ func Verify(hexPublicKey string, uid string, message string, hexSignature string
 	publicKey := &ecdsa.PublicKey{Curve: curve, X: x, Y: y}
 
 	madeUID := Make_UID(hexPublicKey)
-	fmt.Println("madeUID: ", madeUID)
-	fmt.Println("given uid: ", uid)
-	fmt.Println("hexPublicKey: ", hexPublicKey)
 
 	if madeUID != uid {
 		return false, fmt.Errorf("uid is not for this public key")

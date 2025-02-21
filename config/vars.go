@@ -12,8 +12,8 @@ var (
 
 	// Mongodb
 	NO_FILTER primitive.M = bson.M{}
-	DESC      primitive.M = bson.M{"_id": -1}
-	ASC       primitive.M = bson.M{"_id": 1}
+	DESC      primitive.M = bson.M{"blockMeta.timeStamp": -1}
+	ASC       primitive.M = bson.M{"blockMeta.timeStamp": 1}
 
 	BLOCK_COLL *mongo.Collection
 

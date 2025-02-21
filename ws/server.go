@@ -154,33 +154,37 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 				// check block validation
 				validation_err := db.BlockValidator(msg.Block)
 
-				if validation_err != nil {
-					// Block validation failed
-					logger.WS_F_LOGGER.Printf("WARNING!!!: Error in node '%v' block validation: , %v\n", clientUID, validation_err)
-				} else {
+				// check hash
+				founded_blocks, _ := db.FindAllBlocks(bson.M{"_id": msg.Block.ID})
 
-					// check hash
-					founded_blocks, _ := db.FindAllBlocks(bson.M{"_id": msg.Block.ID})
+				if len(founded_blocks) == 0 {
 
-					if len(founded_blocks) == 0 {
-						// Block hash is unique
-						// preBlockHash found in db
-						Block_insert_result, Block_insert_result_err := db.InsertOneBlock(msg.Block)
-
-						if !Block_insert_result {
-							// Internal error to add data to DB
-							logger.INTERNAL_LOGGER.Printf("Error: Error in adding block '%v' to db from node '%v' : \n %v", msg.Block.ID, clientUID, Block_insert_result_err)
-						} else {
-							// Successfully added data to DB
-							logger.WS_S_LOGGER.Printf("Success: Block '%v' successfully added from '%v' ", msg.Block.ID, clientUID)
-							res.IsSuccess = true
-						}
-
+					if validation_err != nil {
+						// Block validation failed
+						logger.WS_F_LOGGER.Printf("WARNING!!!: Error in node '%v' block validation: , %v\n", clientUID, validation_err)
+						msg.Block.Boycott = true
 					} else {
-						// Block hash is NOT unique
-						logger.WS_F_LOGGER.Printf("Error: Error in node '%v' block hash is not unique: , %v\n", clientUID, validation_err)
+						msg.Block.Boycott = false
 					}
+
+					// Block hash is unique
+					// preBlockHash found in db
+					Block_insert_result, Block_insert_result_err := db.InsertOneBlock(msg.Block)
+
+					if !Block_insert_result {
+						// Internal error to add data to DB
+						logger.INTERNAL_LOGGER.Printf("Error: Error in adding block '%v' to db from node '%v' : \n %v", msg.Block.ID, clientUID, Block_insert_result_err)
+					} else {
+						// Successfully added data to DB
+						logger.WS_S_LOGGER.Printf("Success: Block '%v' successfully added from '%v' ", msg.Block.ID, clientUID)
+						res.IsSuccess = true
+					}
+
+				} else {
+					// Block hash is NOT unique
+					logger.WS_F_LOGGER.Printf("Error: Error in node '%v' block hash is not unique: , %v\n", clientUID, validation_err)
 				}
+
 			}
 
 			// Send response to client
@@ -195,7 +199,12 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 				IsSuccess: false,
 			}
 
-			filter := bson.M{"blockMeta.timeStamp": bson.M{"$gt": msg.Block.BlockMeta.TimeStamp}}
+			filter := bson.M{
+				"$and": []bson.M{
+					{"blockMeta.timeStamp": bson.M{"$gte": msg.Block.BlockMeta.TimeStamp}},
+					{"blockMeta.preBlockHash": bson.M{"$ne": config.GENESIS_BLOCK_PREHASH}},
+				},
+			}
 
 			founded_block, founded_block_err := db.FindManyBlocksLimitedASE(filter, 0, config.MAX_LIMIT_OF_DATA_SYNC)
 

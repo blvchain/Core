@@ -59,7 +59,7 @@ func FindOneBlock(blockHash string, result interface{}) error {
 func FindManyBlocksLimited(filter primitive.M, skip int64, limit int64) ([]Block, error) {
 	var result []Block
 
-	findOptions := options.Find().SetSort(config.DESC).SetLimit(limit).SetSkip(skip).SetProjection(bson.M{"_id": 0})
+	findOptions := options.Find().SetSort(config.DESC).SetLimit(limit).SetSkip(skip)
 	cursor, find_err := config.BLOCK_COLL.Find(context.TODO(), filter, findOptions)
 	if find_err != nil {
 		return result, find_err

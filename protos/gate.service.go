@@ -76,6 +76,7 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 
 			// make block to add in db
 			var block db.Block = db.Block{
+				Boycott: false,
 				BlockMeta: db.BlockMeta{
 					PreBlockHash: preBlock.ID,
 					NodeUID:      config.SELF_UID,
@@ -153,6 +154,8 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 		//* Valid data
 
 		filter := []bson.M{}
+
+		filter = append(filter, bson.M{"boycott": false})
 
 		if req.SenderUID != "" {
 			filter = append(filter, bson.M{"blockData.senderUid": req.SenderUID})
