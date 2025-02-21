@@ -45,14 +45,14 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 			req.Data +
 			utils.Int64ToStr(req.TimeStamp)
 
-		valid, _ := utils.Verify(req.SenderPubKey, message, req.Signature)
+		valid, validation_err := utils.Verify(req.SenderPubKey, message, req.Signature)
 
 		if !valid {
 			// Block validation failed
-			logger.GRPC_F_LOGGER.Printf("WARNING!!!: Error in data %v signature validation from %v", req, apiKey)
+			logger.GRPC_F_LOGGER.Printf("WARNING!!!: Error in data %v signature validation from %v:\n%v", req, apiKey, validation_err)
 			return &AddDataResult{
 				IsSuccess: false,
-				Log:       "Signature validation failed",
+				Log:       validation_err.Error(),
 			}, nil
 		} else {
 			// valid signature

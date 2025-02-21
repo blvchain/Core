@@ -9,7 +9,6 @@ import (
 var (
 	// Global ENV
 	MONGO_URI string = GetEnv("MONGO_URI")
-	SELF_UID  string = DefineENV("SI", GetEnv("SELF_UID"))
 
 	// Mongodb
 	NO_FILTER primitive.M = bson.M{}
@@ -26,7 +25,8 @@ var (
 	API_KEY_LIST  = GetApiKeyFile()
 
 	// Terminal variables
-	DATABASE_NAME  = DefineENV("DB", "BLVchain")
-	WEBSOCKET_PORT = DefineENV("WP", ":8080")
-	GRPC_PORT      = DefineENV("GP", ":50051")
+	SELF_UID       string = DefineENV("SELF_UID", GetEnv("SELF_UID"))
+	DATABASE_NAME         = DefineENV("DB", "BLVchain")
+	WEBSOCKET_PORT        = DefineENV("WP", ":8080")
+	GRPC_PORT             = DefineENV("GP", ":50051")
 )

@@ -1,1 +1,1 @@
-SI=testuid2 DB=BLVchain2 WP=:8082 GP=:50052 go run main.go
+SELF_UID=testuid2 DB=BLVchain2 WP=:8082 GP=:50052 go run main.go

@@ -1,0 +1,1 @@
+SELF_UID=testuid1 DB=BLVchain1 WP=:8081 GP=:50051 go run main.go

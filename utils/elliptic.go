@@ -5,6 +5,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 
 	"blvchain/core/config"
@@ -35,12 +36,22 @@ func Verify(hexPublicKey string, message string, hexSignature string) (bool, err
 
 	message_hash := D256(message, config.DELIUM_CONFIG.MESSAGE.DELETE_STEP, config.DELIUM_CONFIG.MESSAGE.REPEAT).Byte_slice
 
-	pubKeyCompressed, _ := hex.DecodeString(hexPublicKey)
+	pubKeyCompressed, pubKeyCompressed_err := hex.DecodeString(hexPublicKey)
+	if pubKeyCompressed_err != nil {
+		return false, pubKeyCompressed_err
+	}
+
 	curve := elliptic.P256()
 
 	x, y := elliptic.UnmarshalCompressed(curve, pubKeyCompressed)
 
+	if x == nil || y == nil {
+		return false, fmt.Errorf("password is too short")
+	}
+
 	publicKey := &ecdsa.PublicKey{Curve: curve, X: x, Y: y}
+
+	fmt.Println(publicKey)
 
 	signatureBytes, err := hex.DecodeString(hexSignature)
 	if err != nil {
