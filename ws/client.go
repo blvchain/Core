@@ -155,7 +155,7 @@ func FirstTimeSyncData(cm *ClientManager) bool {
 										dbBlock.BlockData.Data +
 										utils.Int64ToStr(dbBlock.BlockData.TimeStamp)
 
-									valid, _ := utils.Verify(dbBlock.BlockData.SenderPubKey, message, dbBlock.BlockData.SenderUID, dbBlock.BlockData.Signature)
+									valid, _ := utils.Verify(dbBlock.BlockData.SenderPubKey, dbBlock.BlockData.SenderUID, message, dbBlock.BlockData.Signature)
 
 									if valid {
 										newBlocks = append(newBlocks, db.Block{
@@ -260,7 +260,7 @@ func SyncData(cm *ClientManager) {
 										dbBlock.BlockData.Data +
 										utils.Int64ToStr(dbBlock.BlockData.TimeStamp)
 
-									valid, _ := utils.Verify(dbBlock.BlockData.SenderPubKey, message, dbBlock.BlockData.SenderUID, dbBlock.BlockData.Signature)
+									valid, _ := utils.Verify(dbBlock.BlockData.SenderPubKey, dbBlock.BlockData.SenderUID, message, dbBlock.BlockData.Signature)
 
 									if valid {
 										newBlocks = append(newBlocks, db.Block{
