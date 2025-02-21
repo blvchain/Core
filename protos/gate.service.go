@@ -45,7 +45,7 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 			req.Data +
 			utils.Int64ToStr(req.TimeStamp)
 
-		valid, validation_err := utils.Verify(req.SenderPubKey, message, req.Signature)
+		valid, validation_err := utils.Verify(req.SenderPubKey, req.SenderUID, message, req.Signature)
 
 		if !valid {
 			// Block validation failed
@@ -225,7 +225,7 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 					dbBlock.BlockData.Data +
 					utils.Int64ToStr(dbBlock.BlockData.TimeStamp)
 
-				valid, _ := utils.Verify(dbBlock.BlockData.SenderPubKey, message, dbBlock.BlockData.Signature)
+				valid, _ := utils.Verify(dbBlock.BlockData.SenderPubKey, dbBlock.BlockData.SenderUID, message, dbBlock.BlockData.Signature)
 
 				if valid {
 					grpcBlocks = append(grpcBlocks, &Block{

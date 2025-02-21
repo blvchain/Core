@@ -78,3 +78,8 @@ func Data_to_JSON(data any) []byte {
 	}
 	return byte_data
 }
+
+func Make_UID(pubkey_str string) string {
+	hash := D512(pubkey_str, config.DELIUM_CONFIG.MESSAGE.DELETE_STEP, config.DELIUM_CONFIG.HASH.REPEAT).String
+	return hash[:32]
+}

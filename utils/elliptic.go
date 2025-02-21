@@ -32,7 +32,7 @@ func Sign(hexPrivateKey string, message string) (string, error) {
 	return signatureHex, nil
 }
 
-func Verify(hexPublicKey string, message string, hexSignature string) (bool, error) {
+func Verify(hexPublicKey string, message string, uid string, hexSignature string) (bool, error) {
 
 	message_hash := D256(message, config.DELIUM_CONFIG.MESSAGE.DELETE_STEP, config.DELIUM_CONFIG.MESSAGE.REPEAT).Byte_slice
 
@@ -51,7 +51,11 @@ func Verify(hexPublicKey string, message string, hexSignature string) (bool, err
 
 	publicKey := &ecdsa.PublicKey{Curve: curve, X: x, Y: y}
 
-	fmt.Println(publicKey)
+	madeUID := Make_UID(hexPublicKey)
+
+	if madeUID != uid {
+		return false, fmt.Errorf("uid is not for this public key")
+	}
 
 	signatureBytes, err := hex.DecodeString(hexSignature)
 	if err != nil {
