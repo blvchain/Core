@@ -80,6 +80,6 @@ func Data_to_JSON(data any) []byte {
 }
 
 func Make_UID(pubkey_str string) string {
-	hash := D512(pubkey_str, config.DELIUM_CONFIG.MESSAGE.DELETE_STEP, config.DELIUM_CONFIG.HASH.REPEAT).String
+	hash := D512(pubkey_str, config.DELIUM_CONFIG.MESSAGE.DELETE_STEP, config.DELIUM_CONFIG.MESSAGE.REPEAT).String
 	return hash[:32]
 }

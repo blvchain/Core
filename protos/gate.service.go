@@ -225,7 +225,7 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 					dbBlock.BlockData.Data +
 					utils.Int64ToStr(dbBlock.BlockData.TimeStamp)
 
-				valid, _ := utils.Verify(dbBlock.BlockData.SenderPubKey, dbBlock.BlockData.SenderUID, message, dbBlock.BlockData.Signature)
+				valid, validation_err := utils.Verify(dbBlock.BlockData.SenderPubKey, dbBlock.BlockData.SenderUID, message, dbBlock.BlockData.Signature)
 
 				if valid {
 					grpcBlocks = append(grpcBlocks, &Block{
@@ -247,7 +247,7 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 						},
 					})
 				} else {
-					logger.GRPC_F_LOGGER.Printf("WARNING!!! : Block validation error in database. Block data:\n%v", dbBlock)
+					logger.GRPC_F_LOGGER.Printf("WARNING!!! : Block validation error in database. Block data:\n%v\nErro:\n%v", dbBlock, validation_err)
 				}
 			}
 

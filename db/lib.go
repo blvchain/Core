@@ -87,10 +87,10 @@ func BlockValidator(block Block) error {
 	}
 
 	message := MessageMaker(block.BlockData)
-	valid, _ := utils.Verify(block.BlockData.SenderPubKey, block.BlockData.SenderUID, message, block.BlockData.Signature)
+	valid, validation_err := utils.Verify(block.BlockData.SenderPubKey, block.BlockData.SenderUID, message, block.BlockData.Signature)
 
 	if !valid {
-		return errors.New("not valid signature")
+		return validation_err
 	}
 
 	return nil
