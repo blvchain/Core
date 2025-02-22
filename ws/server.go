@@ -119,16 +119,21 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 				filter = append(filter, bson.M{"blockMeta.nodeUid": msg.Block.BlockMeta.NodeUID})
 			}
 
-			founded_block, founded_block_err := db.FindManyBlocksLimited(bson.M{"$and": filter}, 0, 1)
-
-			if founded_block_err == mongo.ErrNoDocuments || len(founded_block) == 0 {
-				// Not found any block with this hash
+			if len(filter) == 0 {
 				logger.WS_F_LOGGER.Printf("Error: Not found block '%v'. Req from node '%v'", msg.Block.ID, clientUID)
 			} else {
-				// Send founded block
-				logger.WS_S_LOGGER.Printf("Success: Send data of block '%v' to node '%v'", msg.Block.ID, clientUID)
-				res.IsSuccess = true
-				res.Block = founded_block[0]
+
+				founded_block, founded_block_err := db.FindManyBlocksLimited(bson.M{"$and": filter}, 0, 1)
+
+				if founded_block_err == mongo.ErrNoDocuments || len(founded_block) == 0 {
+					// Not found any block with this hash
+					logger.WS_F_LOGGER.Printf("Error: Not found block '%v'. Req from node '%v'", msg.Block.ID, clientUID)
+				} else {
+					// Send founded block
+					logger.WS_S_LOGGER.Printf("Success: Send data of block '%v' to node '%v'", msg.Block.ID, clientUID)
+					res.IsSuccess = true
+					res.Block = founded_block[0]
+				}
 			}
 
 			// Send response to client
@@ -144,7 +149,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// check all data validation
-			structValidation_err := db.StructValidator(msg.Block)
+			structValidation_err := db.BlockStructValidator(msg.Block)
 
 			if structValidation_err != nil {
 				// Structure failed

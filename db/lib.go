@@ -97,26 +97,63 @@ func BlockValidator(block Block) error {
 	return nil
 }
 
-func StructValidator(s interface{}) error {
-	// val := reflect.ValueOf(s)
-	// if val.Kind() == reflect.Ptr {
-	// 	val = val.Elem()
-	// }
+func BlockStructValidator(b Block) error {
 
-	// if val.Kind() != reflect.Struct {
-	// 	return errors.New("provided value is not a struct")
-	// }
+	// Block
+	if utils.E_str(b.ID, 64) {
+		return errors.New("_id is required and must be 64 len string")
+	}
 
-	// // Iterate through fields
-	// for i := 0; i < val.NumField(); i++ {
-	// 	field := val.Field(i)
-	// 	fieldType := val.Type().Field(i)
+	if utils.BoolCheck(b.Boycott) {
+		return errors.New("boycott is required")
+	}
 
-	// 	// Check for zero value
-	// 	if field.IsZero() {
-	// 		return fmt.Errorf("field '%s' is zero or empty", fieldType.Name)
-	// 	}
-	// }
+	// Block Meta
+	if utils.E_str(b.BlockMeta.PreBlockHash, 64) {
+		return errors.New("preBlockHash is required and must be 64 len string")
+	}
+
+	if utils.Gt_str(b.BlockMeta.NodeUID, 9) {
+		return errors.New("nodeUid is required and must be greater than 9 len string")
+	}
+
+	if utils.Bt_int64(b.BlockMeta.TimeStamp, 1262304000, 9262304000) {
+		return errors.New("timeStamp must be a valid unix format with miliseconds")
+	}
+
+	// Block Data
+	if utils.E_str(b.BlockData.SenderUID, 32) {
+		return errors.New("senderUID is required and must be 32 len string")
+	}
+
+	if utils.Bt_int64(b.BlockData.SenderRole, 0, 10000001) {
+		return errors.New("senderRole is required and must be bigger than zero")
+	}
+
+	if utils.E_str(b.BlockData.SenderPubKey, 66) {
+		return errors.New("senderPubKey is required and must be 66 len string")
+	}
+
+	if utils.E_str(b.BlockData.Signature, 128) {
+		return errors.New("signature is required and must be 128 len string")
+	}
+
+	if utils.E_str(b.BlockData.ReceiverUID, 32) {
+		return errors.New("receiverUID is required and must be 32 len string")
+	}
+
+	if utils.Bt_int64(b.BlockData.ReceiverRole, 0, 10000001) {
+		return errors.New("receiverRole is required and must be bigger than zero")
+	}
+
+	if utils.Lt_int(utils.StringSizeInKB(b.BlockData.Data), utils.StringToInt(config.MAX_DATA_SIZE)) {
+		errStr := "data is required and must be lesser than " + config.MAX_DATA_SIZE + "KB"
+		return errors.New(errStr)
+	}
+
+	if utils.Bt_int64(b.BlockData.TimeStamp, 1262304000, 9262304000) {
+		return errors.New("timeStamp must be a valid unix format with miliseconds")
+	}
 
 	return nil
 }

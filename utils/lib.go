@@ -96,24 +96,24 @@ func StringSizeInKB(s string) int {
 
 // validators
 // Between
-func Bt_int(inputInt int, gt int, ls int) bool {
-	if inputInt >= gt && inputInt <= ls {
+func Bt_int(inputData int, gt int, ls int) bool {
+	if inputData >= gt && inputData <= ls {
 		return true
 	} else {
 		return false
 	}
 }
 
-func Bt_int64(inputInt int64, gt int64, ls int64) bool {
-	if inputInt >= gt && inputInt <= ls {
+func Bt_int64(inputData int64, gt int64, ls int64) bool {
+	if inputData >= gt && inputData <= ls {
 		return true
 	} else {
 		return false
 	}
 }
 
-func Bt_str(inputInt string, gt int, ls int) bool {
-	if len(inputInt) > gt && len(inputInt) < ls {
+func Bt_str(inputData string, gt int, ls int) bool {
+	if len(inputData) > gt && len(inputData) < ls {
 		return true
 	} else {
 		return false
@@ -121,24 +121,24 @@ func Bt_str(inputInt string, gt int, ls int) bool {
 }
 
 // Greater than
-func Gt_int(inputInt int, gt int) bool {
-	if inputInt < gt {
+func Gt_int(inputData int, gt int) bool {
+	if inputData < gt {
 		return true
 	} else {
 		return false
 	}
 }
 
-func Gt_int64(inputInt int64, gt int64) bool {
-	if inputInt < gt {
+func Gt_int64(inputData int64, gt int64) bool {
+	if inputData < gt {
 		return true
 	} else {
 		return false
 	}
 }
 
-func Gt_str(inputInt string, gt int) bool {
-	if len(inputInt) < gt {
+func Gt_str(inputData string, gt int) bool {
+	if len(inputData) < gt {
 		return true
 	} else {
 		return false
@@ -146,24 +146,24 @@ func Gt_str(inputInt string, gt int) bool {
 }
 
 // Lesser than
-func Lt_int(inputInt int, ls int) bool {
-	if inputInt > ls {
+func Lt_int(inputData int, ls int) bool {
+	if inputData > ls {
 		return true
 	} else {
 		return false
 	}
 }
 
-func Lt_int64(inputInt int64, ls int64) bool {
-	if inputInt > ls {
+func Lt_int64(inputData int64, ls int64) bool {
+	if inputData > ls {
 		return true
 	} else {
 		return false
 	}
 }
 
-func Lt_str(inputInt string, ls int) bool {
-	if len(inputInt) > ls {
+func Lt_str(inputData string, ls int) bool {
+	if len(inputData) > ls {
 		return true
 	} else {
 		return false
@@ -172,8 +172,17 @@ func Lt_str(inputInt string, ls int) bool {
 
 // Equal
 
-func E_str(inputInt string, e int) bool {
-	if len(inputInt) == e {
+func E_str(inputData string, e int) bool {
+	if len(inputData) == e {
+		return true
+	} else {
+		return false
+	}
+}
+
+func BoolCheck(inputData bool) bool {
+	var data interface{} = inputData
+	if _, ok := data.(bool); ok {
 		return true
 	} else {
 		return false
