@@ -38,8 +38,8 @@ func validateAddDataRequest(req *BlockData) error {
 		return errors.New("receiverRole is required and must be bigger than zero")
 	}
 
-	if utils.Lt_float(utils.StringSizeInKB(req.Data), utils.StringToFloat64(config.MAX_DATA_SIZE)) {
-		errStr := "data is required and must be lesser than " + config.MAX_DATA_SIZE + "KB"
+	if utils.Lt_float(utils.StringSizeInKB(req.Data), utils.StringToFloat64(config.MAX_DATA_SIZE_KB)) {
+		errStr := "data is required and must be lesser than " + config.MAX_DATA_SIZE_KB + "KB"
 		return errors.New(errStr)
 	}
 

@@ -25,9 +25,9 @@ var (
 	API_KEY_LIST  = GetApiKeyFile()
 
 	// Terminal variables
-	SELF_UID       string = DefineENV("SELF_UID", GetEnv("SELF_UID"))
-	DATABASE_NAME         = DefineENV("DB", "BLVchain")
-	WEBSOCKET_PORT        = DefineENV("WP", ":8080")
-	GRPC_PORT             = DefineENV("GP", ":50051")
-	MAX_DATA_SIZE         = DefineENV("MAX_DATA_SIZE", "2048")
+	SELF_UID         string = DefineENV("SELF_UID", GetEnv("SELF_UID"))
+	DATABASE_NAME           = DefineENV("DB", "BLVchain")
+	WEBSOCKET_PORT          = DefineENV("WP", ":8080")
+	GRPC_PORT               = DefineENV("GP", ":50051")
+	MAX_DATA_SIZE_KB        = DefineENV("MAX_DATA_SIZE_KB", "2048")
 )
