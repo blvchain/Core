@@ -3,6 +3,7 @@ package protos
 import (
 	"blvchain/core/config"
 	"blvchain/core/logger"
+	"blvchain/core/utils"
 	context "context"
 	"errors"
 
@@ -13,36 +14,37 @@ import (
 
 func validateAddDataRequest(req *BlockData) error {
 
-	if req.SenderUID == "" {
-		return errors.New("senderUID is required")
+	if utils.E_str(req.SenderUID, 32) {
+		return errors.New("senderUID is required and must be 32 len string")
 	}
 
-	if req.SenderRole < 0 {
-		return errors.New("senderRole must be bigger than zero")
+	if utils.Bt_int64(req.SenderRole, 0, 10000001) {
+		return errors.New("senderRole is required and must be bigger than zero")
 	}
 
-	if req.SenderPubKey == "" {
-		return errors.New("senderPubKey is required")
+	if utils.E_str(req.SenderPubKey, 66) {
+		return errors.New("senderPubKey is required and must be 66 len string")
 	}
 
-	if req.Signature == "" {
-		return errors.New("signature is required")
+	if utils.E_str(req.Signature, 128) {
+		return errors.New("signature is required and must be 128 len string")
 	}
 
-	if req.ReceiverUID == "" {
-		return errors.New("receiverUID is required")
+	if utils.E_str(req.ReceiverUID, 32) {
+		return errors.New("receiverUID is required and must be 32 len string")
 	}
 
-	if req.ReceiverRole < 0 {
-		return errors.New("receiverRole must be bigger than zero")
+	if utils.Bt_int64(req.ReceiverRole, 0, 10000001) {
+		return errors.New("receiverRole is required and must be bigger than zero")
 	}
 
-	if req.Data == "" {
-		return errors.New("data is required")
+	if utils.Lt_int(utils.StringSizeInKB(req.Data), utils.StringToInt(config.MAX_DATA_SIZE)) {
+		errStr := "data is required and must be lesser than " + config.MAX_DATA_SIZE + "KB"
+		return errors.New(errStr)
 	}
 
-	if req.TimeStamp <= 0 {
-		return errors.New("timeStamp must be bigger than zero")
+	if utils.Bt_int64(req.TimeStamp, 1262304000, 9262304000) {
+		return errors.New("timeStamp must be a valid unix format with miliseconds")
 	}
 
 	return nil
@@ -50,7 +52,7 @@ func validateAddDataRequest(req *BlockData) error {
 
 func validateReadDataRequest(req *ReadDataRequest) error {
 
-	if req.Limit < 0 || req.Limit > 100 {
+	if utils.Bt_int64(req.Limit, 0, 101) {
 		return errors.New("limit must be between 1-100")
 	}
 
@@ -58,17 +60,17 @@ func validateReadDataRequest(req *ReadDataRequest) error {
 		return errors.New("skip must be zero or bigger than zero")
 	}
 
-	if req.SenderUID == "" &&
-		req.SenderRole == 0 &&
-		req.SenderPubKey == "" &&
-		req.ReceiverUID == "" &&
-		req.ReceiverRole == 0 &&
-		req.BlockHash == "" &&
-		req.PreBlockHash == "" &&
-		req.NodeUID == "" &&
-		req.TimeStampFrom == 0 &&
-		req.TimeStampTo == 0 {
-		return errors.New("no filters provided in the request")
+	if utils.E_str(req.SenderUID, 32) &&
+		utils.Bt_int64(req.SenderRole, 0, 10000001) &&
+		utils.E_str(req.SenderPubKey, 66) &&
+		utils.E_str(req.ReceiverUID, 32) &&
+		utils.Bt_int64(req.ReceiverRole, 0, 10000001) &&
+		utils.E_str(req.BlockHash, 64) &&
+		utils.E_str(req.PreBlockHash, 64) &&
+		utils.Gt_str(req.NodeUID, 9) &&
+		utils.Bt_int64(req.TimeStampFrom, 1262304000, 9262304000) &&
+		utils.Bt_int64(req.TimeStampTo, 1262304000, 9262304000) {
+		return errors.New("no filters provided in the request / provided filters are not correct")
 	}
 
 	return nil

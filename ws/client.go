@@ -185,7 +185,7 @@ func FirstTimeSyncData(cm *ClientManager) bool {
 								}
 
 								if err != nil {
-									logger.INTERNAL_LOGGER.Printf("Error: Cannot add data of %v block(s) after %v from node '%v'", len(thisResponse.Blocks), founded_block[0].BlockMeta.TimeStamp, uid)
+									logger.INTERNAL_LOGGER.Printf("Error: Can Not add data of %v block(s) after %v from node '%v'", len(thisResponse.Blocks), founded_block[0].BlockMeta.TimeStamp, uid)
 								}
 
 							}
@@ -284,7 +284,7 @@ func SyncData(cm *ClientManager) {
 								result, err := db.InsertManyBlock(newBlocks)
 
 								if err != nil {
-									logger.INTERNAL_LOGGER.Printf("Error: CanNot add data of %v block made after %v from node '%v'", len(thisResponse.Blocks), founded_block[0].BlockMeta.TimeStamp, uid)
+									logger.INTERNAL_LOGGER.Printf("Error: Can Not add data of %v block made after %v from node '%v'", len(thisResponse.Blocks), founded_block[0].BlockMeta.TimeStamp, uid)
 								}
 
 								if result {

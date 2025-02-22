@@ -29,4 +29,5 @@ var (
 	DATABASE_NAME         = DefineENV("DB", "BLVchain")
 	WEBSOCKET_PORT        = DefineENV("WP", ":8080")
 	GRPC_PORT             = DefineENV("GP", ":50051")
+	MAX_DATA_SIZE         = DefineENV("MAX_DATA_SIZE", "2048")
 )
