@@ -32,8 +32,14 @@ func StringToInt64(strNum string) int64 {
 	num, _ := strconv.ParseInt(strNum, 10, 64)
 	return num
 }
+
 func StringToInt(strNum string) int {
 	num, _ := strconv.Atoi(strNum)
+	return num
+}
+
+func StringToFloat64(strNum string) float64 {
+	num, _ := strconv.ParseFloat(strNum, 64)
 	return num
 }
 
@@ -88,85 +94,94 @@ func Make_UID(pubkey_str string) string {
 	return hash[:32]
 }
 
-func StringSizeInKB(s string) int {
+func StringSizeInKB(s string) float64 {
 	bytes := len(s)
-	mbSize := bytes / 1024
-	return mbSize
+	kbSize := float64(bytes) / 1024
+
+	return kbSize
 }
 
 // validators
 // Between
 func Bt_int(inputData int, gt int, ls int) bool {
 	if inputData >= gt && inputData <= ls {
-		return true
-	} else {
 		return false
+	} else {
+		return true
 	}
 }
 
 func Bt_int64(inputData int64, gt int64, ls int64) bool {
 	if inputData >= gt && inputData <= ls {
-		return true
-	} else {
 		return false
+	} else {
+		return true
 	}
 }
 
 func Bt_str(inputData string, gt int, ls int) bool {
-	if len(inputData) > gt && len(inputData) < ls {
-		return true
-	} else {
+	if len(inputData) >= gt && len(inputData) <= ls {
 		return false
+	} else {
+		return true
 	}
 }
 
 // Greater than
 func Gt_int(inputData int, gt int) bool {
-	if inputData < gt {
-		return true
-	} else {
+	if inputData > gt {
 		return false
+	} else {
+		return true
 	}
 }
 
 func Gt_int64(inputData int64, gt int64) bool {
-	if inputData < gt {
-		return true
-	} else {
+	if inputData > gt {
 		return false
+	} else {
+		return true
 	}
 }
 
 func Gt_str(inputData string, gt int) bool {
-	if len(inputData) < gt {
-		return true
-	} else {
+	if len(inputData) > gt {
 		return false
+	} else {
+		return true
 	}
 }
 
 // Lesser than
-func Lt_int(inputData int, ls int) bool {
-	if inputData > ls {
-		return true
-	} else {
+func Lt_float(inputData float64, ls float64) bool {
+	if inputData < ls {
 		return false
+	} else {
+		return true
+	}
+}
+
+func Lt_int(inputData int, ls int) bool {
+	if inputData < ls {
+		return false
+	} else {
+		return true
 	}
 }
 
 func Lt_int64(inputData int64, ls int64) bool {
-	if inputData > ls {
-		return true
-	} else {
+	if inputData < ls {
 		return false
+	} else {
+		return true
 	}
 }
 
 func Lt_str(inputData string, ls int) bool {
-	if len(inputData) > ls {
-		return true
-	} else {
+	if len(inputData) < ls {
 		return false
+	} else {
+		return true
 	}
 }
 
@@ -174,17 +189,17 @@ func Lt_str(inputData string, ls int) bool {
 
 func E_str(inputData string, e int) bool {
 	if len(inputData) == e {
-		return true
-	} else {
 		return false
+	} else {
+		return true
 	}
 }
 
 func BoolCheck(inputData bool) bool {
 	var data interface{} = inputData
 	if _, ok := data.(bool); ok {
-		return true
-	} else {
 		return false
+	} else {
+		return true
 	}
 }

@@ -117,7 +117,7 @@ func BlockStructValidator(b Block) error {
 		return errors.New("nodeUid is required and must be greater than 9 len string")
 	}
 
-	if utils.Bt_int64(b.BlockMeta.TimeStamp, 1262304000, 9262304000) {
+	if utils.Bt_int64(b.BlockMeta.TimeStamp, int64(1262304000000), int64(9262304000000)) {
 		return errors.New("timeStamp must be a valid unix format with miliseconds")
 	}
 
@@ -146,12 +146,12 @@ func BlockStructValidator(b Block) error {
 		return errors.New("receiverRole is required and must be bigger than zero")
 	}
 
-	if utils.Lt_int(utils.StringSizeInKB(b.BlockData.Data), utils.StringToInt(config.MAX_DATA_SIZE)) {
+	if utils.Lt_float(utils.StringSizeInKB(b.BlockData.Data), utils.StringToFloat64(config.MAX_DATA_SIZE)) {
 		errStr := "data is required and must be lesser than " + config.MAX_DATA_SIZE + "KB"
 		return errors.New(errStr)
 	}
 
-	if utils.Bt_int64(b.BlockData.TimeStamp, 1262304000, 9262304000) {
+	if utils.Bt_int64(b.BlockData.TimeStamp, int64(1262304000000), int64(9262304000000)) {
 		return errors.New("timeStamp must be a valid unix format with miliseconds")
 	}
 

@@ -67,5 +67,9 @@ func Verify(hexPublicKey string, uid string, message string, hexSignature string
 
 	valid := ecdsa.Verify(publicKey, message_hash, r, s)
 
-	return valid, nil
+	if valid {
+		return valid, nil
+	} else {
+		return false, fmt.Errorf("signature is not valid")
+	}
 }

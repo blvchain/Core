@@ -7,6 +7,7 @@ import (
 	"blvchain/core/utils"
 	"blvchain/core/ws"
 	context "context"
+	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -46,7 +47,7 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 			utils.Int64ToStr(req.TimeStamp)
 
 		valid, validation_err := utils.Verify(req.SenderPubKey, req.SenderUID, message, req.Signature)
-
+		fmt.Println("valid", valid)
 		if !valid {
 			// Block validation failed
 			logger.GRPC_F_LOGGER.Printf("WARNING!!!: Error in data %v signature validation from %v:\n%v", req, apiKey, validation_err)
