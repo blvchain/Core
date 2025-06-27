@@ -33,7 +33,7 @@ func main() {
 	// Genesis makers
 	check_genesis, check_genesis_err := db.Genesis_check()
 
-	// Check gensis block and dns seed in DB in first run of Node
+	// Check genesis block and dns seed in DB in first run of Node
 	if check_genesis {
 
 		//* WebSocket
@@ -101,7 +101,7 @@ func main() {
 		select {}
 
 	} else {
-		// Print error if gensis conditions fail
+		// Print error if genesis conditions fail
 		logger.INTERNAL_LOGGER.Printf("Error: %v", check_genesis_err)
 	}
 }

@@ -118,7 +118,7 @@ func BlockStructValidator(b Block) error {
 	}
 
 	if utils.Bt_int64(b.BlockMeta.TimeStamp, int64(1262304000000), int64(9262304000000)) {
-		return errors.New("timeStamp must be a valid unix format with miliseconds")
+		return errors.New("timeStamp must be a valid unix format with milliseconds")
 	}
 
 	// Block Data
@@ -152,7 +152,7 @@ func BlockStructValidator(b Block) error {
 	}
 
 	if utils.Bt_int64(b.BlockData.TimeStamp, int64(1262304000000), int64(9262304000000)) {
-		return errors.New("timeStamp must be a valid unix format with miliseconds")
+		return errors.New("timeStamp must be a valid unix format with milliseconds")
 	}
 
 	return nil

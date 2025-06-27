@@ -45,7 +45,7 @@ func (cm *ServerManager) BroadcastMessageFromLocalServer(message any) {
 	}
 }
 
-func messanger(message any, conn *websocket.Conn, uid string) {
+func messenger(message any, conn *websocket.Conn, uid string) {
 	messageByte, _ := json.Marshal(message)
 	err := conn.WriteMessage(websocket.TextMessage, messageByte)
 	if err != nil {
@@ -137,7 +137,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// Send response to client
-			messanger(res, conn, clientUID)
+			messenger(res, conn, clientUID)
 		}
 
 		//* Add new block
@@ -193,7 +193,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// Send response to client
-			messanger(res, conn, clientUID)
+			messenger(res, conn, clientUID)
 		}
 
 		//* Sync data
@@ -224,7 +224,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			// Send response to client
-			messanger(res, conn, clientUID)
+			messenger(res, conn, clientUID)
 		}
 
 	}

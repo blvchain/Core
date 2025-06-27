@@ -44,7 +44,7 @@ func validateAddDataRequest(req *BlockData) error {
 	}
 
 	if utils.Bt_int64(req.TimeStamp, int64(1262304000000), int64(9262304000000)) {
-		return errors.New("timeStamp must be a valid unix format with miliseconds")
+		return errors.New("timeStamp must be a valid unix format with milliseconds")
 	}
 
 	return nil
