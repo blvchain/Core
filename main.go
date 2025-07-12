@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 
+	"blvchain/core/bvm"
 	"blvchain/core/config"
 	"blvchain/core/db"
 	"blvchain/core/logger"
@@ -15,6 +16,13 @@ import (
 )
 
 func main() {
+
+	bvm.BVM()
+
+	return
+
+	//! ===========================================
+
 	syncDone := make(chan bool)
 
 	client, client_err := db.ConnectToMongoDB()
