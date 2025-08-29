@@ -75,7 +75,8 @@ func MessageMaker(b BlockData) string {
 		b.ReceiverUID +
 		utils.Int64ToStr(b.ReceiverRole) +
 		b.Data +
-		utils.Int64ToStr(b.TimeStamp)
+		utils.Int64ToStr(b.TimeStamp) +
+		b.ContractAddress
 }
 
 func BlockValidator(block Block) error {

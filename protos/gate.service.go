@@ -38,13 +38,17 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 	} else {
 		//* Valid data
 		// check block validation
-		message := req.SenderUID +
-			utils.Int64ToStr(req.SenderRole) +
-			req.SenderPubKey +
-			req.ReceiverUID +
-			utils.Int64ToStr(req.ReceiverRole) +
-			req.Data +
-			utils.Int64ToStr(req.TimeStamp)
+		message := db.MessageMaker(db.BlockData{
+			SenderUID:       req.SenderUID,
+			SenderRole:      req.SenderRole,
+			SenderPubKey:    req.SenderPubKey,
+			Signature:       req.Signature,
+			ReceiverUID:     req.ReceiverUID,
+			ReceiverRole:    req.ReceiverRole,
+			Data:            req.Data,
+			ContractAddress: req.ContractAddress,
+			TimeStamp:       req.TimeStamp,
+		})
 
 		valid, validation_err := utils.Verify(req.SenderPubKey, req.SenderUID, message, req.Signature)
 		fmt.Println("valid", valid)
@@ -57,7 +61,7 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 			}, nil
 		} else {
 			// valid signature
-			// find last sernder block for make preHashBlock
+			// find last sender block for make preHashBlock
 			var preBlock db.Block
 			sender_last_blocks, sender_last_blocks_err := db.FindManyBlocksLimited(bson.M{"blockData.senderUid": req.SenderUID}, 0, 1)
 
@@ -84,14 +88,15 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 					TimeStamp:    utils.NowTimeInt64UnixMilli(),
 				},
 				BlockData: db.BlockData{
-					SenderUID:    req.SenderUID,
-					SenderRole:   req.SenderRole,
-					SenderPubKey: req.SenderPubKey,
-					Signature:    req.Signature,
-					ReceiverUID:  req.ReceiverUID,
-					ReceiverRole: req.ReceiverRole,
-					Data:         req.Data,
-					TimeStamp:    req.TimeStamp,
+					SenderUID:       req.SenderUID,
+					SenderRole:      req.SenderRole,
+					SenderPubKey:    req.SenderPubKey,
+					Signature:       req.Signature,
+					ReceiverUID:     req.ReceiverUID,
+					ReceiverRole:    req.ReceiverRole,
+					Data:            req.Data,
+					ContractAddress: req.ContractAddress,
+					TimeStamp:       req.TimeStamp,
 				},
 			}
 			db.BlockHashMaker(&block, block.BlockMeta.NodeUID)
@@ -192,6 +197,9 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 			}
 			filter = append(filter, bson.M{"blockData.timeStamp": timeFilter})
 		}
+		if req.ContractAddress != "" {
+			filter = append(filter, bson.M{"blockData.contractAddress": req.ContractAddress})
+		}
 
 		blocks, err := db.FindManyBlocksLimited(bson.M{"$and": filter}, req.Skip, req.Limit)
 
@@ -221,13 +229,7 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 
 				//* Valid data
 				// check block validation
-				message := dbBlock.BlockData.SenderUID +
-					utils.Int64ToStr(dbBlock.BlockData.SenderRole) +
-					dbBlock.BlockData.SenderPubKey +
-					dbBlock.BlockData.ReceiverUID +
-					utils.Int64ToStr(dbBlock.BlockData.ReceiverRole) +
-					dbBlock.BlockData.Data +
-					utils.Int64ToStr(dbBlock.BlockData.TimeStamp)
+				message := db.MessageMaker(dbBlock.BlockData)
 
 				valid, validation_err := utils.Verify(dbBlock.BlockData.SenderPubKey, dbBlock.BlockData.SenderUID, message, dbBlock.BlockData.Signature)
 
@@ -240,18 +242,19 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 							TimeStamp:    dbBlock.BlockMeta.TimeStamp,
 						},
 						BlockData: &BlockData{
-							SenderUID:    dbBlock.BlockData.SenderUID,
-							SenderRole:   dbBlock.BlockData.SenderRole,
-							SenderPubKey: dbBlock.BlockData.SenderPubKey,
-							Signature:    dbBlock.BlockData.Signature,
-							ReceiverUID:  dbBlock.BlockData.ReceiverUID,
-							ReceiverRole: dbBlock.BlockData.ReceiverRole,
-							Data:         dbBlock.BlockData.Data,
-							TimeStamp:    dbBlock.BlockData.TimeStamp,
+							SenderUID:       dbBlock.BlockData.SenderUID,
+							SenderRole:      dbBlock.BlockData.SenderRole,
+							SenderPubKey:    dbBlock.BlockData.SenderPubKey,
+							Signature:       dbBlock.BlockData.Signature,
+							ReceiverUID:     dbBlock.BlockData.ReceiverUID,
+							ReceiverRole:    dbBlock.BlockData.ReceiverRole,
+							Data:            dbBlock.BlockData.Data,
+							ContractAddress: dbBlock.BlockData.ContractAddress,
+							TimeStamp:       dbBlock.BlockData.TimeStamp,
 						},
 					})
 				} else {
-					logger.GRPC_F_LOGGER.Printf("WARNING!!! : Block validation error in database. Block data:\n%v\nErro:\n%v", dbBlock, validation_err)
+					logger.GRPC_F_LOGGER.Printf("WARNING!!! : Block validation error in database. Block data:\n%v\nError:\n%v", dbBlock, validation_err)
 				}
 			}
 

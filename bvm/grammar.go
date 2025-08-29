@@ -8,6 +8,7 @@ type Program struct {
 type Stmt struct {
 	FuncDef *FuncDef `  @@`
 	Assign  *Assign  `| @@`
+	If      *IfStmt  `| @@`
 }
 
 type FuncDef struct {
@@ -40,13 +41,31 @@ type Assign struct {
 
 type Expr struct {
 	Left  Term    `@@`
-	Op    *string `[ @( "+" | "-" )`
+	Op    *string `[ @( "&&" | "||" | "==" | "!=" | "<=" | ">=" | "<" | ">" | "+" | "-" | "*" | "/" | "^" | "%" )`
 	Right Term    `  @@ ]`
 }
-
 type Term interface {
 	isTerm()
 }
+
+type NotTerm struct {
+	Not  string `"!"`
+	Term Term   `@@`
+}
+
+func (*NotTerm) isTerm() {}
+
+type BoolLit struct {
+	Value string `@Bool`
+}
+
+func (*BoolLit) isTerm() {}
+
+type ArrayLit struct {
+	Elements []*Expr `"[" [ @@ { "," @@ } ] "]"`
+}
+
+func (*ArrayLit) isTerm() {}
 
 type FuncCall struct {
 	Name string  `@Ident`
@@ -72,3 +91,15 @@ type StringLit struct {
 }
 
 func (*StringLit) isTerm() {}
+
+type IfStmt struct {
+	If        string   `"if"`
+	Condition *Expr    `@@`
+	Then      []*Stmt  `"{" @@* "}"`
+	Else      *ElseBlk `[ @@ ]`
+}
+
+type ElseBlk struct {
+	Else string  `"else"`
+	Body []*Stmt `"{" @@* "}"`
+}

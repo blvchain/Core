@@ -17,6 +17,8 @@ func BVM() {
 			&Number{},
 			&Variable{},
 			&StringLit{},
+			&BoolLit{},
+			&ArrayLit{},
 		),
 	)
 	if err != nil {
@@ -24,8 +26,8 @@ func BVM() {
 	}
 
 	source := `
-		result := 5
-		hash := D256("mydata", 2, 5)
+		arr := [1, 2, 3, 4]
+		l := getFromArrWithIndex(arr, 1)
 	`
 
 	ast, err := parser.ParseString("", source)
@@ -34,6 +36,5 @@ func BVM() {
 	}
 
 	ctx := EvalProgram(ast)
-	fmt.Println("result =", ctx.Variables["result"])
-	fmt.Println("hash =", ctx.Variables["hash"])
+	fmt.Println("l =", ctx.Variables["l"])
 }
