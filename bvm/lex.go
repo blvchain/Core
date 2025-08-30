@@ -6,8 +6,8 @@ import (
 
 var MainLex = lexer.MustSimple([]lexer.SimpleRule{
 	{"Comment", `//[^\n]*`},
-	{"AssignOp", `:=`},
-	{"Operators", `&&|\|\||==|!=|<=|>=|[-+*/%^=,:(){}<>!\[\]]`},
+	{"AssignOp", `=`},
+	{"Operators", `&&|\|\||==|!=|<=|>=|[-+*/%^=;:(){}<>!,\[\]]`},
 	{"Bool", `true|false`},
 	{"Ident", `[a-zA-Z_][a-zA-Z0-9_]*`},
 	{"String", `"(\\"|[^"])*"`},

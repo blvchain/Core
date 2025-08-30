@@ -7,6 +7,15 @@ import (
 	"github.com/alecthomas/participle/v2"
 )
 
+func (ctx *Context) Get(name string) (any, bool) {
+	for i := len(ctx.VarStack) - 1; i >= 0; i-- {
+		if v, ok := ctx.VarStack[i][name]; ok {
+			return v, true
+		}
+	}
+	return nil, false
+}
+
 func BVM() {
 	parser, err := participle.Build[Program](
 		participle.Lexer(MainLex),
@@ -27,8 +36,13 @@ func BVM() {
 	}
 
 	source := `
-		obj := {"name": "Alice", "age": 30}
-val := getFromObjWithKey(obj, "name")
+		var arr = [1, 2, 3]
+		var sum = 0
+		for var i = 0; i < len(arr); i = i + 1 {
+				sum = sum + 1
+		}
+
+		var sum =2
 	`
 
 	ast, err := parser.ParseString("", source)
@@ -37,5 +51,6 @@ val := getFromObjWithKey(obj, "name")
 	}
 
 	ctx := EvalProgram(ast)
-	fmt.Println("val =", ctx.Variables["val"])
+	sum, _ := ctx.Get("sum")
+	fmt.Println("sum =", sum)
 }

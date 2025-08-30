@@ -7,22 +7,79 @@ import (
 
 type Context struct {
 	Functions map[string]*FuncDef
-	Variables map[string]any
+	VarStack  []map[string]any
+	Variables map[string]interface{}
+}
+
+func (ctx *Context) pushScope() {
+	ctx.VarStack = append(ctx.VarStack, map[string]any{})
+}
+
+func (ctx *Context) popScope() {
+	ctx.VarStack = ctx.VarStack[:len(ctx.VarStack)-1]
+}
+
+func (ctx *Context) setVar(name string, val any) {
+	ctx.VarStack[len(ctx.VarStack)-1][name] = val
+}
+
+func (ctx *Context) getVar(name string) (any, bool) {
+	for i := len(ctx.VarStack) - 1; i >= 0; i-- {
+		if v, ok := ctx.VarStack[i][name]; ok {
+			return v, true
+		}
+	}
+	return nil, false
 }
 
 func EvalStmts(stmts []*Stmt, ctx *Context) {
 	for _, stmt := range stmts {
-		if stmt.FuncDef != nil {
+		switch {
+		case stmt.FuncDef != nil:
 			ctx.Functions[stmt.FuncDef.Name] = stmt.FuncDef
-		} else if stmt.Assign != nil {
+
+		case stmt.Assign != nil:
 			val := EvalExpr(stmt.Assign.Expr, ctx)
-			ctx.Variables[stmt.Assign.Var] = val
-		} else if stmt.If != nil {
+			if stmt.Assign.VarKw != nil {
+				// Declaration: always in current scope
+				ctx.VarStack[len(ctx.VarStack)-1][stmt.Assign.Name] = val
+			} else {
+				// Re-assignment: must exist in any scope
+				found := false
+				for i := len(ctx.VarStack) - 1; i >= 0; i-- {
+					if _, ok := ctx.VarStack[i][stmt.Assign.Name]; ok {
+						ctx.VarStack[i][stmt.Assign.Name] = val
+						found = true
+						break
+					}
+				}
+				if !found {
+					panic("variable not declared: " + stmt.Assign.Name)
+				}
+			}
+
+		case stmt.If != nil:
+			ctx.pushScope()
 			cond := EvalExpr(stmt.If.Condition, ctx)
 			if cond.(bool) {
 				EvalStmts(stmt.If.Then, ctx)
 			} else if stmt.If.Else != nil {
 				EvalStmts(stmt.If.Else.Body, ctx)
+			}
+			ctx.popScope()
+
+		case stmt.For != nil:
+			if stmt.For.Init != nil && stmt.For.Cond != nil && stmt.For.Post != nil {
+				EvalStmts([]*Stmt{{Assign: stmt.For.Init}}, ctx)
+				for {
+					cond := EvalExpr(stmt.For.Cond, ctx)
+					if !cond.(bool) {
+						break
+					}
+					// DO NOT pushScope/popScope here!
+					EvalStmts(stmt.For.Body, ctx)
+					EvalStmts([]*Stmt{{Assign: stmt.For.Post}}, ctx)
+				}
 			}
 		}
 	}
@@ -31,7 +88,7 @@ func EvalStmts(stmts []*Stmt, ctx *Context) {
 func EvalProgram(prog *Program) *Context {
 	ctx := &Context{
 		Functions: map[string]*FuncDef{},
-		Variables: map[string]any{},
+		VarStack:  []map[string]any{{}},
 	}
 	EvalStmts(prog.Stmts, ctx)
 	return ctx
@@ -86,7 +143,7 @@ func EvalTerm(term Term, ctx *Context) any {
 	case *BoolLit:
 		return t.Value == "true"
 	case *Variable:
-		val, ok := ctx.Variables[t.Name]
+		val, ok := ctx.getVar(t.Name)
 		if !ok {
 			panic("undefined variable: " + t.Name)
 		}
@@ -175,12 +232,14 @@ func EvalFuncCall(fc *FuncCall, ctx *Context) any {
 
 	// # Helpers
 	// ## Length
-	if fc.Name == "length" {
+	if fc.Name == "len" {
 		arg := EvalExpr(fc.Args[0], ctx)
 		switch v := arg.(type) {
 		case string:
 			return len(v)
 		case []any:
+			return len(v)
+		case map[string]any:
 			return len(v)
 		default:
 			panic("length: unsupported type")

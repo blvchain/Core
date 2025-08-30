@@ -9,6 +9,7 @@ type Stmt struct {
 	FuncDef *FuncDef `  @@`
 	Assign  *Assign  `| @@`
 	If      *IfStmt  `| @@`
+	For     *ForStmt `| @@`
 }
 
 type FuncDef struct {
@@ -34,9 +35,10 @@ type ReturnStmt struct {
 }
 
 type Assign struct {
-	Var   string `@Ident`
-	Equal string `@AssignOp`
-	Expr  *Expr  `@@`
+	VarKw *string `@"var"?`
+	Name  string  `@Ident`
+	Equal string  `@AssignOp`
+	Expr  *Expr   `@@`
 }
 
 type Expr struct {
@@ -54,6 +56,14 @@ type NotTerm struct {
 }
 
 func (*NotTerm) isTerm() {}
+
+type ForStmt struct {
+	For  string  `"for"`
+	Init *Assign `@@ ";"` // initialization
+	Cond *Expr   `@@ ";"` // condition
+	Post *Assign `@@`     // post-expression
+	Body []*Stmt `"{" @@* "}"`
+}
 
 type BoolLit struct {
 	Value string `@Bool`
