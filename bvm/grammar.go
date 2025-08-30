@@ -67,6 +67,16 @@ type ArrayLit struct {
 
 func (*ArrayLit) isTerm() {}
 
+type ObjectLit struct {
+	Pairs []*ObjectPair `"{" [ @@ { "," @@ } ] "}"`
+}
+type ObjectPair struct {
+	Key   string `@String ":"`
+	Value *Expr  `@@`
+}
+
+func (*ObjectLit) isTerm() {}
+
 type FuncCall struct {
 	Name string  `@Ident`
 	Args []*Expr `"(" [ @@ { "," @@ } ] ")"`

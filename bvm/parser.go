@@ -97,6 +97,17 @@ func EvalTerm(term Term, ctx *Context) any {
 			arr[i] = EvalExpr(e, ctx)
 		}
 		return arr
+	case *ObjectLit:
+		obj := map[string]any{}
+		for _, pair := range t.Pairs {
+			// Remove quotes from key if needed
+			key := pair.Key
+			if len(key) >= 2 && key[0] == '"' && key[len(key)-1] == '"' {
+				key = key[1 : len(key)-1]
+			}
+			obj[key] = EvalExpr(pair.Value, ctx)
+		}
+		return obj
 	default:
 		panic("unknown term")
 	}
@@ -187,6 +198,18 @@ func EvalFuncCall(fc *FuncCall, ctx *Context) any {
 			return string(a[index.(int)])
 		default:
 			panic("getFromArrWithIndex: unsupported type")
+		}
+	}
+
+	// ## Get from object with key
+	if fc.Name == "getFromObjWithKey" {
+		obj := EvalExpr(fc.Args[0], ctx)
+		key := EvalExpr(fc.Args[1], ctx)
+		switch o := obj.(type) {
+		case map[string]any:
+			return o[key.(string)]
+		default:
+			panic("getFromObjWithKey: unsupported type")
 		}
 	}
 

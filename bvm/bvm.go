@@ -19,6 +19,7 @@ func BVM() {
 			&StringLit{},
 			&BoolLit{},
 			&ArrayLit{},
+			&ObjectLit{},
 		),
 	)
 	if err != nil {
@@ -26,8 +27,8 @@ func BVM() {
 	}
 
 	source := `
-		arr := [1, 2, 3, 4]
-		l := getFromArrWithIndex(arr, 1)
+		obj := {"name": "Alice", "age": 30}
+val := getFromObjWithKey(obj, "name")
 	`
 
 	ast, err := parser.ParseString("", source)
@@ -36,5 +37,5 @@ func BVM() {
 	}
 
 	ctx := EvalProgram(ast)
-	fmt.Println("l =", ctx.Variables["l"])
+	fmt.Println("val =", ctx.Variables["val"])
 }
