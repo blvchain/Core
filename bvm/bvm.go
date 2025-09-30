@@ -36,13 +36,10 @@ func BVM() {
 	}
 
 	source := `
-		var arr = [1, 2, 3]
-		var sum = 0
-		for var i = 0; i < len(arr); i = i + 1 {
-				sum = sum + 1
+		func myFunc(a string, b string, c string) string {
+			return a + b + c
 		}
-
-		var sum =2
+		var sum = myFunc("1", "2", "3")
 	`
 
 	ast, err := parser.ParseString("", source)

@@ -1,7 +1,7 @@
 % BLVchain
     ! WebSocket
         ! Client
-            x Add check synced data then add
+            
  
         ! Server
         
@@ -12,7 +12,7 @@
 
 
         % Add data
-            x fix issue after get new data from grpc
+            
 
     ! General
-        - Add config file for builded app and make path for it
+        
