@@ -104,25 +104,92 @@ func EvalExpr(expr *Expr, ctx *Context) any {
 		case "||":
 			return left.(bool) || right.(bool)
 		case "+":
-			return left.(int) + right.(int)
+			switch l := left.(type) {
+			case int:
+				return l + right.(int)
+			case string:
+				return l + right.(string)
+			default:
+				panic("unsupported type for +")
+			}
 		case "-":
-			return left.(int) - right.(int)
+			switch l := left.(type) {
+			case int:
+				return l - right.(int)
+			default:
+				panic("unsupported type for -")
+			}
 		case "*":
-			return left.(int) * right.(int)
+			switch l := left.(type) {
+			case int:
+				return l * right.(int)
+			case string:
+				// Repeat string n times if right is int
+				return repeatString(l, right.(int))
+			default:
+				panic("unsupported type for *")
+			}
 		case "/":
-			return left.(int) / right.(int)
+			switch l := left.(type) {
+			case int:
+				return l / right.(int)
+			default:
+				panic("unsupported type for /")
+			}
 		case "==":
 			return left == right
 		case "!=":
 			return left != right
 		case "<":
-			return left.(int) < right.(int)
+			switch l := left.(type) {
+			case int:
+				return l < right.(int)
+			case string:
+				return l < right.(string)
+			default:
+				panic("unsupported type for <")
+			}
 		case "<=":
-			return left.(int) <= right.(int)
+			switch l := left.(type) {
+			case int:
+				return l <= right.(int)
+			case string:
+				return l <= right.(string)
+			default:
+				panic("unsupported type for <=")
+			}
 		case ">":
-			return left.(int) > right.(int)
+			switch l := left.(type) {
+			case int:
+				return l > right.(int)
+			case string:
+				return l > right.(string)
+			default:
+				panic("unsupported type for >")
+			}
 		case ">=":
-			return left.(int) >= right.(int)
+			switch l := left.(type) {
+			case int:
+				return l >= right.(int)
+			case string:
+				return l >= right.(string)
+			default:
+				panic("unsupported type for >=")
+			}
+		case "^":
+			switch l := left.(type) {
+			case int:
+				return l ^ right.(int)
+			default:
+				panic("unsupported type for ^")
+			}
+		case "%":
+			switch l := left.(type) {
+			case int:
+				return l % right.(int)
+			default:
+				panic("unsupported type for %")
+			}
 		default:
 			panic("unsupported operator: " + *expr.Op)
 		}
@@ -274,30 +341,34 @@ func EvalFuncCall(fc *FuncCall, ctx *Context) any {
 
 	// # User-defined
 	fn := ctx.Functions[fc.Name]
-	args := make(map[string]int)
+	args := make(map[string]any)
 	for i, param := range fn.Params {
-		args[param.Name] = EvalExpr(fc.Args[i], ctx).(int)
+		args[param.Name] = EvalExpr(fc.Args[i], ctx)
 	}
 	return EvalFuncBody(fn.Body, args)
 }
 
-func EvalFuncBody(body *FuncBody, args map[string]int) int {
-	left := args[body.Return.Left.Left.(*Variable).Name]
-	right := args[body.Return.Left.Right.(*Variable).Name]
-	switch *body.Return.Left.Op {
-	case "+":
-		return left + right
-	case "-":
-		return left - right
-	case "*":
-		return left * right
-	case "/":
-		return left / right
-	case "^":
-		return left ^ right
-	case "%":
-		return left % right
-	default:
-		panic("unsupported operator")
+func EvalFuncBody(body *FuncBody, args map[string]any) any {
+	for _, stmt := range body.Stmts {
+		if stmt.Assign != nil {
+			args[stmt.Assign.Name] = EvalExpr(stmt.Assign.Expr, &Context{VarStack: []map[string]any{args}})
+		}
+		if stmt.Return != nil {
+			return EvalExpr(stmt.Return.Left, &Context{VarStack: []map[string]any{args}})
+		}
+		// You can add support for If, For, etc. here if needed
 	}
+	panic("no return statement in function body")
+}
+
+// repeatString repeats the string s n times.
+func repeatString(s string, n int) string {
+	if n <= 0 {
+		return ""
+	}
+	result := ""
+	for i := 0; i < n; i++ {
+		result += s
+	}
+	return result
 }

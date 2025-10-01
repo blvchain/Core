@@ -6,17 +6,18 @@ type Program struct {
 }
 
 type Stmt struct {
-	FuncDef *FuncDef `  @@`
-	Assign  *Assign  `| @@`
-	If      *IfStmt  `| @@`
-	For     *ForStmt `| @@`
+	FuncDef *FuncDef    `  @@`
+	Assign  *Assign     `| @@`
+	If      *IfStmt     `| @@`
+	For     *ForStmt    `| @@`
+	Return  *ReturnStmt `| @@`
 }
 
 type FuncDef struct {
 	Func   string    `"func"`
 	Name   string    `@Ident`
 	Params []*Param  `"(" [ @@ { "," @@ } ] ")"`
-	Ret    string    `"int"`
+	Ret    string    `@Ident`
 	Body   *FuncBody `"{" @@ "}"`
 }
 
@@ -26,7 +27,7 @@ type Param struct {
 }
 
 type FuncBody struct {
-	Return *ReturnStmt `@@`
+	Stmts []*Stmt `@@*`
 }
 
 type ReturnStmt struct {

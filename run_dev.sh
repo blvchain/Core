@@ -4,4 +4,6 @@
 # echo "Starting development server..."
 # go run main.go
 
-$(go env GOPATH)/bin/air
+# $(go env GOPATH)/bin/air
+
+air
