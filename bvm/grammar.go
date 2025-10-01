@@ -45,7 +45,7 @@ type Assign struct {
 type Expr struct {
 	Left  Term    `@@`
 	Op    *string `[ @( "&&" | "||" | "==" | "!=" | "<=" | ">=" | "<" | ">" | "+" | "-" | "*" | "/" | "^" | "%" )`
-	Right Term    `  @@ ]`
+	Right *Expr   `  @@ ]`
 }
 type Term interface {
 	isTerm()

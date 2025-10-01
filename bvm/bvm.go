@@ -29,6 +29,7 @@ func BVM() {
 			&BoolLit{},
 			&ArrayLit{},
 			&ObjectLit{},
+			&NotTerm{},
 		),
 	)
 	if err != nil {

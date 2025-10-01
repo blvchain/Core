@@ -97,7 +97,7 @@ func EvalProgram(prog *Program) *Context {
 func EvalExpr(expr *Expr, ctx *Context) any {
 	left := EvalTerm(expr.Left, ctx)
 	if expr.Op != nil && expr.Right != nil {
-		right := EvalTerm(expr.Right, ctx)
+		right := EvalExpr(expr.Right, ctx)
 		switch *expr.Op {
 		case "&&":
 			return left.(bool) && right.(bool)
