@@ -20,7 +20,7 @@ func BVM() {
 	parser, err := participle.Build[Program](
 		participle.Lexer(MainLex),
 		participle.UseLookahead(2),
-		participle.Elide("Whitespace"),
+		participle.Elide("Whitespace", "Comment"),
 		participle.Union[Term](
 			&FuncCall{},
 			&Number{},
@@ -37,12 +37,17 @@ func BVM() {
 	}
 
 	source := `
-		func myFunc(a string, b string, c string) string {
-			return a + b + c
-		}
-		var sum = myFunc("1", "2", "3")
-	`
+		func myFunc(a array) string {
+			var output = 0
 
+			for var i = 0; i < len(a); i = i + 1  {
+				output = output + i
+			}
+
+			return output
+		}
+		var sum = myFunc([1, 2, 3])
+	`
 	ast, err := parser.ParseString("", source)
 	if err != nil {
 		log.Fatal(err)

@@ -69,6 +69,7 @@ func EvalStmts(stmts []*Stmt, ctx *Context) {
 			ctx.popScope()
 
 		case stmt.For != nil:
+			// Do NOT pushScope/popScope here!
 			if stmt.For.Init != nil && stmt.For.Cond != nil && stmt.For.Post != nil {
 				EvalStmts([]*Stmt{{Assign: stmt.For.Init}}, ctx)
 				for {
@@ -76,8 +77,7 @@ func EvalStmts(stmts []*Stmt, ctx *Context) {
 					if !cond.(bool) {
 						break
 					}
-					// DO NOT pushScope/popScope here!
-					EvalStmts(stmt.For.Body, ctx)
+					EvalStmts(stmt.For.Body, ctx) // use the same context!
 					EvalStmts([]*Stmt{{Assign: stmt.For.Post}}, ctx)
 				}
 			}
@@ -341,22 +341,138 @@ func EvalFuncCall(fc *FuncCall, ctx *Context) any {
 
 	// # User-defined
 	fn := ctx.Functions[fc.Name]
+	if fn == nil {
+		panic("undefined function: " + fc.Name)
+	}
 	args := make(map[string]any)
 	for i, param := range fn.Params {
 		args[param.Name] = EvalExpr(fc.Args[i], ctx)
 	}
-	return EvalFuncBody(fn.Body, args)
+	return EvalFuncBody(fn.Body, args, ctx)
 }
 
-func EvalFuncBody(body *FuncBody, args map[string]any) any {
+func EvalFuncBody(body *FuncBody, args map[string]any, parentCtx *Context) any {
+	// Create a local context for the function with the provided args as the only scope
+	var functions map[string]*FuncDef
+	if parentCtx != nil {
+		functions = parentCtx.Functions
+	} else {
+		functions = map[string]*FuncDef{}
+	}
+	ctx := &Context{Functions: functions, VarStack: []map[string]any{args}}
+
+	// helper to evaluate a statement within the function and capture returns
+	var evalStmt func(*Stmt) (any, bool)
+	evalStmt = func(stmt *Stmt) (any, bool) {
+		switch {
+		case stmt.Assign != nil:
+			val := EvalExpr(stmt.Assign.Expr, ctx)
+			if stmt.Assign.VarKw != nil {
+				ctx.VarStack[len(ctx.VarStack)-1][stmt.Assign.Name] = val
+			} else {
+				found := false
+				for i := len(ctx.VarStack) - 1; i >= 0; i-- {
+					if _, ok := ctx.VarStack[i][stmt.Assign.Name]; ok {
+						ctx.VarStack[i][stmt.Assign.Name] = val
+						found = true
+						break
+					}
+				}
+				if !found {
+					panic("variable not declared: " + stmt.Assign.Name)
+				}
+			}
+			return nil, false
+
+		case stmt.If != nil:
+			// new scope
+			ctx.VarStack = append(ctx.VarStack, map[string]any{})
+			cond := EvalExpr(stmt.If.Condition, ctx)
+			if cond.(bool) {
+				for _, s := range stmt.If.Then {
+					if val, ok := evalStmt(s); ok {
+						ctx.VarStack = ctx.VarStack[:len(ctx.VarStack)-1]
+						return val, true
+					}
+				}
+			} else if stmt.If.Else != nil {
+				for _, s := range stmt.If.Else.Body {
+					if val, ok := evalStmt(s); ok {
+						ctx.VarStack = ctx.VarStack[:len(ctx.VarStack)-1]
+						return val, true
+					}
+				}
+			}
+			ctx.VarStack = ctx.VarStack[:len(ctx.VarStack)-1]
+			return nil, false
+
+		case stmt.For != nil:
+			if stmt.For.Init != nil && stmt.For.Cond != nil && stmt.For.Post != nil {
+				// init
+				if stmt.For.Init != nil {
+					// reuse assign logic
+					init := stmt.For.Init
+					val := EvalExpr(init.Expr, ctx)
+					if init.VarKw != nil {
+						ctx.VarStack[len(ctx.VarStack)-1][init.Name] = val
+					} else {
+						found := false
+						for i := len(ctx.VarStack) - 1; i >= 0; i-- {
+							if _, ok := ctx.VarStack[i][init.Name]; ok {
+								ctx.VarStack[i][init.Name] = val
+								found = true
+								break
+							}
+						}
+						if !found {
+							panic("variable not declared: " + init.Name)
+						}
+					}
+				}
+
+				for {
+					cond := EvalExpr(stmt.For.Cond, ctx)
+					if !cond.(bool) {
+						break
+					}
+					for _, s := range stmt.For.Body {
+						if val, ok := evalStmt(s); ok {
+							return val, true
+						}
+					}
+					// post
+					post := stmt.For.Post
+					val := EvalExpr(post.Expr, ctx)
+					if post.VarKw != nil {
+						ctx.VarStack[len(ctx.VarStack)-1][post.Name] = val
+					} else {
+						found := false
+						for i := len(ctx.VarStack) - 1; i >= 0; i-- {
+							if _, ok := ctx.VarStack[i][post.Name]; ok {
+								ctx.VarStack[i][post.Name] = val
+								found = true
+								break
+							}
+						}
+						if !found {
+							panic("variable not declared: " + post.Name)
+						}
+					}
+				}
+			}
+			return nil, false
+
+		case stmt.Return != nil:
+			val := EvalExpr(stmt.Return.Left, ctx)
+			return val, true
+		}
+		return nil, false
+	}
+
 	for _, stmt := range body.Stmts {
-		if stmt.Assign != nil {
-			args[stmt.Assign.Name] = EvalExpr(stmt.Assign.Expr, &Context{VarStack: []map[string]any{args}})
+		if val, ok := evalStmt(stmt); ok {
+			return val
 		}
-		if stmt.Return != nil {
-			return EvalExpr(stmt.Return.Left, &Context{VarStack: []map[string]any{args}})
-		}
-		// You can add support for If, For, etc. here if needed
 	}
 	panic("no return statement in function body")
 }
