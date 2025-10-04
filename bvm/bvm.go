@@ -1,59 +1,51 @@
 package bvm
 
 import (
+	"context"
 	"fmt"
-	"log"
+	"os"
 
-	"github.com/alecthomas/participle/v2"
+	"github.com/tetratelabs/wazero"
 )
 
-func (ctx *Context) Get(name string) (any, bool) {
-	for i := len(ctx.VarStack) - 1; i >= 0; i-- {
-		if v, ok := ctx.VarStack[i][name]; ok {
-			return v, true
-		}
-	}
-	return nil, false
-}
+// RunWasm loads a Wasm file, instantiates it, and calls an exported function.
+// wasmPath: path to .wasm file
+// funcName: exported function name (e.g. "add")
+// args: arguments to pass (must be int32/int64/float32/float64, promoted to uint64 internally)
+func RunWasm(wasmPath string, funcName string, args ...uint64) (uint64, error) {
+	ctx := context.Background()
 
-func BVM() {
-	parser, err := participle.Build[Program](
-		participle.Lexer(MainLex),
-		participle.UseLookahead(2),
-		participle.Elide("Whitespace", "Comment"),
-		participle.Union[Term](
-			&FuncCall{},
-			&Number{},
-			&Variable{},
-			&StringLit{},
-			&BoolLit{},
-			&ArrayLit{},
-			&ObjectLit{},
-			&NotTerm{},
-		),
-	)
+	// Create a new runtime
+	runtime := wazero.NewRuntime(ctx)
+	defer runtime.Close(ctx)
+
+	// Read wasm file
+	wasmBytes, err := os.ReadFile(wasmPath)
 	if err != nil {
-		panic(err)
+		return 0, fmt.Errorf("read wasm: %w", err)
 	}
 
-	source := `
-		func myFunc(a array) string {
-			var output = 0
-
-			for var i = 0; i < len(a); i = i + 1  {
-				output = output + i
-			}
-
-			return output
-		}
-		var sum = myFunc([1, 2, 3])
-	`
-	ast, err := parser.ParseString("", source)
+	// Instantiate module
+	mod, err := runtime.Instantiate(ctx, wasmBytes)
 	if err != nil {
-		log.Fatal(err)
+		return 0, fmt.Errorf("instantiate module: %w", err)
+	}
+	defer mod.Close(ctx)
+
+	// Get exported function
+	fn := mod.ExportedFunction(funcName)
+	if fn == nil {
+		return 0, fmt.Errorf("function %s not found", funcName)
 	}
 
-	ctx := EvalProgram(ast)
-	sum, _ := ctx.Get("sum")
-	fmt.Println("sum =", sum)
+	// Call the function
+	results, err := fn.Call(ctx, args...)
+	if err != nil {
+		return 0, fmt.Errorf("call function: %w", err)
+	}
+
+	if len(results) == 0 {
+		return 0, nil
+	}
+	return results[0], nil
 }

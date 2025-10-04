@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 
@@ -17,7 +18,12 @@ import (
 
 func main() {
 
-	bvm.BVM()
+	result, result_err := bvm.RunWasm(config.SMART_CONTRACT_PATH, "add", 2, 2)
+
+	if result_err != nil {
+		fmt.Println(result_err)
+	}
+	fmt.Println(result)
 
 	return
 

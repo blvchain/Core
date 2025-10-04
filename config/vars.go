@@ -8,7 +8,8 @@ import (
 
 var (
 	// Global ENV
-	MONGO_URI string = GetEnv("MONGO_URI")
+	MONGO_URI           string = GetEnv("MONGO_URI")
+	SMART_CONTRACT_PATH string = GetEnv("SMART_CONTRACT_PATH")
 
 	// Mongodb
 	NO_FILTER primitive.M = bson.M{}

@@ -9,7 +9,10 @@ require (
 	google.golang.org/protobuf v1.35.2
 )
 
-require github.com/alecthomas/participle/v2 v2.1.4
+require (
+	github.com/alecthomas/participle/v2 v2.1.4
+	github.com/tetratelabs/wazero v1.9.0
+)
 
 require (
 	github.com/BurntSushi/toml v1.4.0 // indirect
