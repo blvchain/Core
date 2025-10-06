@@ -18,7 +18,7 @@ import (
 
 func main() {
 
-	result, result_err := bvm.RunWasm(config.SMART_CONTRACT_PATH, "add", 2, 2)
+	result, result_err := bvm.RunWasm(config.SMART_CONTRACT_PATH, 2, 2)
 
 	if result_err != nil {
 		fmt.Println(result_err)

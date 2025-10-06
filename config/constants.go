@@ -29,4 +29,7 @@ const (
 	MAX_LIMIT_OF_DATA_SYNC = 100
 	MIN_LIMIT_OF_DATA_SYNC = 2
 	SYNC_DATA_SLEEP_TIME   = 5
+
+	// Smart contract
+	SMART_CONTRACT_FUNCTION_NAME string = "smart_contract"
 )
