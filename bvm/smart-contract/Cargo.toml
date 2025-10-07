@@ -7,4 +7,5 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
+delium = "1.0.0"
 

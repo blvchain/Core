@@ -14,7 +14,7 @@ import (
 // wasmPath: path to .wasm file
 // funcName: exported function name (e.g. "add")
 // args: arguments to pass (must be int32/int64/float32/float64, promoted to uint64 internally)
-func RunWasm(wasmPath string, args ...uint64) (uint64, error) {
+func RunWasm(wasmPath string) error {
 	ctx := context.Background()
 
 	// Create a new runtime
@@ -29,6 +29,7 @@ func RunWasm(wasmPath string, args ...uint64) (uint64, error) {
 			a := int32(stack[0])
 			b := int32(stack[1])
 			sum := a + b
+			fmt.Println("sum is: ", sum)
 			stack[0] = uint64(sum)
 		}), []api.ValueType{api.ValueTypeI32, api.ValueTypeI32}, []api.ValueType{api.ValueTypeI32}).
 		Export("sum")
@@ -41,30 +42,30 @@ func RunWasm(wasmPath string, args ...uint64) (uint64, error) {
 	// Read wasm file
 	wasmBytes, err := os.ReadFile(wasmPath)
 	if err != nil {
-		return 0, fmt.Errorf("read wasm: %w", err)
+		return fmt.Errorf("read wasm: %w", err)
 	}
 
 	// Instantiate module
 	mod, err := runtime.Instantiate(ctx, wasmBytes)
 	if err != nil {
-		return 0, fmt.Errorf("instantiate module: %w", err)
+		return fmt.Errorf("instantiate module: %w", err)
 	}
 	defer mod.Close(ctx)
 
 	// Get exported function
 	fn := mod.ExportedFunction(config.SMART_CONTRACT_FUNCTION_NAME)
 	if fn == nil {
-		return 0, fmt.Errorf("function %s not found", config.SMART_CONTRACT_FUNCTION_NAME)
+		return fmt.Errorf("function %s not found", config.SMART_CONTRACT_FUNCTION_NAME)
 	}
 
 	// Call the function
-	results, err := fn.Call(ctx, args...)
+	results, err := fn.Call(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("call function: %w", err)
+		return fmt.Errorf("call function: %w", err)
 	}
 
 	if len(results) == 0 {
-		return 0, nil
+		return nil
 	}
-	return results[0], nil
+	return nil
 }
