@@ -1,7 +1,6 @@
 package config
 
 const (
-	DEV_MODE         bool   = true
 	CONFIG_FILE_PATH string = "./config/"
 
 	// Mongo

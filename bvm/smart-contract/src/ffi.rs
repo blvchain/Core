@@ -1,9 +1,8 @@
+#[link(wasm_import_module = "env")]
 extern "C" {
-    fn sum(a: i32, b: i32) -> i32;
-
-    // fn log(val: i32);
+    fn print(ptr: u32, len: u32);
 }
 
-pub fn safe_sum(a: i32, b: i32) -> i32 {
-    unsafe { sum(a, b) }
+pub fn host_print(msg: &str) {
+    unsafe { print(msg.as_ptr() as u32, msg.len() as u32) }
 }

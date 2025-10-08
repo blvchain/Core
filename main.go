@@ -11,7 +11,6 @@ import (
 	"blvchain/core/db"
 	"blvchain/core/logger"
 	"blvchain/core/protos"
-	"blvchain/core/utils"
 	"blvchain/core/ws"
 
 	"google.golang.org/grpc"
@@ -19,14 +18,20 @@ import (
 
 func main() {
 
-	bvm_err := bvm.RunWasm(config.SMART_CONTRACT_PATH)
+	if config.DEV_MODE == "true" {
+		logger.INTERNAL_LOGGER.Println("DEV_MODE mode is ENABLED")
+	} else {
+		logger.INTERNAL_LOGGER.Println("DEV_MODE mode is DISABLED")
+	}
 
+	// Init BVM internal functions
+	bvm.InitBVMInternalFunctions()
+
+	// Run BVM
+	bvm_err := bvm.RunBVM(config.SMART_CONTRACT_PATH)
 	if bvm_err != nil {
 		fmt.Println(bvm_err)
 	}
-
-	fmt.Println("d256c: ", utils.D256C("abcdefghijklmnopqrstuvwxyz", "2h4usk#5/73uytg#9/#4").String)
-	fmt.Println("d512c: ", utils.D512C("abcdefghijklmnopqrstuvwxyz", "2h4usk#5/73uytg#9/#4").String)
 
 	return
 

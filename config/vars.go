@@ -10,6 +10,7 @@ var (
 	// Global ENV
 	MONGO_URI           string = GetEnv("MONGO_URI")
 	SMART_CONTRACT_PATH string = GetEnv("SMART_CONTRACT_PATH")
+	DEV_MODE            string = GetEnv("DEV_MODE")
 
 	// Mongodb
 	NO_FILTER primitive.M = bson.M{}
