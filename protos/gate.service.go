@@ -39,15 +39,15 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 		//* Valid data
 		// check block validation
 		message := db.MessageMaker(db.BlockData{
-			SenderUID:       req.SenderUID,
-			SenderRole:      req.SenderRole,
-			SenderPubKey:    req.SenderPubKey,
-			Signature:       req.Signature,
-			ReceiverUID:     req.ReceiverUID,
-			ReceiverRole:    req.ReceiverRole,
-			Data:            req.Data,
-			ContractAddress: req.ContractAddress,
-			TimeStamp:       req.TimeStamp,
+			SenderUID:            req.SenderUID,
+			SenderRole:           req.SenderRole,
+			SenderPubKey:         req.SenderPubKey,
+			Signature:            req.Signature,
+			ReceiverUID:          req.ReceiverUID,
+			ReceiverRole:         req.ReceiverRole,
+			Data:                 req.Data,
+			SmartContractAddress: req.SmartContractAddress,
+			TimeStamp:            req.TimeStamp,
 		})
 
 		valid, validation_err := utils.Verify(req.SenderPubKey, req.SenderUID, message, req.Signature)
@@ -88,15 +88,15 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 					TimeStamp:    utils.NowTimeInt64UnixMilli(),
 				},
 				BlockData: db.BlockData{
-					SenderUID:       req.SenderUID,
-					SenderRole:      req.SenderRole,
-					SenderPubKey:    req.SenderPubKey,
-					Signature:       req.Signature,
-					ReceiverUID:     req.ReceiverUID,
-					ReceiverRole:    req.ReceiverRole,
-					Data:            req.Data,
-					ContractAddress: req.ContractAddress,
-					TimeStamp:       req.TimeStamp,
+					SenderUID:            req.SenderUID,
+					SenderRole:           req.SenderRole,
+					SenderPubKey:         req.SenderPubKey,
+					Signature:            req.Signature,
+					ReceiverUID:          req.ReceiverUID,
+					ReceiverRole:         req.ReceiverRole,
+					Data:                 req.Data,
+					SmartContractAddress: req.SmartContractAddress,
+					TimeStamp:            req.TimeStamp,
 				},
 			}
 			db.BlockHashMaker(&block, block.BlockMeta.NodeUID)
@@ -197,8 +197,8 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 			}
 			filter = append(filter, bson.M{"blockData.timeStamp": timeFilter})
 		}
-		if req.ContractAddress != "" {
-			filter = append(filter, bson.M{"blockData.contractAddress": req.ContractAddress})
+		if req.SmartContractAddress != "" {
+			filter = append(filter, bson.M{"blockData.smartContractAddress": req.SmartContractAddress})
 		}
 
 		blocks, err := db.FindManyBlocksLimited(bson.M{"$and": filter}, req.Skip, req.Limit)
@@ -242,15 +242,15 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 							TimeStamp:    dbBlock.BlockMeta.TimeStamp,
 						},
 						BlockData: &BlockData{
-							SenderUID:       dbBlock.BlockData.SenderUID,
-							SenderRole:      dbBlock.BlockData.SenderRole,
-							SenderPubKey:    dbBlock.BlockData.SenderPubKey,
-							Signature:       dbBlock.BlockData.Signature,
-							ReceiverUID:     dbBlock.BlockData.ReceiverUID,
-							ReceiverRole:    dbBlock.BlockData.ReceiverRole,
-							Data:            dbBlock.BlockData.Data,
-							ContractAddress: dbBlock.BlockData.ContractAddress,
-							TimeStamp:       dbBlock.BlockData.TimeStamp,
+							SenderUID:            dbBlock.BlockData.SenderUID,
+							SenderRole:           dbBlock.BlockData.SenderRole,
+							SenderPubKey:         dbBlock.BlockData.SenderPubKey,
+							Signature:            dbBlock.BlockData.Signature,
+							ReceiverUID:          dbBlock.BlockData.ReceiverUID,
+							ReceiverRole:         dbBlock.BlockData.ReceiverRole,
+							Data:                 dbBlock.BlockData.Data,
+							SmartContractAddress: dbBlock.BlockData.SmartContractAddress,
+							TimeStamp:            dbBlock.BlockData.TimeStamp,
 						},
 					})
 				} else {

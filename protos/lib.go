@@ -43,9 +43,9 @@ func validateAddDataRequest(req *BlockData) error {
 		return errors.New(errStr)
 	}
 
-	if req.ContractAddress != "" {
+	if req.SmartContractAddress != "" {
 		if utils.E_str(req.SenderPubKey, 66) {
-			return errors.New("contractAddress must be 66 len string")
+			return errors.New("smartContractAddress must be 66 len string")
 		}
 	}
 
@@ -76,7 +76,7 @@ func validateReadDataRequest(req *ReadDataRequest) error {
 		utils.Gt_str(req.NodeUID, 9) &&
 		utils.Bt_int64(req.TimeStampFrom, 1262304000, 9262304000) &&
 		utils.Bt_int64(req.TimeStampTo, 1262304000, 9262304000) &&
-		utils.E_str(req.ContractAddress, 66) {
+		utils.E_str(req.SmartContractAddress, 66) {
 		return errors.New("no filters provided in the request / provided filters are not correct")
 	}
 

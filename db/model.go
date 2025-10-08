@@ -7,15 +7,16 @@ type BlockMeta struct {
 }
 
 type BlockData struct {
-	SenderUID       string `bson:"senderUid,omitempty"`
-	SenderRole      int64  `bson:"senderRole,omitempty"`
-	SenderPubKey    string `bson:"senderPubKey,omitempty"`
-	Signature       string `bson:"signature,omitempty"`
-	ReceiverUID     string `bson:"receiverUid,omitempty"`
-	ReceiverRole    int64  `bson:"receiverRole,omitempty"`
-	Data            string `bson:"data,omitempty"`
-	ContractAddress string `bson:"contractAddress"`
-	TimeStamp       int64  `bson:"timeStamp,omitempty"`
+	SenderUID             string `bson:"senderUid,omitempty"`
+	SenderRole            int64  `bson:"senderRole,omitempty"`
+	SenderPubKey          string `bson:"senderPubKey,omitempty"`
+	Signature             string `bson:"signature,omitempty"`
+	ReceiverUID           string `bson:"receiverUid,omitempty"`
+	ReceiverRole          int64  `bson:"receiverRole,omitempty"`
+	Data                  string `bson:"data,omitempty"`
+	SmartContractAddress  string `bson:"smartContractAddress"`
+	SmartContractFileName string `bson:"smartContractFileName"`
+	TimeStamp             int64  `bson:"timeStamp,omitempty"`
 }
 
 type Block struct {

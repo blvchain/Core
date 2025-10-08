@@ -1,7 +1,8 @@
 package config
 
 const (
-	CONFIG_FILE_PATH string = "./config/"
+	CONFIG_FILE_PATH          string = "./config/"
+	SMART_CONTRACT_FILES_PATH string = "../smart_contracts/"
 
 	// Mongo
 	ZERO_STRING string = "0"

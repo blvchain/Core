@@ -12,17 +12,17 @@ message BlockMeta {
 }
 message BlockData {
     string SenderUID = 1;
-    int64 SenderRole = 2;
+    int64  SenderRole = 2;
     string SenderPubKey = 3;
     string Signature = 4;
     string ReceiverUID = 5;
-    int64 ReceiverRole = 6;
+    int64  ReceiverRole = 6;
     string Data = 7;
-    string ContractAddress = 8;
-    int64 TimeStamp = 9;
+    string SmartContractAddress = 8;
+    int64  TimeStamp = 9;
 }
 message Block {
-    string BlockHash = 1;
+    string    BlockHash = 1;
     BlockMeta BlockMeta = 2;
     BlockData BlockData = 3;
 }
@@ -35,7 +35,7 @@ service AddData {
 
 
 message AddDataResult {
-    bool IsSuccess = 1;
+    bool   IsSuccess = 1;
     string Log = 2;
 }
 
@@ -45,25 +45,25 @@ service ReadData {
 }
 
 message ReadDataRequest {
-    int64 Limit = 1;
-    int64 Skip = 2;
+    int64  Limit = 1;
+    int64  Skip = 2;
     string SenderUID = 3;
-    int64 SenderRole = 4;
+    int64  SenderRole = 4;
     string SenderPubKey = 5;
     string ReceiverUID = 6;
-    int64 ReceiverRole = 7;
+    int64  ReceiverRole = 7;
     string BlockHash = 8;
     string PreBlockHash = 9;
     string NodeUID = 10;
-    int64 TimeStampFrom = 11;
-    int64 TimeStampTo = 12;
-    string ContractAddress = 13;
+    int64  TimeStampFrom = 11;
+    int64  TimeStampTo = 12;
+    string SmartContractAddress = 13;
 
 }
 
 message ReadDataResult {
-    bool IsSuccess = 1;
-    string Log = 2;
+    bool           IsSuccess = 1;
+    string         Log = 2;
     repeated Block Data = 3;
 }
 
