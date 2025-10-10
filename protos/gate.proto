@@ -10,6 +10,17 @@ message BlockMeta {
     string NodeUID = 2;
     int64 TimeStamp = 3;
 }
+message Contract {
+    string Name = 1;
+    string Version = 2;
+    string Language = 3;
+    string Compiler = 4;
+    string Description = 5;
+    string Checksum = 6;
+    string Author = 7;
+    string License = 8;
+}
+
 message BlockData {
     string SenderUID = 1;
     int64  SenderRole = 2;
@@ -18,8 +29,9 @@ message BlockData {
     string ReceiverUID = 5;
     int64  ReceiverRole = 6;
     string Data = 7;
-    string SmartContractAddress = 8;
-    int64  TimeStamp = 9;
+    string UseContract = 8;
+    Contract ContractData = 9;
+    int64  TimeStamp = 10;
 }
 message Block {
     string    BlockHash = 1;
@@ -57,7 +69,7 @@ message ReadDataRequest {
     string NodeUID = 10;
     int64  TimeStampFrom = 11;
     int64  TimeStampTo = 12;
-    string SmartContractAddress = 13;
+    string UseContract = 13;
 
 }
 

@@ -38,14 +38,24 @@ func validateAddDataRequest(req *BlockData) error {
 		return errors.New("receiverRole is required and must be bigger than zero")
 	}
 
+	// General data size validation
 	if utils.Lt_float(utils.StringSizeInKB(req.Data), utils.StringToFloat64(config.MAX_DATA_SIZE_KB)) {
 		errStr := "data is required and must be lesser than " + config.MAX_DATA_SIZE_KB + "KB"
 		return errors.New(errStr)
 	}
 
-	if req.SmartContractAddress != "" {
-		if utils.E_str(req.SenderPubKey, 66) {
-			return errors.New("smartContractAddress must be 66 len string")
+	// If this is a smart contract upload, enforce a 1MB (1024KB) limit for the Wasm file
+	if req.UseContract != "" {
+		// Validate UseContract identifier length (if required by protocol)
+		if utils.E_str(req.UseContract, 66) {
+			return errors.New("useContract must be 66 len string")
+		}
+
+		// If Data contains the wasm file (base64 encoded), ensure it is <= 1MB
+		if req.Data != "" {
+			if utils.StringSizeInKB(req.Data) > 1024 {
+				return errors.New("wasm file must be lesser than 1024KB")
+			}
 		}
 	}
 
@@ -76,7 +86,7 @@ func validateReadDataRequest(req *ReadDataRequest) error {
 		utils.Gt_str(req.NodeUID, 9) &&
 		utils.Bt_int64(req.TimeStampFrom, 1262304000, 9262304000) &&
 		utils.Bt_int64(req.TimeStampTo, 1262304000, 9262304000) &&
-		utils.E_str(req.SmartContractAddress, 66) {
+		utils.E_str(req.UseContract, 66) {
 		return errors.New("no filters provided in the request / provided filters are not correct")
 	}
 

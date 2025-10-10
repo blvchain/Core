@@ -2,13 +2,18 @@ package utils
 
 import (
 	"blvchain/core/config"
+	"blvchain/core/logger"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"math/big"
 	"net/url"
+	"os"
 	"strconv"
 	"time"
 )
@@ -202,4 +207,22 @@ func BoolCheck(inputData bool) bool {
 	} else {
 		return true
 	}
+}
+
+func FileCheckSumSHA256(fileName string) bool {
+	path := config.SMART_CONTRACT_FILES_PATH + fileName
+	f, err := os.Open(path)
+	if err != nil {
+		logger.SC_F_LOGGER.Printf("Error: Error in opening file %v, in path %v for checksum sha256: %v", fileName, path, err)
+		return false
+	}
+	defer f.Close()
+
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		logger.SC_F_LOGGER.Printf("Error: Error in opening file %v, in path %v for checksum sha256: %v", fileName, path, err)
+		return false
+	}
+
+	return hex.EncodeToString(h.Sum(nil)) == fileName
 }

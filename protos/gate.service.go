@@ -7,7 +7,11 @@ import (
 	"blvchain/core/utils"
 	"blvchain/core/ws"
 	context "context"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
+	"os"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -39,15 +43,15 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 		//* Valid data
 		// check block validation
 		message := db.MessageMaker(db.BlockData{
-			SenderUID:            req.SenderUID,
-			SenderRole:           req.SenderRole,
-			SenderPubKey:         req.SenderPubKey,
-			Signature:            req.Signature,
-			ReceiverUID:          req.ReceiverUID,
-			ReceiverRole:         req.ReceiverRole,
-			Data:                 req.Data,
-			SmartContractAddress: req.SmartContractAddress,
-			TimeStamp:            req.TimeStamp,
+			SenderUID:    req.SenderUID,
+			SenderRole:   req.SenderRole,
+			SenderPubKey: req.SenderPubKey,
+			Signature:    req.Signature,
+			ReceiverUID:  req.ReceiverUID,
+			ReceiverRole: req.ReceiverRole,
+			Data:         req.Data,
+			UseContract:  req.UseContract,
+			TimeStamp:    req.TimeStamp,
 		})
 
 		valid, validation_err := utils.Verify(req.SenderPubKey, req.SenderUID, message, req.Signature)
@@ -88,17 +92,45 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 					TimeStamp:    utils.NowTimeInt64UnixMilli(),
 				},
 				BlockData: db.BlockData{
-					SenderUID:            req.SenderUID,
-					SenderRole:           req.SenderRole,
-					SenderPubKey:         req.SenderPubKey,
-					Signature:            req.Signature,
-					ReceiverUID:          req.ReceiverUID,
-					ReceiverRole:         req.ReceiverRole,
-					Data:                 req.Data,
-					SmartContractAddress: req.SmartContractAddress,
-					TimeStamp:            req.TimeStamp,
+					SenderUID:    req.SenderUID,
+					SenderRole:   req.SenderRole,
+					SenderPubKey: req.SenderPubKey,
+					Signature:    req.Signature,
+					ReceiverUID:  req.ReceiverUID,
+					ReceiverRole: req.ReceiverRole,
+					Data:         req.Data,
+					UseContract:  req.UseContract,
+					TimeStamp:    req.TimeStamp,
 				},
 			}
+
+			// If this block includes a smart contract (wasm) upload, decode and save the wasm file
+			if req.UseContract != "" && req.Data != "" {
+				wasmBytes, err := base64.StdEncoding.DecodeString(req.Data)
+				if err != nil {
+					logger.GRPC_F_LOGGER.Printf("Invalid base64 wasm from %v: %v", apiKey, err)
+					return &AddDataResult{IsSuccess: false, Log: "Invalid wasm data"}, nil
+				}
+
+				// Enforce 1MB size limit for wasm
+				if len(wasmBytes) > 1024*1024 {
+					logger.GRPC_F_LOGGER.Printf("WASM too large from %v: %d bytes", apiKey, len(wasmBytes))
+					return &AddDataResult{IsSuccess: false, Log: "wasm file must be lesser than 1024KB"}, nil
+				}
+
+				// Compute checksum and save file to SMART_CONTRACT_FILES_PATH
+				sum := sha256.Sum256(wasmBytes)
+				checksum := hex.EncodeToString(sum[:])
+				path := config.SMART_CONTRACT_FILES_PATH + checksum
+				if err := os.WriteFile(path, wasmBytes, 0644); err != nil {
+					logger.INTERNAL_LOGGER.Printf("Error saving wasm file %v: %v", path, err)
+					return &AddDataResult{IsSuccess: false, Log: "Internal server error"}, nil
+				}
+
+				// Store checksum in ContractData for future verification
+				block.BlockData.ContractData.Checksum = checksum
+			}
+
 			db.BlockHashMaker(&block, block.BlockMeta.NodeUID)
 
 			db_blocks, _ := db.FindAllBlocks(bson.M{"_id": block.ID})
@@ -197,8 +229,8 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 			}
 			filter = append(filter, bson.M{"blockData.timeStamp": timeFilter})
 		}
-		if req.SmartContractAddress != "" {
-			filter = append(filter, bson.M{"blockData.smartContractAddress": req.SmartContractAddress})
+		if req.UseContract != "" {
+			filter = append(filter, bson.M{"blockData.useContract": req.UseContract})
 		}
 
 		blocks, err := db.FindManyBlocksLimited(bson.M{"$and": filter}, req.Skip, req.Limit)
@@ -242,15 +274,15 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 							TimeStamp:    dbBlock.BlockMeta.TimeStamp,
 						},
 						BlockData: &BlockData{
-							SenderUID:            dbBlock.BlockData.SenderUID,
-							SenderRole:           dbBlock.BlockData.SenderRole,
-							SenderPubKey:         dbBlock.BlockData.SenderPubKey,
-							Signature:            dbBlock.BlockData.Signature,
-							ReceiverUID:          dbBlock.BlockData.ReceiverUID,
-							ReceiverRole:         dbBlock.BlockData.ReceiverRole,
-							Data:                 dbBlock.BlockData.Data,
-							SmartContractAddress: dbBlock.BlockData.SmartContractAddress,
-							TimeStamp:            dbBlock.BlockData.TimeStamp,
+							SenderUID:    dbBlock.BlockData.SenderUID,
+							SenderRole:   dbBlock.BlockData.SenderRole,
+							SenderPubKey: dbBlock.BlockData.SenderPubKey,
+							Signature:    dbBlock.BlockData.Signature,
+							ReceiverUID:  dbBlock.BlockData.ReceiverUID,
+							ReceiverRole: dbBlock.BlockData.ReceiverRole,
+							Data:         dbBlock.BlockData.Data,
+							UseContract:  dbBlock.BlockData.UseContract,
+							TimeStamp:    dbBlock.BlockData.TimeStamp,
 						},
 					})
 				} else {
