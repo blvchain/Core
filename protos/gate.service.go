@@ -7,9 +7,7 @@ import (
 	"blvchain/core/utils"
 	"blvchain/core/ws"
 	context "context"
-	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"os"
 
@@ -119,16 +117,16 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 				}
 
 				// Compute checksum and save file to SMART_CONTRACT_FILES_PATH
-				sum := sha256.Sum256(wasmBytes)
-				checksum := hex.EncodeToString(sum[:])
-				path := config.SMART_CONTRACT_FILES_PATH + checksum
-				if err := os.WriteFile(path, wasmBytes, 0644); err != nil {
-					logger.INTERNAL_LOGGER.Printf("Error saving wasm file %v: %v", path, err)
-					return &AddDataResult{IsSuccess: false, Log: "Internal server error"}, nil
+				if utils.FileCheckSumSHA256(req.ContractData.Checksum) {
+					path := config.SMART_CONTRACT_FILES_PATH + req.ContractData.Checksum
+					if err := os.WriteFile(path, wasmBytes, 0644); err != nil {
+						logger.INTERNAL_LOGGER.Printf("Error saving wasm file %v: %v", path, err)
+						return &AddDataResult{IsSuccess: false, Log: "Internal server error"}, nil
+					}
+				} else {
+					return &AddDataResult{IsSuccess: false, Log: "Invalid wasm data"}, nil
 				}
 
-				// Store checksum in ContractData for future verification
-				block.BlockData.ContractData.Checksum = checksum
 			}
 
 			db.BlockHashMaker(&block, block.BlockMeta.NodeUID)
