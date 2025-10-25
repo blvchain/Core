@@ -183,19 +183,20 @@ func (x *Contract) GetLicense() string {
 }
 
 type BlockData struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SenderUID     string                 `protobuf:"bytes,1,opt,name=SenderUID,proto3" json:"SenderUID,omitempty"`
-	SenderRole    int64                  `protobuf:"varint,2,opt,name=SenderRole,proto3" json:"SenderRole,omitempty"`
-	SenderPubKey  string                 `protobuf:"bytes,3,opt,name=SenderPubKey,proto3" json:"SenderPubKey,omitempty"`
-	Signature     string                 `protobuf:"bytes,4,opt,name=Signature,proto3" json:"Signature,omitempty"`
-	ReceiverUID   string                 `protobuf:"bytes,5,opt,name=ReceiverUID,proto3" json:"ReceiverUID,omitempty"`
-	ReceiverRole  int64                  `protobuf:"varint,6,opt,name=ReceiverRole,proto3" json:"ReceiverRole,omitempty"`
-	Data          string                 `protobuf:"bytes,7,opt,name=Data,proto3" json:"Data,omitempty"`
-	UseContract   string                 `protobuf:"bytes,8,opt,name=UseContract,proto3" json:"UseContract,omitempty"`
-	ContractData  *Contract              `protobuf:"bytes,9,opt,name=ContractData,proto3" json:"ContractData,omitempty"`
-	TimeStamp     int64                  `protobuf:"varint,10,opt,name=TimeStamp,proto3" json:"TimeStamp,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	SenderUID      string                 `protobuf:"bytes,1,opt,name=SenderUID,proto3" json:"SenderUID,omitempty"`
+	SenderRole     int64                  `protobuf:"varint,2,opt,name=SenderRole,proto3" json:"SenderRole,omitempty"`
+	SenderPubKey   string                 `protobuf:"bytes,3,opt,name=SenderPubKey,proto3" json:"SenderPubKey,omitempty"`
+	Signature      string                 `protobuf:"bytes,4,opt,name=Signature,proto3" json:"Signature,omitempty"`
+	ReceiverUID    string                 `protobuf:"bytes,5,opt,name=ReceiverUID,proto3" json:"ReceiverUID,omitempty"`
+	ReceiverRole   int64                  `protobuf:"varint,6,opt,name=ReceiverRole,proto3" json:"ReceiverRole,omitempty"`
+	Data           string                 `protobuf:"bytes,7,opt,name=Data,proto3" json:"Data,omitempty"`
+	ContractBase64 string                 `protobuf:"bytes,8,opt,name=ContractBase64,proto3" json:"ContractBase64,omitempty"`
+	UseContract    string                 `protobuf:"bytes,9,opt,name=UseContract,proto3" json:"UseContract,omitempty"`
+	ContractData   *Contract              `protobuf:"bytes,10,opt,name=ContractData,proto3" json:"ContractData,omitempty"`
+	TimeStamp      int64                  `protobuf:"varint,11,opt,name=TimeStamp,proto3" json:"TimeStamp,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *BlockData) Reset() {
@@ -273,6 +274,13 @@ func (x *BlockData) GetReceiverRole() int64 {
 func (x *BlockData) GetData() string {
 	if x != nil {
 		return x.Data
+	}
+	return ""
+}
+
+func (x *BlockData) GetContractBase64() string {
+	if x != nil {
+		return x.ContractBase64
 	}
 	return ""
 }
@@ -627,7 +635,7 @@ const file_protos_gate_proto_rawDesc = "" +
 	"\vDescription\x18\x05 \x01(\tR\vDescription\x12\x1a\n" +
 	"\bChecksum\x18\x06 \x01(\tR\bChecksum\x12\x16\n" +
 	"\x06Author\x18\a \x01(\tR\x06Author\x12\x18\n" +
-	"\aLicense\x18\b \x01(\tR\aLicense\"\xd9\x02\n" +
+	"\aLicense\x18\b \x01(\tR\aLicense\"\x81\x03\n" +
 	"\tBlockData\x12\x1c\n" +
 	"\tSenderUID\x18\x01 \x01(\tR\tSenderUID\x12\x1e\n" +
 	"\n" +
@@ -637,11 +645,12 @@ const file_protos_gate_proto_rawDesc = "" +
 	"\tSignature\x18\x04 \x01(\tR\tSignature\x12 \n" +
 	"\vReceiverUID\x18\x05 \x01(\tR\vReceiverUID\x12\"\n" +
 	"\fReceiverRole\x18\x06 \x01(\x03R\fReceiverRole\x12\x12\n" +
-	"\x04Data\x18\a \x01(\tR\x04Data\x12 \n" +
-	"\vUseContract\x18\b \x01(\tR\vUseContract\x122\n" +
-	"\fContractData\x18\t \x01(\v2\x0e.gate.ContractR\fContractData\x12\x1c\n" +
-	"\tTimeStamp\x18\n" +
-	" \x01(\x03R\tTimeStamp\"\x83\x01\n" +
+	"\x04Data\x18\a \x01(\tR\x04Data\x12&\n" +
+	"\x0eContractBase64\x18\b \x01(\tR\x0eContractBase64\x12 \n" +
+	"\vUseContract\x18\t \x01(\tR\vUseContract\x122\n" +
+	"\fContractData\x18\n" +
+	" \x01(\v2\x0e.gate.ContractR\fContractData\x12\x1c\n" +
+	"\tTimeStamp\x18\v \x01(\x03R\tTimeStamp\"\x83\x01\n" +
 	"\x05Block\x12\x1c\n" +
 	"\tBlockHash\x18\x01 \x01(\tR\tBlockHash\x12-\n" +
 	"\tBlockMeta\x18\x02 \x01(\v2\x0f.gate.BlockMetaR\tBlockMeta\x12-\n" +

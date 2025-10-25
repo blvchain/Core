@@ -103,8 +103,8 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 			}
 
 			// If this block includes a smart contract (wasm) upload, decode and save the wasm file
-			if req.UseContract != "" && req.Data != "" {
-				wasmBytes, err := base64.StdEncoding.DecodeString(req.Data)
+			if req.ContractBase64 != "" {
+				wasmBytes, err := base64.StdEncoding.DecodeString(req.ContractBase64)
 				if err != nil {
 					logger.GRPC_F_LOGGER.Printf("Invalid base64 wasm from %v: %v", apiKey, err)
 					return &AddDataResult{IsSuccess: false, Log: "Invalid wasm data"}, nil
@@ -124,7 +124,7 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 						return &AddDataResult{IsSuccess: false, Log: "Internal server error"}, nil
 					}
 				} else {
-					return &AddDataResult{IsSuccess: false, Log: "Invalid wasm data"}, nil
+					return &AddDataResult{IsSuccess: false, Log: "Checksum not match"}, nil
 				}
 
 			}

@@ -29,9 +29,10 @@ message BlockData {
     string ReceiverUID = 5;
     int64  ReceiverRole = 6;
     string Data = 7;
-    string UseContract = 8;
-    Contract ContractData = 9;
-    int64  TimeStamp = 10;
+    bytes  ContractBase64 = 8;
+    string UseContract = 9;
+    Contract ContractData = 10;
+    int64  TimeStamp = 11;
 }
 message Block {
     string    BlockHash = 1;
