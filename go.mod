@@ -1,6 +1,6 @@
 module blvchain/core
 
-go 1.23.4
+go 1.24.0
 
 require (
 	github.com/joho/godotenv v1.5.1
@@ -35,5 +35,6 @@ require (
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/time v0.14.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241015192408-796eee8c2d53 // indirect
 )

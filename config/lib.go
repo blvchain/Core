@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -77,6 +78,16 @@ func GetApiKeyFile() map[string]bool {
 	return allowedClients
 }
 
+func StringToInt(strNum string) int {
+	num, _ := strconv.Atoi(strNum)
+	return num
+}
+
+func StringToFloat64(strNum string) float64 {
+	num, _ := strconv.ParseFloat(strNum, 64)
+	return num
+}
+
 func DefineENV(name string, defaultValue string) string {
 	port := os.Getenv(name)
 	if port == "" {
@@ -84,4 +95,20 @@ func DefineENV(name string, defaultValue string) string {
 	}
 
 	return port
+}
+
+func DefineENVFloat64(name string, defaultValue float64) float64 {
+	port := os.Getenv(name)
+	if port == "" || port == "0" {
+		return defaultValue
+	}
+	return StringToFloat64(port)
+}
+
+func DefineENVInt(name string, defaultValue int) int {
+	port := os.Getenv(name)
+	if port == "" || port == "0" {
+		return defaultValue
+	}
+	return StringToInt(port)
 }

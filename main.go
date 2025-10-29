@@ -2,11 +2,10 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
+	"time"
 
-	"blvchain/core/bvm"
 	"blvchain/core/config"
 	"blvchain/core/db"
 	"blvchain/core/logger"
@@ -25,17 +24,13 @@ func main() {
 	}
 
 	// Init BVM internal functions
-	bvm.InitBVMInternalFunctions()
+	// bvm.InitBVMInternalFunctions()
 
-	// Run BVM
-	bvm_err := bvm.RunBVM(config.SMART_CONTRACT_PATH)
-	if bvm_err != nil {
-		fmt.Println(bvm_err)
-	}
-
-	return
-
-	//! ===========================================
+	// // Run BVM
+	// bvm_err := bvm.RunBVM(config.SMART_CONTRACT_PATH)
+	// if bvm_err != nil {
+	// 	fmt.Println(bvm_err)
+	// }
 
 	syncDone := make(chan bool)
 
@@ -96,7 +91,22 @@ func main() {
 				if grpcListener_err != nil {
 					logger.GRPC_F_LOGGER.Fatalf("Error: Failed to listen gRPC: %v", grpcListener_err)
 				}
-				grpcServer := grpc.NewServer()
+
+				// Per-method configuration
+				methodCfg := map[string]protos.MethodLimit{
+					"/gate.AddData/addData":   {R: config.ADD_DATA_R, Burst: config.ADD_DATA_BURST},
+					"/gate.ReadData/readData": {R: config.READ_DATA_R, Burst: config.READ_DATA_BURST},
+				}
+
+				// default used for other RPCs (if any)
+				defaultCfg := protos.MethodLimit{R: 5, Burst: 10}
+
+				// create rate limiter with TTL for idle entries
+				rl := protos.NewRateLimiter(methodCfg, defaultCfg, 5*time.Minute)
+				grpcServer := grpc.NewServer(
+					grpc.UnaryInterceptor(rl.UnaryServerInterceptor()),
+					grpc.StreamInterceptor(rl.StreamServerInterceptor()),
+				)
 
 				// Register the services
 				protos.RegisterAddDataServer(grpcServer, &protos.AddDataService{})
