@@ -50,6 +50,7 @@ service AddData {
 message AddDataResult {
     bool   IsSuccess = 1;
     string Log = 2;
+    string BlockHash = 3;
 }
 
 // Read data
