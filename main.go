@@ -12,6 +12,10 @@ import (
 	"blvchain/core/protos"
 	"blvchain/core/ws"
 
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+
 	"google.golang.org/grpc"
 )
 
@@ -46,6 +50,43 @@ func main() {
 
 	dataBase := client.Database(config.DATABASE_NAME)
 	config.BLOCK_COLL = dataBase.Collection(config.BLOCK_COLLECTION_NAME)
+
+	// create Mongo indexes for Block collection
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		// Single-field index for timestamp (used for sorting and range queries)
+		tsIndexModel := mongo.IndexModel{
+			Keys:    bson.D{{Key: "blockMeta.timeStamp", Value: -1}},
+			Options: options.Index().SetName("idx_blockmeta_timestamp_desc"),
+		}
+
+		// Compound indexes to support common query patterns: filter by sender/receiver and sort by timestamp
+		senderUidTsIndex := mongo.IndexModel{
+			Keys:    bson.D{{Key: "blockData.senderUid", Value: 1}, {Key: "blockMeta.timeStamp", Value: -1}},
+			Options: options.Index().SetName("idx_blockdata_senderuid_ts"),
+		}
+
+		receiverUidTsIndex := mongo.IndexModel{
+			Keys:    bson.D{{Key: "blockData.receiverUid", Value: 1}, {Key: "blockMeta.timeStamp", Value: -1}},
+			Options: options.Index().SetName("idx_blockdata_receiveruid_ts"),
+		}
+
+		// Indexes for equality filters used in several places
+		useContractIndex := mongo.IndexModel{
+			Keys:    bson.D{{Key: "blockData.useContract", Value: 1}},
+			Options: options.Index().SetName("idx_blockdata_usecontract"),
+		}
+
+		idxs := []mongo.IndexModel{tsIndexModel, senderUidTsIndex, receiverUidTsIndex, useContractIndex}
+
+		if _, idxErr := config.BLOCK_COLL.Indexes().CreateMany(ctx, idxs); idxErr != nil {
+			logger.INTERNAL_LOGGER.Printf("Warning: failed to create indexes: %v", idxErr)
+		} else {
+			logger.INTERNAL_LOGGER.Println("MongoDB: indexes created/ensured for Block collection")
+		}
+	}
 
 	// Genesis makers
 	check_genesis, check_genesis_err := db.Genesis_check()
@@ -124,7 +165,6 @@ func main() {
 			go func() {
 				ws.SyncData(&ws.ClientManagerVar)
 			}()
-
 		} else {
 			logger.INTERNAL_LOGGER.Fatal("Error: Data sync failed")
 		}
