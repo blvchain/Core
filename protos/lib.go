@@ -6,7 +6,6 @@ import (
 	"blvchain/core/utils"
 	context "context"
 	"errors"
-	"fmt"
 
 	validator "github.com/go-playground/validator/v10"
 	codes "google.golang.org/grpc/codes"
@@ -227,7 +226,7 @@ func validateAuth(ctx context.Context) (string, error) {
 
 	apiKey := apiKeys[0]
 	if !config.API_KEY_LIST[apiKey] {
-		logger.GRPC_F_LOGGER.Println(fmt.Sprintf("Unauthorized client: %s", apiKey))
+		logger.GRPC_F_LOGGER.Println("unauthorized client: %s", apiKey)
 		return apiKey, status.Errorf(codes.PermissionDenied, "Unauthorized client")
 	}
 
