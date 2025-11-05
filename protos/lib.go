@@ -107,6 +107,11 @@ func validateReadDataRequest(req *ReadDataRequest) error {
 	// Track whether the client provided at least one filter
 	provided := false
 
+	// skip limit
+	if req.Skip >= 0 && req.Limit > 0 {
+		provided = true
+	}
+
 	// UID
 	if req.UID != "" {
 		provided = true
