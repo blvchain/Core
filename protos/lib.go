@@ -226,7 +226,7 @@ func validateAuth(ctx context.Context) (string, error) {
 
 	apiKey := apiKeys[0]
 	if !config.API_KEY_LIST[apiKey] {
-		logger.GRPC_F_LOGGER.Println("unauthorized client: %s", apiKey)
+		logger.GRPC_F_LOGGER.Printf("unauthorized client: %s", apiKey)
 		return apiKey, status.Errorf(codes.PermissionDenied, "Unauthorized client")
 	}
 
