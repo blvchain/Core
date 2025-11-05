@@ -72,7 +72,7 @@ message ReadDataRequest {
     int64  TimeStampFrom = 11;
     int64  TimeStampTo = 12;
     string UseContract = 13;
-
+    string UID = 14;
 }
 
 message ReadDataResult {

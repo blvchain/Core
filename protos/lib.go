@@ -77,6 +77,7 @@ func validateReadDataRequest(req *ReadDataRequest) error {
 	}
 
 	if utils.E_str(req.SenderUID, 32) &&
+		utils.E_str(req.UID, 32) &&
 		utils.Bt_int64(req.SenderRole, 0, 10000001) &&
 		utils.E_str(req.SenderPubKey, 66) &&
 		utils.E_str(req.ReceiverUID, 32) &&

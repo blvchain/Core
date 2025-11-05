@@ -441,6 +441,7 @@ type ReadDataRequest struct {
 	TimeStampFrom int64                  `protobuf:"varint,11,opt,name=TimeStampFrom,proto3" json:"TimeStampFrom,omitempty"`
 	TimeStampTo   int64                  `protobuf:"varint,12,opt,name=TimeStampTo,proto3" json:"TimeStampTo,omitempty"`
 	UseContract   string                 `protobuf:"bytes,13,opt,name=UseContract,proto3" json:"UseContract,omitempty"`
+	UID           string                 `protobuf:"bytes,14,opt,name=UID,proto3" json:"UID,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -566,6 +567,13 @@ func (x *ReadDataRequest) GetUseContract() string {
 	return ""
 }
 
+func (x *ReadDataRequest) GetUID() string {
+	if x != nil {
+		return x.UID
+	}
+	return ""
+}
+
 type ReadDataResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	IsSuccess     bool                   `protobuf:"varint,1,opt,name=IsSuccess,proto3" json:"IsSuccess,omitempty"`
@@ -666,7 +674,7 @@ const file_protos_gate_proto_rawDesc = "" +
 	"\rAddDataResult\x12\x1c\n" +
 	"\tIsSuccess\x18\x01 \x01(\bR\tIsSuccess\x12\x10\n" +
 	"\x03Log\x18\x02 \x01(\tR\x03Log\x12\x1c\n" +
-	"\tBlockHash\x18\x03 \x01(\tR\tBlockHash\"\xa9\x03\n" +
+	"\tBlockHash\x18\x03 \x01(\tR\tBlockHash\"\xbb\x03\n" +
 	"\x0fReadDataRequest\x12\x14\n" +
 	"\x05Limit\x18\x01 \x01(\x03R\x05Limit\x12\x12\n" +
 	"\x04Skip\x18\x02 \x01(\x03R\x04Skip\x12\x1c\n" +
@@ -683,7 +691,8 @@ const file_protos_gate_proto_rawDesc = "" +
 	" \x01(\tR\aNodeUID\x12$\n" +
 	"\rTimeStampFrom\x18\v \x01(\x03R\rTimeStampFrom\x12 \n" +
 	"\vTimeStampTo\x18\f \x01(\x03R\vTimeStampTo\x12 \n" +
-	"\vUseContract\x18\r \x01(\tR\vUseContract\"a\n" +
+	"\vUseContract\x18\r \x01(\tR\vUseContract\x12\x10\n" +
+	"\x03UID\x18\x0e \x01(\tR\x03UID\"a\n" +
 	"\x0eReadDataResult\x12\x1c\n" +
 	"\tIsSuccess\x18\x01 \x01(\bR\tIsSuccess\x12\x10\n" +
 	"\x03Log\x18\x02 \x01(\tR\x03Log\x12\x1f\n" +

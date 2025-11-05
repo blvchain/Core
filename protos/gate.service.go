@@ -194,6 +194,12 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 
 		filter = append(filter, bson.M{"boycott": false})
 
+		if req.UID != "" {
+			filter = append(filter, bson.M{"$or": []bson.M{
+				{"blockData.senderUid": req.UID},
+				{"blockData.receiverUid": req.UID},
+			}})
+		}
 		if req.SenderUID != "" {
 			filter = append(filter, bson.M{"blockData.senderUid": req.SenderUID})
 		}
