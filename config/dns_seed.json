@@ -1,10 +1,6 @@
 [
     {
-        "UID": "testuid1_1111111",
-        "Address": "ws://localhost:8081"
-    },
-    {
-        "UID": "testuid2_2222222",
+        "UID": "node_2_9dfb3e539c95da78a09977a918bcc372",
         "Address": "ws://localhost:8082"
     }
 ]

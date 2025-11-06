@@ -5,20 +5,19 @@ import (
 	"blvchain/core/db"
 	"blvchain/core/logger"
 	"encoding/json"
+	"net/http"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
 
-func wsAddressMaker(address string) string {
-	return address + "?uid=" + config.SELF_UID
-}
-
 // ConnectToServers connects to all servers listed in the configs and stores servers with their UID.
 func (cm *ClientManager) ConnectToServers(dns_seeds []config.Dns_seed_config) {
 	for _, dns_seed := range dns_seeds {
 		if dns_seed.UID != config.SELF_UID {
-			conn, _, err := websocket.DefaultDialer.Dial(wsAddressMaker(dns_seed.Address), nil)
+			reqHeader := http.Header{}
+			reqHeader.Set("X-UID", config.SELF_UID)
+			conn, _, err := websocket.DefaultDialer.Dial(dns_seed.Address, reqHeader)
 
 			if err != nil {
 				logger.WS_F_LOGGER.Printf("Failed to connect to server %s (%s): %v\n", dns_seed.UID, dns_seed.Address, err)
@@ -39,7 +38,9 @@ func (cm *ClientManager) ConnectToServers(dns_seeds []config.Dns_seed_config) {
 func (cm *ClientManager) ConnectToOneServer(dns_seed config.Dns_seed_config) bool {
 
 	if dns_seed.UID != config.SELF_UID {
-		conn, _, err := websocket.DefaultDialer.Dial(wsAddressMaker(dns_seed.Address), nil)
+		reqHeader := http.Header{}
+		reqHeader.Set("X-UID", config.SELF_UID)
+		conn, _, err := websocket.DefaultDialer.Dial(dns_seed.Address, reqHeader)
 		if err != nil {
 			logger.WS_F_LOGGER.Printf("Failed to connect to server %s (%s): %v\n", dns_seed.UID, dns_seed.Address, err)
 		}
@@ -87,7 +88,10 @@ func MonitorAndReconnectToServers(cm *ClientManager) {
 				// If the server is disconnected
 				logger.WS_F_LOGGER.Printf("Attempting to reconnect to server: %v", dns_seed.Address)
 
-				conn, _, err := websocket.DefaultDialer.Dial(wsAddressMaker(dns_seed.Address), nil)
+				reqHeader := http.Header{}
+				reqHeader.Set("X-UID", config.SELF_UID)
+
+				conn, _, err := websocket.DefaultDialer.Dial(dns_seed.Address, reqHeader)
 				if err != nil {
 					logger.WS_F_LOGGER.Printf("Failed to connect to server %s (%s): %v\n", dns_seed.UID, dns_seed.Address, err)
 				} else {

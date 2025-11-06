@@ -11,7 +11,7 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 
 		// Check UID for node connection
-		clientUID := r.URL.Query().Get("uid")
+		clientUID := r.Header.Get("X-UID")
 		if clientUID != "" {
 			if utils.NodeUidChecker(clientUID) {
 				return true

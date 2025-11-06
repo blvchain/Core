@@ -79,7 +79,7 @@ func AddQueryParams(baseURL string, params map[string]string) (string, error) {
 
 func NodeUidChecker(nodeUID string) bool {
 	for _, item := range config.DNS_SEED_LIST {
-		if item.UID == nodeUID {
+		if item.UID == nodeUID && item.UID != config.SELF_UID {
 			return true
 		}
 	}

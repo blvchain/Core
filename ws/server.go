@@ -63,7 +63,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 
 	// Node connection
-	clientUID := r.URL.Query().Get("uid")
+	clientUID := r.Header.Get("X-UID")
 	ServerManagerVar.addClientToLocalServer(clientUID, conn)
 	defer ServerManagerVar.removeClientFromLocalServer(clientUID)
 	logger.WS_S_LOGGER.Printf("Success: Node '%s' connected\n", clientUID)
