@@ -1,5 +1,9 @@
 [
     {
+        "UID": "node_1_729ea2f23d456b626df2f27183047912",
+        "Address": "ws://localhost:8081"
+    },
+    {
         "UID": "node_2_9dfb3e539c95da78a09977a918bcc372",
         "Address": "ws://localhost:8082"
     }

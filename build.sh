@@ -1,1 +1,1 @@
-go build -o Core main.go
+go build -o core main.go

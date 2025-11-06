@@ -1,1 +1,1 @@
-SELF_UID=testuid1_1111111 DB=BLVchain1 WP=:8081 GP=:50051 go run main.go
+SELF_UID=node_1_729ea2f23d456b626df2f27183047912 DB=BLVchain_1 WP=:8081 GP=:50051 go run main.go
