@@ -6,6 +6,7 @@ import (
 	"blvchain/core/utils"
 	context "context"
 	"errors"
+	"fmt"
 
 	validator "github.com/go-playground/validator/v10"
 	codes "google.golang.org/grpc/codes"
@@ -219,6 +220,7 @@ func validateAuth(ctx context.Context) (string, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		logger.GRPC_F_LOGGER.Println("Missing metadata from ")
+		fmt.Println("Error: see log/gRPC/fail folder for details.")
 		return "", status.Errorf(codes.Unauthenticated, "Missing metadata")
 	}
 
@@ -226,12 +228,14 @@ func validateAuth(ctx context.Context) (string, error) {
 	apiKeys := md["auth"]
 	if len(apiKeys) == 0 {
 		logger.GRPC_F_LOGGER.Println("Missing API key")
+		fmt.Println("Error: see log/gRPC/fail folder for details.")
 		return "", status.Errorf(codes.Unauthenticated, "Missing API key")
 	}
 
 	apiKey := apiKeys[0]
 	if !config.API_KEY_LIST[apiKey] {
 		logger.GRPC_F_LOGGER.Printf("unauthorized client: %s", apiKey)
+		fmt.Println("Error: see log/gRPC/fail folder for details.")
 		return apiKey, status.Errorf(codes.PermissionDenied, "Unauthorized client")
 	}
 

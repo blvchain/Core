@@ -11,7 +11,6 @@ var (
 	// Global ENV
 	MONGO_URI           string = GetEnv("MONGO_URI")
 	SMART_CONTRACT_PATH string = GetEnv("SMART_CONTRACT_PATH")
-	DEV_MODE            string = GetEnv("DEV_MODE")
 
 	// Rate limit for gRPC
 	READ_DATA_R     rate.Limit = rate.Limit(DefineENVFloat64("READ_DATA_R", 0.1))
@@ -35,8 +34,8 @@ var (
 
 	// Terminal variables
 	SELF_UID         string = DefineENV("SELF_UID", GetEnv("SELF_UID"))
-	DATABASE_NAME           = DefineENV("DB", "BLVchain")
-	WEBSOCKET_PORT          = DefineENV("WP", ":8080")
-	GRPC_PORT               = DefineENV("GP", ":50051")
-	MAX_DATA_SIZE_KB        = DefineENV("MAX_DATA_SIZE_KB", "2048")
+	DATABASE_NAME    string = DefineENV("DB", "BLVchain")
+	WEBSOCKET_PORT   string = DefineENV("WP", ":8080")
+	GRPC_PORT        string = DefineENV("GP", ":50051")
+	MAX_DATA_SIZE_KB string = DefineENV("MAX_DATA_SIZE_KB", "2048")
 )

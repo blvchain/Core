@@ -33,6 +33,7 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 	if err := validateAddDataRequest(req); err != nil {
 		// Invalid data
 		logger.GRPC_F_LOGGER.Println("Validation failed:", err)
+		fmt.Println("Error: see log/gRPC/fail folder for details.")
 		return &AddDataResult{
 			IsSuccess: false,
 			Log:       err.Error(),
@@ -57,6 +58,7 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 		if !valid {
 			// Block validation failed
 			logger.GRPC_F_LOGGER.Printf("WARNING!!!: Error in data %v signature validation from %v:\n%v", req, apiKey, validation_err)
+			fmt.Println("Error: see log/gRPC/fail folder for details.")
 			return &AddDataResult{
 				IsSuccess: false,
 				Log:       validation_err.Error(),
@@ -72,6 +74,7 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 					preBlock.ID = config.FIRST_BLOCK_HASH
 				} else {
 					logger.INTERNAL_LOGGER.Printf("Error: Error in finding many blocks for uid %v from api key %v. Error: %v", req.SenderUID, apiKey, sender_last_blocks_err)
+					fmt.Println("Error: see log/internal folder for details.")
 					return &AddDataResult{
 						IsSuccess: false,
 						Log:       "Internal server error",
@@ -107,12 +110,14 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 				wasmBytes, err := base64.StdEncoding.DecodeString(string(req.ContractBase64))
 				if err != nil {
 					logger.GRPC_F_LOGGER.Printf("Invalid base64 wasm from %v: %v", apiKey, err)
+					fmt.Println("Error: see log/gRPC/fail folder for details.")
 					return &AddDataResult{IsSuccess: false, Log: "Invalid wasm data"}, nil
 				}
 
 				// Enforce 1MB size limit for wasm
 				if len(wasmBytes) > 1024*1024 {
 					logger.GRPC_F_LOGGER.Printf("WASM too large from %v: %d bytes", apiKey, len(wasmBytes))
+					fmt.Println("Error: see log/gRPC/fail folder for details.")
 					return &AddDataResult{IsSuccess: false, Log: "wasm file must be lesser than 1024KB"}, nil
 				}
 
@@ -121,6 +126,7 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 					path := config.SMART_CONTRACT_FILES_PATH + req.ContractData.Checksum
 					if err := os.WriteFile(path, wasmBytes, 0644); err != nil {
 						logger.INTERNAL_LOGGER.Printf("Error saving wasm file %v: %v", path, err)
+						fmt.Println("Error: see log/internal folder for details.")
 						return &AddDataResult{IsSuccess: false, Log: "Internal server error"}, nil
 					}
 				} else {
@@ -141,6 +147,7 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 				if !Block_insert_result {
 					// Internal error to add data to DB
 					logger.INTERNAL_LOGGER.Printf("Error: Error in adding block '%v' to db from user '%v' : \n %v", block.ID, req.SenderUID, Block_insert_result_err)
+					fmt.Println("Error: see log/internal folder for details.")
 					return &AddDataResult{
 						IsSuccess: false,
 						Log:       "Internal server error",
@@ -173,6 +180,7 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 	apiKey, auth_err := validateAuth(ctx)
 	if auth_err != nil {
 		logger.GRPC_F_LOGGER.Println("Auth failed:", auth_err)
+		fmt.Println("Error: see log/gRPC/fail folder for details.")
 		return &ReadDataResult{
 			IsSuccess: false,
 			Log:       auth_err.Error(),
@@ -183,6 +191,7 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 	if err := validateReadDataRequest(req); err != nil {
 		// Invalid data
 		logger.GRPC_F_LOGGER.Println("Validation failed:", err)
+		fmt.Println("Error: see log/gRPC/fail folder for details.")
 		return &ReadDataResult{
 			IsSuccess: false,
 			Log:       err.Error(),
@@ -252,6 +261,7 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 			} else {
 				// Error in finding blocks
 				logger.GRPC_F_LOGGER.Printf("Error: Error in finding blocks based on request '%v', by api key '%v'. Error: %v", req, apiKey, err)
+				fmt.Println("Error: see log/gRPC/fail folder for details.")
 				return &ReadDataResult{
 					IsSuccess: false,
 					Log:       err.Error(),
@@ -292,10 +302,12 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 					})
 				} else {
 					logger.GRPC_F_LOGGER.Printf("WARNING!!! : Block validation error in database. Block data:\n%v\nError:\n%v", dbBlock, validation_err)
+					fmt.Println("Error: see log/gRPC/fail folder for details.")
 				}
 			}
 
 			logger.GRPC_F_LOGGER.Printf("Success: Send blocks to api key '%v'. Blocks: \n %v", apiKey, blocks)
+			fmt.Println("Error: see log/gRPC/fail folder for details.")
 			return &ReadDataResult{
 				IsSuccess: true,
 				Log:       "",

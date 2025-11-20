@@ -1,10 +1,8 @@
 package logger
 
 import (
-	"blvchain/core/config"
 	"io"
 	"log"
-	"os"
 
 	"github.com/natefinch/lumberjack"
 )
@@ -96,32 +94,17 @@ func init() {
 		LocalTime: true,
 	}
 
-	// Dev logger
-	if config.DEV_MODE == "true" {
-		ws_s_logger_output = io.MultiWriter(ws_s_logger, os.Stdout)
-		ws_f_logger_output = io.MultiWriter(ws_f_logger, os.Stderr)
+	ws_s_logger_output = ws_s_logger
+	ws_f_logger_output = ws_f_logger
 
-		grpc_s_logger_output = io.MultiWriter(grpc_s_logger, os.Stdout)
-		grpc_f_logger_output = io.MultiWriter(grpc_f_logger, os.Stderr)
+	grpc_s_logger_output = grpc_s_logger
+	grpc_f_logger_output = grpc_f_logger
 
-		internal_logger_output = io.MultiWriter(internal_logger, os.Stderr)
-		signature_logger_output = io.MultiWriter(signature_logger, os.Stderr)
+	internal_logger_output = internal_logger
+	signature_logger_output = signature_logger
 
-		sc_s_logger_output = io.MultiWriter(sc_s_logger, os.Stdout)
-		sc_f_logger_output = io.MultiWriter(sc_f_logger, os.Stderr)
-	} else {
-		ws_s_logger_output = ws_s_logger
-		ws_f_logger_output = ws_f_logger
-
-		grpc_s_logger_output = grpc_s_logger
-		grpc_f_logger_output = grpc_f_logger
-
-		internal_logger_output = internal_logger
-		signature_logger_output = signature_logger
-
-		sc_s_logger_output = sc_s_logger
-		sc_f_logger_output = sc_f_logger
-	}
+	sc_s_logger_output = sc_s_logger
+	sc_f_logger_output = sc_f_logger
 
 	// Logger
 	WS_S_LOGGER = log.New(ws_s_logger_output, "", log.Ldate|log.Ltime)

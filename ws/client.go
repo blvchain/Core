@@ -5,6 +5,7 @@ import (
 	"blvchain/core/db"
 	"blvchain/core/logger"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -21,6 +22,7 @@ func (cm *ClientManager) ConnectToServers(dns_seeds []config.Dns_seed_config) {
 
 			if err != nil {
 				logger.WS_F_LOGGER.Printf("Failed to connect to server %s (%s): %v\n", dns_seed.UID, dns_seed.Address, err)
+				fmt.Println("Error: see log/websocket/fail folder for details.")
 				continue
 			}
 
@@ -43,6 +45,7 @@ func (cm *ClientManager) ConnectToOneServer(dns_seed config.Dns_seed_config) boo
 		conn, _, err := websocket.DefaultDialer.Dial(dns_seed.Address, reqHeader)
 		if err != nil {
 			logger.WS_F_LOGGER.Printf("Failed to connect to server %s (%s): %v\n", dns_seed.UID, dns_seed.Address, err)
+			fmt.Println("Error: see log/websocket/fail folder for details.")
 		}
 
 		cm.mutex.Lock()
@@ -87,6 +90,7 @@ func MonitorAndReconnectToServers(cm *ClientManager) {
 			if (cm.servers[dns_seed.UID] == nil || pingError != nil) && dns_seed.UID != config.SELF_UID {
 				// If the server is disconnected
 				logger.WS_F_LOGGER.Printf("Attempting to reconnect to server: %v", dns_seed.Address)
+				fmt.Println("Error: see log/websocket/fail folder for details.")
 
 				reqHeader := http.Header{}
 				reqHeader.Set("X-UID", config.SELF_UID)
@@ -94,6 +98,7 @@ func MonitorAndReconnectToServers(cm *ClientManager) {
 				conn, _, err := websocket.DefaultDialer.Dial(dns_seed.Address, reqHeader)
 				if err != nil {
 					logger.WS_F_LOGGER.Printf("Failed to connect to server %s (%s): %v\n", dns_seed.UID, dns_seed.Address, err)
+					fmt.Println("Error: see log/websocket/fail folder for details.")
 				} else {
 					cm.servers[dns_seed.UID] = conn
 					logger.WS_S_LOGGER.Printf("Connected to server %s (%s)\n", dns_seed.UID, dns_seed.Address)
@@ -126,20 +131,24 @@ func FirstTimeSyncData(cm *ClientManager) bool {
 			messageByte, messageByte_err := json.Marshal(req)
 			if messageByte_err != nil {
 				logger.INTERNAL_LOGGER.Printf("Error: Failed to marshal message \n %v", req)
+				fmt.Println("Error: see log/internal folder for details.")
 			}
 
 			if err := conn.WriteMessage(websocket.TextMessage, messageByte); err != nil {
 				logger.WS_F_LOGGER.Printf("Error: Error writing message '%v' to node '%v'", err, uid)
+				fmt.Println("Error: see log/websocket/fail folder for details.")
 				continue
 			} else {
 				_, responseData, err := conn.ReadMessage()
 				if err != nil {
 					logger.WS_F_LOGGER.Printf("Error: Error reading response from node '%v': %v", uid, err)
+					fmt.Println("Error: see log/websocket/fail folder for details.")
 					continue
 				} else {
 					var thisResponse WS_Sync_Res
 					if err := json.Unmarshal(responseData, &thisResponse); err != nil {
 						logger.WS_F_LOGGER.Println("Error: Error parsing message:", err)
+						fmt.Println("Error: see log/websocket/fail folder for details.")
 						continue
 					} else {
 						if thisResponse.IsSuccess {
@@ -174,6 +183,7 @@ func FirstTimeSyncData(cm *ClientManager) bool {
 									if validation_err != nil {
 										// Block validation failed
 										logger.WS_F_LOGGER.Printf("WARNING!!! : Block validation error from node '%v'. Block data:\n%v\nError:\n%v", uid, dbBlock, validation_err)
+										fmt.Println("Error: see log/websocket/fail folder for details.")
 										newBlock.Boycott = true
 									} else {
 										newBlock.Boycott = false
@@ -190,6 +200,7 @@ func FirstTimeSyncData(cm *ClientManager) bool {
 
 								if err != nil {
 									logger.INTERNAL_LOGGER.Printf("Error: Can Not add data of %v block(s) after %v from node '%v'", len(thisResponse.Blocks), founded_block[0].BlockMeta.TimeStamp, uid)
+									fmt.Println("Error: see log/internal folder for details.")
 								}
 
 							}
@@ -223,11 +234,13 @@ func SyncData(cm *ClientManager) {
 			messageByte, messageByte_err := json.Marshal(req)
 			if messageByte_err != nil {
 				logger.INTERNAL_LOGGER.Printf("Failed to marshal message \n %v", req)
+				fmt.Println("Error: see log/internal folder for details.")
 			}
 
 			if err := conn.WriteMessage(websocket.TextMessage, messageByte); err != nil {
 				// Error in sending message
 				logger.WS_F_LOGGER.Printf("Error writing message '%v' to node '%v'", err, uid)
+				fmt.Println("Error: see log/websocket/fail folder for details.")
 				continue
 			} else {
 				// Message sent
@@ -235,6 +248,7 @@ func SyncData(cm *ClientManager) {
 				if err != nil {
 					// Error in reading response message
 					logger.WS_F_LOGGER.Printf("Error reading response from node '%v': %v", uid, err)
+					fmt.Println("Error: see log/websocket/fail folder for details.")
 					continue
 				} else {
 					// Successfully get the response
@@ -242,6 +256,7 @@ func SyncData(cm *ClientManager) {
 					if err := json.Unmarshal(responseData, &thisResponse); err != nil {
 						// Error in unmarshaling byte data
 						logger.WS_F_LOGGER.Println("Error parsing message:", err)
+						fmt.Println("Error: see log/websocket/fail folder for details.")
 						continue
 					} else {
 						if thisResponse.IsSuccess {
@@ -277,6 +292,7 @@ func SyncData(cm *ClientManager) {
 									if validation_err != nil {
 										// Block validation failed
 										logger.WS_F_LOGGER.Printf("WARNING!!! : Block validation error from node '%v'. Block data:\n%v\nError:\n%v", uid, dbBlock, validation_err)
+										fmt.Println("Error: see log/websocket/fail folder for details.")
 										newBlock.Boycott = true
 									} else {
 										newBlock.Boycott = false
@@ -289,6 +305,7 @@ func SyncData(cm *ClientManager) {
 
 								if err != nil {
 									logger.INTERNAL_LOGGER.Printf("Error: Can Not add data of %v block made after %v from node '%v'", len(thisResponse.Blocks), founded_block[0].BlockMeta.TimeStamp, uid)
+									fmt.Println("Error: see log/internal folder for details.")
 								}
 
 								if result {
@@ -319,16 +336,19 @@ func (cm *ClientManager) SendMessageToOneServer(uid string, message any) bool {
 
 	if !ok {
 		logger.WS_F_LOGGER.Printf("No connection found for server UID: %s", uid)
+		fmt.Println("Error: see log/websocket/fail folder for details.")
 		return false
 	}
 
 	messageByte, messageByte_err := json.Marshal(message)
 	if messageByte_err != nil {
 		logger.INTERNAL_LOGGER.Printf("Failed to marshal message \n %v", message)
+		fmt.Println("Error: see log/internal folder for details.")
 	}
 
 	if err := conn.WriteMessage(websocket.TextMessage, messageByte); err != nil {
 		logger.WS_F_LOGGER.Printf("Failed to send message to server %s: %v", uid, err)
+		fmt.Println("Error: see log/websocket/fail folder for details.")
 		return false
 	}
 
@@ -353,6 +373,7 @@ func (cm *ClientManager) GetBlockFromServers(blockHash string) []db.Block {
 	messageByte, messageByte_err := json.Marshal(req)
 	if messageByte_err != nil {
 		logger.INTERNAL_LOGGER.Printf("Failed to marshal message \n %v", req)
+		fmt.Println("Error: see log/internal folder for details.")
 	}
 
 	var blocks []db.Block
@@ -362,6 +383,7 @@ func (cm *ClientManager) GetBlockFromServers(blockHash string) []db.Block {
 		if err := conn.WriteMessage(websocket.TextMessage, messageByte); err != nil {
 			// Error in sending message
 			logger.WS_F_LOGGER.Printf("Error writing message '%v' to node '%v'", err, uid)
+			fmt.Println("Error: see log/websocket/fail folder for details.")
 			continue
 		} else {
 			// Message sent
@@ -369,6 +391,7 @@ func (cm *ClientManager) GetBlockFromServers(blockHash string) []db.Block {
 			if err != nil {
 				// Error in reading response message
 				logger.WS_F_LOGGER.Printf("Error reading response from node '%v': %v", uid, err)
+				fmt.Println("Error: see log/websocket/fail folder for details.")
 				continue
 			} else {
 				// Successfully get the response
@@ -376,6 +399,7 @@ func (cm *ClientManager) GetBlockFromServers(blockHash string) []db.Block {
 				if err := json.Unmarshal(responseData, &thisResponse); err != nil {
 					// Error in unmarshaling byte data
 					logger.WS_F_LOGGER.Println("Error parsing message:", err)
+					fmt.Println("Error: see log/websocket/fail folder for details.")
 					continue
 				} else {
 					if thisResponse.IsSuccess {
@@ -406,6 +430,7 @@ func (cm *ClientManager) AddBlockToServers(block db.Block) []WS_Res {
 	messageByte, messageByte_err := json.Marshal(req)
 	if messageByte_err != nil {
 		logger.INTERNAL_LOGGER.Printf("Failed to marshal message \n %v", req)
+		fmt.Println("Error: see log/internal folder for details.")
 	}
 
 	var responses []WS_Res
@@ -415,6 +440,7 @@ func (cm *ClientManager) AddBlockToServers(block db.Block) []WS_Res {
 		if err := conn.WriteMessage(websocket.TextMessage, messageByte); err != nil {
 			// Error in sending message
 			logger.WS_F_LOGGER.Printf("Error writing message '%v' to node '%v'", err, uid)
+			fmt.Println("Error: see log/websocket/fail folder for details.")
 			continue
 		} else {
 			// Message sent
@@ -422,6 +448,7 @@ func (cm *ClientManager) AddBlockToServers(block db.Block) []WS_Res {
 			if err != nil {
 				// Error in reading response message
 				logger.WS_F_LOGGER.Printf("Error reading response from node '%v': %v", uid, err)
+				fmt.Println("Error: see log/websocket/fail folder for details.")
 				continue
 			} else {
 				// Successfully get the response
@@ -429,6 +456,7 @@ func (cm *ClientManager) AddBlockToServers(block db.Block) []WS_Res {
 				if err := json.Unmarshal(responseData, &thisResponse); err != nil {
 					// Error in unmarshaling byte data
 					logger.WS_F_LOGGER.Println("Error parsing message:", err)
+					fmt.Println("Error: see log/websocket/fail folder for details.")
 					continue
 				} else {
 					responses = append(responses, thisResponse)

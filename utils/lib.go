@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"math/big"
 	"net/url"
 	"os"
@@ -87,15 +86,12 @@ func NodeUidChecker(nodeUID string) bool {
 }
 
 func Data_to_JSON(data any) []byte {
-	byte_data, err := json.Marshal(data)
-	if err != nil {
-		log.Fatalf("Error marshalling to JSON: %v", err)
-	}
+	byte_data, _ := json.Marshal(data)
 	return byte_data
 }
 
 func Make_UID(pubkey_str string) string {
-	hash := D512(pubkey_str, config.DELIUM_CONFIG.MESSAGE.DELETE_STEP, config.DELIUM_CONFIG.MESSAGE.REPEAT).String
+	hash := D512C(pubkey_str, config.DELIUM_CONFIG.UID_MAKER_PATH).String
 	return hash[:32]
 }
 

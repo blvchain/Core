@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"time"
@@ -21,12 +22,6 @@ import (
 
 func main() {
 
-	if config.DEV_MODE == "true" {
-		logger.INTERNAL_LOGGER.Println("DEV_MODE mode is ENABLED")
-	} else {
-		logger.INTERNAL_LOGGER.Println("DEV_MODE mode is DISABLED")
-	}
-
 	// Init BVM internal functions
 	// bvm.InitBVMInternalFunctions()
 
@@ -36,15 +31,19 @@ func main() {
 	// 	fmt.Println(bvm_err)
 	// }
 
+	fmt.Println("===== Starting core =====")
+
 	syncDone := make(chan bool)
 
 	client, client_err := db.ConnectToMongoDB()
 	if client_err != nil {
 		logger.INTERNAL_LOGGER.Fatal(client_err)
+		fmt.Println("Error: see log/internal folder for details.")
 	}
 	defer func() {
 		if client_err = client.Disconnect(context.TODO()); client_err != nil {
 			logger.INTERNAL_LOGGER.Fatal(client_err)
+			fmt.Println("Error: see log/internal folder for details.")
 		}
 	}()
 
@@ -83,8 +82,7 @@ func main() {
 
 		if _, idxErr := config.BLOCK_COLL.Indexes().CreateMany(ctx, idxs); idxErr != nil {
 			logger.INTERNAL_LOGGER.Printf("Warning: failed to create indexes: %v", idxErr)
-		} else {
-			logger.INTERNAL_LOGGER.Println("MongoDB: indexes created/ensured for Block collection")
+			fmt.Println("Error: see log/internal folder for details.")
 		}
 	}
 
@@ -107,6 +105,7 @@ func main() {
 			websocketListener_err := http.ListenAndServe(config.WEBSOCKET_PORT, nil)
 			if websocketListener_err != nil {
 				logger.WS_F_LOGGER.Fatalf("Failed to listen WebSocket: %v", websocketListener_err)
+				fmt.Println("Error: see log/websocket/fail folder for details.")
 			}
 
 		}()
@@ -125,12 +124,14 @@ func main() {
 		if <-syncDone {
 
 			logger.INTERNAL_LOGGER.Println("Success: Data sync completed, running gRPC server")
+			fmt.Println("Success: Data sync completed, running gRPC server")
 
 			//* gRPC
 			go func() {
 				grpcListener, grpcListener_err := net.Listen("tcp", config.GRPC_PORT)
 				if grpcListener_err != nil {
 					logger.GRPC_F_LOGGER.Fatalf("Error: Failed to listen gRPC: %v", grpcListener_err)
+					fmt.Println("Error: see log/gRPC/fail folder for details.")
 				}
 
 				// Per-method configuration
@@ -154,9 +155,11 @@ func main() {
 				protos.RegisterReadDataServer(grpcServer, &protos.ReadDataService{})
 
 				logger.GRPC_S_LOGGER.Println("Success: gRPC server is running on port", config.GRPC_PORT)
+				fmt.Println("Success: gRPC server is running on port", config.GRPC_PORT)
 
 				if grpcServer_err := grpcServer.Serve(grpcListener); grpcServer_err != nil {
 					logger.GRPC_F_LOGGER.Fatalf("Error: Failed to serve: %v", grpcServer_err)
+					fmt.Println("Error: see log/gRPC/fail folder for details.")
 				}
 
 			}()
@@ -165,8 +168,10 @@ func main() {
 			go func() {
 				ws.SyncData(&ws.ClientManagerVar)
 			}()
+
 		} else {
 			logger.INTERNAL_LOGGER.Fatal("Error: Data sync failed")
+			fmt.Println("Error: see log/internal folder for details.")
 		}
 
 		// Prevent main from exiting
@@ -175,5 +180,6 @@ func main() {
 	} else {
 		// Print error if genesis conditions fail
 		logger.INTERNAL_LOGGER.Printf("Error: %v", check_genesis_err)
+		fmt.Println("Error: see log/internal folder for details.")
 	}
 }

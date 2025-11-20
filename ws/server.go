@@ -5,6 +5,7 @@ import (
 	"blvchain/core/db"
 	"blvchain/core/logger"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -33,6 +34,7 @@ func (cm *ServerManager) BroadcastMessageFromLocalServer(message any) {
 	messageByte, messageByte_err := json.Marshal(message)
 	if messageByte_err != nil {
 		logger.INTERNAL_LOGGER.Printf("Error: Failed to marshal message \n %v", message)
+		fmt.Println("Error: see log/internal folder for details.")
 	}
 
 	cm.mutex.RLock()
@@ -41,6 +43,7 @@ func (cm *ServerManager) BroadcastMessageFromLocalServer(message any) {
 	for uid, conn := range cm.clients {
 		if err := conn.WriteMessage(websocket.TextMessage, messageByte); err != nil {
 			logger.WS_F_LOGGER.Printf("Error: Error writing message '%v' to node '%v'", err, uid)
+			fmt.Println("Error: see log/websocket/fail folder for details.")
 		}
 	}
 }
@@ -50,6 +53,7 @@ func messenger(message any, conn *websocket.Conn, uid string) {
 	err := conn.WriteMessage(websocket.TextMessage, messageByte)
 	if err != nil {
 		logger.WS_F_LOGGER.Printf("Error: Error writing message '%v' to node '%v'", err, uid)
+		fmt.Println("Error: see log/websocket/fail folder for details.")
 	}
 }
 
@@ -58,6 +62,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		logger.WS_F_LOGGER.Println("Error: Failed to upgrade:", err)
+		fmt.Println("Error: see log/websocket/fail folder for details.")
 		return
 	}
 	defer conn.Close()
@@ -75,12 +80,14 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 		_, messageData, err := conn.ReadMessage()
 		if err != nil {
 			logger.WS_F_LOGGER.Printf("Error: Node '%s' disconnected, %v\n", clientUID, err)
+			fmt.Println("Error: see log/websocket/fail folder for details.")
 			break
 		}
 
 		var msg WS_Req
 		if err := json.Unmarshal(messageData, &msg); err != nil {
 			logger.WS_F_LOGGER.Println("Error: Error parsing message:", err)
+			fmt.Println("Error: see log/websocket/fail folder for details.")
 			break
 		}
 
@@ -121,6 +128,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 
 			if len(filter) == 0 {
 				logger.WS_F_LOGGER.Printf("Error: Not found block '%v'. Req from node '%v'", msg.Block.ID, clientUID)
+				fmt.Println("Error: see log/websocket/fail folder for details.")
 			} else {
 
 				founded_block, founded_block_err := db.FindManyBlocksLimited(bson.M{"$and": filter}, 0, 1)
@@ -128,6 +136,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 				if founded_block_err == mongo.ErrNoDocuments || len(founded_block) == 0 {
 					// Not found any block with this hash
 					logger.WS_F_LOGGER.Printf("Error: Not found block '%v'. Req from node '%v'", msg.Block.ID, clientUID)
+					fmt.Println("Error: see log/websocket/fail folder for details.")
 				} else {
 					// Send founded block
 					logger.WS_S_LOGGER.Printf("Success: Send data of block '%v' to node '%v'", msg.Block.ID, clientUID)
@@ -154,6 +163,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 			if structValidation_err != nil {
 				// Structure failed
 				logger.WS_F_LOGGER.Printf("Error: Error in node '%v' message structure validation: , %v\n", clientUID, structValidation_err)
+				fmt.Println("Error: see log/websocket/fail folder for details.")
 			} else {
 
 				// check block validation
@@ -167,6 +177,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 					if validation_err != nil {
 						// Block validation failed
 						logger.WS_F_LOGGER.Printf("WARNING!!!: Error in node '%v' block validation: , %v\n", clientUID, validation_err)
+						fmt.Println("Error: see log/websocket/fail folder for details.")
 						msg.Block.Boycott = true
 					} else {
 						msg.Block.Boycott = false
@@ -179,6 +190,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 					if !Block_insert_result {
 						// Internal error to add data to DB
 						logger.INTERNAL_LOGGER.Printf("Error: Error in adding block '%v' to db from node '%v' : \n %v", msg.Block.ID, clientUID, Block_insert_result_err)
+						fmt.Println("Error: see log/internal folder for details.")
 					} else {
 						// Successfully added data to DB
 						logger.WS_S_LOGGER.Printf("Success: Block '%v' successfully added from '%v' ", msg.Block.ID, clientUID)
@@ -188,6 +200,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 				} else {
 					// Block hash is NOT unique
 					logger.WS_F_LOGGER.Printf("Error: Error in node '%v' block hash is not unique: , %v\n", clientUID, validation_err)
+					fmt.Println("Error: see log/websocket/fail folder for details.")
 				}
 
 			}
@@ -221,6 +234,7 @@ func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
 			} else {
 				if founded_block_err != mongo.ErrNoDocuments && founded_block_err != nil {
 					logger.WS_F_LOGGER.Printf("Error: Error in finding blocks made after %v for node %v. \n %v", msg.Block.BlockMeta.TimeStamp, clientUID, founded_block_err)
+					fmt.Println("Error: see log/websocket/fail folder for details.")
 				}
 			}
 			// Send response to client

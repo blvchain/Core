@@ -91,29 +91,29 @@ func RunBVM(wasmPath string) error {
 func InitBVMInternalFunctions() {
 
 	//* Dev mode internal functions
-	if config.DEV_MODE == "true" {
 
-		// Print function
-		print := api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
-			ptr := uint32(stack[0])
-			size := uint32(stack[1])
+	// Print function
+	print := api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
+		ptr := uint32(stack[0])
+		size := uint32(stack[1])
 
-			mem := mod.Memory()
-			if mem == nil {
-				logger.INTERNAL_LOGGER.Println("Error: function host_print memory not available")
-				return
-			}
-			bytes, ok := mem.Read(ptr, size)
-			if !ok {
-				logger.INTERNAL_LOGGER.Println("Error: function host_print memory read failed")
-				return
-			}
+		mem := mod.Memory()
+		if mem == nil {
+			logger.INTERNAL_LOGGER.Println("Error: function host_print memory not available")
+			fmt.Println("Error: see log/internal folder for details.")
+			return
+		}
+		bytes, ok := mem.Read(ptr, size)
+		if !ok {
+			logger.INTERNAL_LOGGER.Println("Error: function host_print memory read failed")
+			fmt.Println("Error: see log/internal folder for details.")
+			return
+		}
 
-			logger.SC_S_LOGGER.Println("Success: Smart contract prints: ", string(bytes))
-		})
+		logger.SC_S_LOGGER.Println("Success: Smart contract prints: ", string(bytes))
+	})
 
-		AddHostFunction("print", print, []api.ValueType{api.ValueTypeI32, api.ValueTypeI32}, []api.ValueType{})
-	}
+	AddHostFunction("print", print, []api.ValueType{api.ValueTypeI32, api.ValueTypeI32}, []api.ValueType{})
 
 	//* Production mode internal functions
 	// Get block function

@@ -1,10 +1,5 @@
 {
-    "HASH": {
-        "DELETE_STEP": 10,
-        "REPEAT": 2
-    },
-    "MESSAGE": {
-        "DELETE_STEP": 5,
-        "REPEAT": 5
-    }
+    "BLOCK_HASHING_PATH": "BLV#5/chain#6/StRoNg#7/SAFE#8",
+    "UID_MAKER_PATH": "SFFds#7/dfgki#6/d5gj7#7/dfgk78#10",
+    "MESSAGE_HASH_PATH": "sdwE#3/kiu9u#6/OEJLF#7/dDFO6TGF#8/JLKoty#5"
 }

@@ -13,7 +13,7 @@ import (
 
 func Sign(hexPrivateKey string, message string) (string, error) {
 
-	message_hash := D256(message, config.DELIUM_CONFIG.MESSAGE.DELETE_STEP, config.DELIUM_CONFIG.MESSAGE.REPEAT).Byte_slice
+	message_hash := D256C(message, config.DELIUM_CONFIG.MESSAGE_HASH_PATH).Byte_slice
 
 	privateKey, privateKey_err := privkeyHexToECDSA(hexPrivateKey)
 	if privateKey_err != nil {
@@ -34,7 +34,7 @@ func Sign(hexPrivateKey string, message string) (string, error) {
 
 func Verify(hexPublicKey string, uid string, message string, hexSignature string) (bool, error) {
 
-	message_hash := D256(message, config.DELIUM_CONFIG.MESSAGE.DELETE_STEP, config.DELIUM_CONFIG.MESSAGE.REPEAT).Byte_slice
+	message_hash := D256C(message, config.DELIUM_CONFIG.MESSAGE_HASH_PATH).Byte_slice
 
 	pubKeyCompressed, pubKeyCompressed_err := hex.DecodeString(hexPublicKey)
 	if pubKeyCompressed_err != nil {

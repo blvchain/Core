@@ -4,7 +4,6 @@ import (
 	"blvchain/core/config"
 	"blvchain/core/utils"
 	"errors"
-	// "fmt"
 	"reflect"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -65,7 +64,7 @@ func BlockHashMaker(b *Block, nodeUID string) {
 		b.BlockData.Data +
 		utils.Int64ToStr(b.BlockData.TimeStamp)
 
-	b.ID = utils.D256(blockMetaRoot+blockDataRoot, config.DELIUM_CONFIG.HASH.DELETE_STEP, config.DELIUM_CONFIG.HASH.REPEAT).String
+	b.ID = utils.D256C(blockMetaRoot+blockDataRoot, config.DELIUM_CONFIG.BLOCK_HASHING_PATH).String
 }
 
 func MessageMaker(b BlockData) string {

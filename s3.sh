@@ -1,0 +1,1 @@
+SELF_UID=node_3_563cb86be0b2035fc440fdd426855c41 DB=BLVchain_3 WP=:8083 GP=:50053 go run main.go
