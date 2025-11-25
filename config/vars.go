@@ -9,8 +9,7 @@ import (
 
 var (
 	// Global ENV
-	MONGO_URI           string = GetEnv("MONGO_URI")
-	SMART_CONTRACT_PATH string = GetEnv("SMART_CONTRACT_PATH")
+	MONGO_URI string = GetEnv("MONGO_URI")
 
 	// Rate limit for gRPC
 	READ_DATA_R     rate.Limit = rate.Limit(DefineENVFloat64("READ_DATA_R", 0.1))

@@ -206,7 +206,7 @@ func BoolCheck(inputData bool) bool {
 }
 
 func FileCheckSumSHA256(fileName string) bool {
-	path := config.SMART_CONTRACT_FILES_PATH + fileName
+	path := config.SMART_CONTRACT_UPLOAD_PATH + fileName
 	f, err := os.Open(path)
 	if err != nil {
 		logger.SC_F_LOGGER.Printf("Error: Error in opening file %v, in path %v for checksum sha256: %v", fileName, path, err)

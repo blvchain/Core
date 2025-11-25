@@ -1,8 +1,11 @@
 package config
 
+import "time"
+
 const (
-	CONFIG_FILE_PATH          string = "./config/"
-	SMART_CONTRACT_FILES_PATH string = "../smart_contracts/"
+	CONFIG_FILE_PATH           string = "./config/"
+	SMART_CONTRACT_UPLOAD_PATH string = "../smart_contracts/"
+	VC_UPLOAD_PATH             string = "../smart_contracts/"
 
 	// Mongo
 	ZERO_STRING string = "0"
@@ -31,5 +34,7 @@ const (
 	SYNC_DATA_SLEEP_TIME   = 5
 
 	// Smart contract
-	SMART_CONTRACT_FUNCTION_NAME string = "smart_contract"
+	SMART_CONTRACT_FUNCTION_NAME string        = "smart_contract"
+	EXECUTION_TIMEOUT            time.Duration = 10 * time.Second
+	MAX_MEMORY_PAGES             uint32        = 256 // 1 Page = 64KB ==> 64*256 = 16MB
 )

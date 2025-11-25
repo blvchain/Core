@@ -2,7 +2,6 @@ package bvm
 
 import (
 	"blvchain/core/config"
-	"blvchain/core/logger"
 	"context"
 	"fmt"
 	"os"
@@ -32,18 +31,29 @@ func ClearHostFunctions() {
 	hostFunctions = nil
 }
 
-// RunBVM loads a Wasm file, instantiates it, and calls an exported function.
+// RunSmartContract loads a Wasm file, instantiates it, and calls an exported function.
 // wasmPath: path to .wasm file
 // funcName: exported function name (e.g. "add")
 // args: arguments to pass (must be int32/int64/float32/float64, promoted to uint64 internally)
-func RunBVM(wasmPath string) error {
-	ctx := context.Background()
+func RunSmartContract(wasmPath string) error {
+	// WALL 1: TIME LIMIT (CPU Protection)
+	// We create a context that automatically cancels after 2 seconds.
+	// If the WASM code is still running (e.g., infinite loop), it gets killed.
+	ctx, cancel := context.WithTimeout(context.Background(), config.EXECUTION_TIMEOUT)
+	defer cancel()
 
-	// Create a new runtime
-	runtime := wazero.NewRuntime(ctx)
+	// WALL 2: MEMORY LIMIT (RAM Protection)
+	// We configure the runtime to strictly limit memory usage.
+	runtimeConfig := wazero.NewRuntimeConfig().
+		WithMemoryLimitPages(config.MAX_MEMORY_PAGES). // Hard limit: 16MB
+		WithCompilationCache(wazero.NewCompilationCache())
+
+	// Create the runtime with the config
+	runtime := wazero.NewRuntimeWithConfig(ctx, runtimeConfig)
 	defer runtime.Close(ctx)
 
-	// Define host module and register any host functions previously added via AddHostFunction.
+	// WALL 3: API LIMIT (Host Functions)
+	// Define host module and register allowed functions.
 	bvmBuilder := runtime.NewHostModuleBuilder("env")
 
 	for _, hf := range hostFunctions {
@@ -54,7 +64,7 @@ func RunBVM(wasmPath string) error {
 
 	_, err := bvmBuilder.Instantiate(ctx)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to instantiate host environment: %w", err)
 	}
 
 	// Read wasm file
@@ -64,9 +74,10 @@ func RunBVM(wasmPath string) error {
 	}
 
 	// Instantiate module
+	// Note: If the WASM needs more memory than allowed during startup, this fails here.
 	mod, err := runtime.Instantiate(ctx, wasmBytes)
 	if err != nil {
-		return fmt.Errorf("instantiate module: %w", err)
+		return fmt.Errorf("instantiate module (sandbox violation or bad code): %w", err)
 	}
 	defer mod.Close(ctx)
 
@@ -77,11 +88,13 @@ func RunBVM(wasmPath string) error {
 	}
 
 	// Call the function
+	// Note: If this takes longer than EXECUTION_TIMEOUT, err will be "context deadline exceeded"
 	results, err := fn.Call(ctx)
 	if err != nil {
-		return fmt.Errorf("call function: %w", err)
+		return fmt.Errorf("execution failed (sandbox killed execution): %w", err)
 	}
 
+	// Handle results (assuming simplistic check for now)
 	if len(results) == 0 {
 		return nil
 	}
@@ -89,33 +102,9 @@ func RunBVM(wasmPath string) error {
 }
 
 func InitBVMInternalFunctions() {
-
-	//* Dev mode internal functions
-
-	// Print function
-	print := api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
-		ptr := uint32(stack[0])
-		size := uint32(stack[1])
-
-		mem := mod.Memory()
-		if mem == nil {
-			logger.INTERNAL_LOGGER.Println("Error: function host_print memory not available")
-			fmt.Println("Error: see log/internal folder for details.")
-			return
-		}
-		bytes, ok := mem.Read(ptr, size)
-		if !ok {
-			logger.INTERNAL_LOGGER.Println("Error: function host_print memory read failed")
-			fmt.Println("Error: see log/internal folder for details.")
-			return
-		}
-
-		logger.SC_S_LOGGER.Println("Success: Smart contract prints: ", string(bytes))
-	})
-
-	AddHostFunction("print", print, []api.ValueType{api.ValueTypeI32, api.ValueTypeI32}, []api.ValueType{})
-
-	//* Production mode internal functions
-	// Get block function
-
+	// Register internal host functions
+	AddHostFunction("get_one_block_by_hash", getOneBlockByHash,
+		[]api.ValueType{api.ValueTypeI32, api.ValueTypeI32},
+		[]api.ValueType{api.ValueTypeI32, api.ValueTypeI32},
+	)
 }

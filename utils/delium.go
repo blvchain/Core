@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -76,6 +77,7 @@ func D256C(strData string, path string) *D_hash {
 
 		deleteStep, strconvErr := strconv.Atoi(d[1])
 		if strconvErr != nil {
+			fmt.Println("Error: see log/internal folder for details.")
 			log.Fatal("Hashing path is incorrect!")
 		}
 
@@ -102,6 +104,7 @@ func D512C(strData string, path string) *D_hash {
 
 		deleteStep, strconvErr := strconv.Atoi(d[1])
 		if strconvErr != nil {
+			fmt.Println("Error: see log/internal folder for details.")
 			log.Fatal("Hashing path is incorrect!")
 		}
 

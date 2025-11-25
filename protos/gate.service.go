@@ -121,9 +121,9 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 					return &AddDataResult{IsSuccess: false, Log: "wasm file must be lesser than 1024KB"}, nil
 				}
 
-				// Compute checksum and save file to SMART_CONTRACT_FILES_PATH
+				// Compute checksum and save file to SMART_CONTRACT_UPLOAD_PATH
 				if utils.FileCheckSumSHA256(req.ContractData.Checksum) {
-					path := config.SMART_CONTRACT_FILES_PATH + req.ContractData.Checksum
+					path := config.SMART_CONTRACT_UPLOAD_PATH + req.ContractData.Checksum
 					if err := os.WriteFile(path, wasmBytes, 0644); err != nil {
 						logger.INTERNAL_LOGGER.Printf("Error saving wasm file %v: %v", path, err)
 						fmt.Println("Error: see log/internal folder for details.")

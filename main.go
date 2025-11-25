@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"blvchain/core/bvm"
 	"blvchain/core/config"
 	"blvchain/core/db"
 	"blvchain/core/logger"
@@ -22,28 +23,29 @@ import (
 
 func main() {
 
-	// Init BVM internal functions
-	// bvm.InitBVMInternalFunctions()
-
-	// // Run BVM
-	// bvm_err := bvm.RunBVM(config.SMART_CONTRACT_PATH)
-	// if bvm_err != nil {
-	// 	fmt.Println(bvm_err)
-	// }
-
 	fmt.Println("===== Starting core =====")
+
+	// Init BVM internal functions
+	bvm.InitBVMInternalFunctions()
+
+	// Run Smart contract
+	bvm_err := bvm.RunSmartContract("./bvm/smart_contract.wasm")
+	if bvm_err != nil {
+		fmt.Println("Error: see smartContract/fail folder for details.")
+		logger.SC_F_LOGGER.Fatal(bvm_err)
+	}
 
 	syncDone := make(chan bool)
 
 	client, client_err := db.ConnectToMongoDB()
 	if client_err != nil {
-		logger.INTERNAL_LOGGER.Fatal(client_err)
 		fmt.Println("Error: see log/internal folder for details.")
+		logger.INTERNAL_LOGGER.Fatal(client_err)
 	}
 	defer func() {
 		if client_err = client.Disconnect(context.TODO()); client_err != nil {
-			logger.INTERNAL_LOGGER.Fatal(client_err)
 			fmt.Println("Error: see log/internal folder for details.")
+			logger.INTERNAL_LOGGER.Fatal(client_err)
 		}
 	}()
 
@@ -104,8 +106,8 @@ func main() {
 			logger.WS_S_LOGGER.Println("Success: WebSocket Server is running on port", config.WEBSOCKET_PORT)
 			websocketListener_err := http.ListenAndServe(config.WEBSOCKET_PORT, nil)
 			if websocketListener_err != nil {
-				logger.WS_F_LOGGER.Fatalf("Failed to listen WebSocket: %v", websocketListener_err)
 				fmt.Println("Error: see log/websocket/fail folder for details.")
+				logger.WS_F_LOGGER.Fatalf("Failed to listen WebSocket: %v", websocketListener_err)
 			}
 
 		}()
@@ -130,8 +132,8 @@ func main() {
 			go func() {
 				grpcListener, grpcListener_err := net.Listen("tcp", config.GRPC_PORT)
 				if grpcListener_err != nil {
-					logger.GRPC_F_LOGGER.Fatalf("Error: Failed to listen gRPC: %v", grpcListener_err)
 					fmt.Println("Error: see log/gRPC/fail folder for details.")
+					logger.GRPC_F_LOGGER.Fatalf("Error: Failed to listen gRPC: %v", grpcListener_err)
 				}
 
 				// Per-method configuration
@@ -158,8 +160,8 @@ func main() {
 				fmt.Println("Success: gRPC server is running on port", config.GRPC_PORT)
 
 				if grpcServer_err := grpcServer.Serve(grpcListener); grpcServer_err != nil {
-					logger.GRPC_F_LOGGER.Fatalf("Error: Failed to serve: %v", grpcServer_err)
 					fmt.Println("Error: see log/gRPC/fail folder for details.")
+					logger.GRPC_F_LOGGER.Fatalf("Error: Failed to serve: %v", grpcServer_err)
 				}
 
 			}()
@@ -170,8 +172,8 @@ func main() {
 			}()
 
 		} else {
-			logger.INTERNAL_LOGGER.Fatal("Error: Data sync failed")
 			fmt.Println("Error: see log/internal folder for details.")
+			logger.INTERNAL_LOGGER.Fatal("Error: Data sync failed")
 		}
 
 		// Prevent main from exiting

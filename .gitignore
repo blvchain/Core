@@ -1,4 +1,4 @@
 /tmp
 /log
 /.vscode
-/bvm/smart-contract/target
+/bvm/smart-contract.wasm

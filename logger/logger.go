@@ -16,6 +16,8 @@ const (
 	grpc_fail    string = mainPath + "gRPC/fail/log.log"
 	sc_success   string = mainPath + "smartContract/success/log.log"
 	sc_fail      string = mainPath + "smartContract/fail/log.log"
+	vc_success   string = mainPath + "verifiableCredential/success/log.log"
+	vc_fail      string = mainPath + "verifiableCredential/fail/log.log"
 	internal     string = mainPath + "internal/log.log"
 	signature    string = mainPath + "signature/log.log"
 )
@@ -28,6 +30,8 @@ var (
 	INTERNAL_LOGGER,
 	SC_S_LOGGER,
 	SC_F_LOGGER,
+	VC_S_LOGGER,
+	VC_F_LOGGER,
 	SIGNATURE_LOGGER *log.Logger
 
 	ws_f_logger_output,
@@ -37,6 +41,8 @@ var (
 	internal_logger_output,
 	sc_s_logger_output,
 	sc_f_logger_output,
+	vc_s_logger_output,
+	vc_f_logger_output,
 	signature_logger_output io.Writer
 )
 
@@ -94,6 +100,19 @@ func init() {
 		LocalTime: true,
 	}
 
+	// Verifiable credential success
+	vc_s_logger := &lumberjack.Logger{
+		Filename:  vc_success,
+		MaxSize:   2,
+		LocalTime: true,
+	}
+	// Verifiable credential fail
+	vc_f_logger := &lumberjack.Logger{
+		Filename:  vc_fail,
+		MaxSize:   2,
+		LocalTime: true,
+	}
+
 	ws_s_logger_output = ws_s_logger
 	ws_f_logger_output = ws_f_logger
 
@@ -105,6 +124,9 @@ func init() {
 
 	sc_s_logger_output = sc_s_logger
 	sc_f_logger_output = sc_f_logger
+
+	vc_s_logger_output = vc_s_logger
+	vc_f_logger_output = vc_f_logger
 
 	// Logger
 	WS_S_LOGGER = log.New(ws_s_logger_output, "", log.Ldate|log.Ltime)
@@ -118,4 +140,7 @@ func init() {
 
 	SC_S_LOGGER = log.New(sc_s_logger_output, "", log.Ldate|log.Ltime)
 	SC_F_LOGGER = log.New(sc_f_logger_output, "", log.Ldate|log.Ltime)
+
+	VC_S_LOGGER = log.New(vc_s_logger_output, "", log.Ldate|log.Ltime)
+	VC_F_LOGGER = log.New(vc_f_logger_output, "", log.Ldate|log.Ltime)
 }

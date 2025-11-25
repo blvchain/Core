@@ -17,17 +17,25 @@ type Contract struct {
 	License     string `bson:"license,omitempty"`
 }
 
+type VerifiableCredential struct {
+	Name        string `bson:"name,omitempty"`
+	Description string `bson:"description,omitempty"`
+	Checksum    string `bson:"checksum,omitempty"`
+	Author      string `bson:"author,omitempty"`
+}
+
 type BlockData struct {
-	SenderUID    string   `bson:"senderUid,omitempty"`
-	SenderRole   int64    `bson:"senderRole,omitempty"`
-	SenderPubKey string   `bson:"senderPubKey,omitempty"`
-	Signature    string   `bson:"signature,omitempty"`
-	ReceiverUID  string   `bson:"receiverUid,omitempty"`
-	ReceiverRole int64    `bson:"receiverRole,omitempty"`
-	Data         string   `bson:"data,omitempty"`
-	UseContract  string   `bson:"useContract,omitempty"`
-	ContractData Contract `bson:"contractData,omitempty"`
-	TimeStamp    int64    `bson:"timeStamp,omitempty"`
+	SenderUID    string               `bson:"senderUid,omitempty"`
+	SenderRole   int64                `bson:"senderRole,omitempty"`
+	SenderPubKey string               `bson:"senderPubKey,omitempty"`
+	Signature    string               `bson:"signature,omitempty"`
+	ReceiverUID  string               `bson:"receiverUid,omitempty"`
+	ReceiverRole int64                `bson:"receiverRole,omitempty"`
+	Data         string               `bson:"data,omitempty"`
+	UseContract  string               `bson:"useContract,omitempty"`
+	ContractData Contract             `bson:"contractData,omitempty"`
+	VC           VerifiableCredential `bson:"vc,omitempty"`
+	TimeStamp    int64                `bson:"timeStamp,omitempty"`
 }
 
 // Main block struct
