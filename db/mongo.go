@@ -115,3 +115,23 @@ func FindAllBlocks(filter primitive.M) ([]Block, error) {
 
 	return result, nil
 }
+
+func FindLastBlockBy(filter primitive.M) (*Block, error) {
+	var results []Block
+
+	findOptions := options.Find().SetSort(config.DESC).SetLimit(1)
+	cursor, find_err := config.BLOCK_COLL.Find(context.TODO(), filter, findOptions)
+	if find_err != nil {
+		return nil, find_err
+	}
+	cursor_err := cursor.All(context.TODO(), &results)
+	if cursor_err != nil {
+		return nil, cursor_err
+	}
+
+	if len(results) == 0 {
+		return nil, mongo.ErrNoDocuments
+	}
+
+	return &results[0], nil
+}
