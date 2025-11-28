@@ -1,4 +1,4 @@
-package protos
+package proto
 
 type AddDataService struct {
 	UnimplementedAddDataServer

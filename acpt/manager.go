@@ -4,105 +4,155 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
 type TreeManager struct {
-	Shards    [256]*Shard
-	Wal       *WALManager
-	MongoColl *mongo.Collection
+	Wal            *WAL
+	MongoCollData  *mongo.Collection
+	MongoCollNodes *mongo.Collection
+	MongoCollState *mongo.Collection // Stores "current_root"
+
+	CurrentRoot []byte // In-Memory pointer to current root
+	mu          sync.RWMutex
 }
 
-func NewTreeManager(walDir string, coll *mongo.Collection) (*TreeManager, error) {
-	wal, err := NewWALManager(walDir)
+func NewTreeManager(mongoURI, dbName string) (*TreeManager, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	wc := writeconcern.New(writeconcern.WMajority())
+	opts := options.Client().ApplyURI(mongoURI).SetWriteConcern(wc)
+
+	client, err := mongo.Connect(ctx, opts)
+	if err != nil {
+		return nil, fmt.Errorf("mongo connect: %v", err)
+	}
+
+	db := client.Database(dbName)
+
+	tm := &TreeManager{
+		MongoCollData:  db.Collection("state_data"),
+		MongoCollNodes: db.Collection("state_nodes"),
+		MongoCollState: db.Collection("global_state"),
+	}
+
+	// 1. Initialize WAL
+	tm.Wal, err = OpenWAL("wal_current.log")
 	if err != nil {
 		return nil, err
 	}
 
-	tm := &TreeManager{
-		Wal:       wal,
-		MongoColl: coll,
-	}
-
-	// Initialize 256 shards
-	for i := 0; i < 256; i++ {
-		tm.Shards[i] = NewShard(i)
+	// 2. Load Last Root from DB
+	var state GlobalState
+	err = tm.MongoCollState.FindOne(ctx, bson.M{"_id": "current_root"}).Decode(&state)
+	if err == nil {
+		tm.CurrentRoot = state.RootHash.Data
+		fmt.Printf("loaded existing root: %x\n", tm.CurrentRoot)
+	} else {
+		fmt.Println("starting with empty tree")
+		tm.CurrentRoot = nil
 	}
 
 	return tm, nil
 }
 
-// CommitBlock is called by Validator after executing VM
-func (tm *TreeManager) CommitBlock(data []KeyValue) ([]byte, error) {
-
-	// 1. WAL Write (Safety First - Blocking)
-	if err := tm.Wal.Append(data); err != nil {
-		return nil, fmt.Errorf("critical WAL failure: %v", err)
+// DBFetcherImpl implements NodeFetcher for merkle.go
+func (tm *TreeManager) DBFetcherImpl(hash []byte) (*DBNode, error) {
+	var node DBNode
+	// Look directly in state_nodes collection by Hash ID
+	err := tm.MongoCollNodes.FindOne(context.Background(), bson.M{"_id": toBin(hash)}).Decode(&node)
+	if err != nil {
+		return nil, err
 	}
-
-	// 2. Split data into shards (Parallel Prep)
-	shardedData := make(map[int][]KeyValue)
-	for _, item := range data {
-		if len(item.Key) == 0 {
-			continue
-		}
-		// Use first byte of key to determine shard (0-255)
-		shardID := int(item.Key[0])
-		shardedData[shardID] = append(shardedData[shardID], item)
-	}
-
-	// 3. Update RAM & Compute Roots (Parallel Execution)
-	var wg sync.WaitGroup
-	shardRoots := make([][]byte, 256)
-
-	for i := 0; i < 256; i++ {
-		wg.Add(1)
-		go func(id int) {
-			defer wg.Done()
-			shard := tm.Shards[id]
-
-			// If this shard has updates, apply them
-			if items, ok := shardedData[id]; ok {
-				shard.UpdateInMemory(items)
-			}
-			// Always compute root (state might not change, but we need the hash)
-			shardRoots[id] = shard.ComputeRoot()
-		}(i)
-	}
-	wg.Wait()
-
-	// 4. Compute Global State Root
-	globalRoot := tm.computeGlobalRoot(shardRoots)
-
-	// 5. Trigger Background Flush (Non-Blocking)
-	go tm.backgroundFlush()
-
-	return globalRoot, nil
+	return &node, nil
 }
 
-func (tm *TreeManager) computeGlobalRoot(shardRoots [][]byte) []byte {
-	// Collapse 256 hashes into 1
-	finalHash := make([]byte, 32)
-	for _, root := range shardRoots {
-		finalHash = HashPair(finalHash, root)
+func (tm *TreeManager) CommitBlock(batch []KeyValue) ([]byte, error) {
+	if len(batch) == 0 {
+		return tm.CurrentRoot, nil
 	}
-	return finalHash
+
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
+
+	// 1. Write to WAL
+	if err := tm.Wal.Append(batch); err != nil {
+		return nil, err
+	}
+
+	// 2. Calculate New Tree State
+	// We pass tm.DBFetcherImpl so the algorithm can retrieve siblings from Mongo
+	newRoot, nodesMap, err := ApplyChanges(tm.CurrentRoot, batch, tm.DBFetcherImpl)
+	if err != nil {
+		return nil, fmt.Errorf("merkle calc error: %v", err)
+	}
+
+	// 3. Flush to DB
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := tm.flushToMongo(ctx, batch, nodesMap, newRoot); err != nil {
+		return nil, err
+	}
+
+	// 4. Update Memory Root
+	tm.CurrentRoot = newRoot
+	return newRoot, nil
 }
 
-// backgroundFlush pushes data to Mongo
-func (tm *TreeManager) backgroundFlush() {
-	ctx := context.Background()
-	for i := 0; i < 256; i++ {
-		// We check each shard. If it has dirty data, it writes.
-		// This is concurrent-safe because Shard has its own Mutex.
-		go tm.Shards[i].FlushToMongo(ctx, tm.MongoColl)
+func (tm *TreeManager) flushToMongo(ctx context.Context, data []KeyValue, nodes map[string]DBNode, newRoot []byte) error {
+	// A. Upsert Raw Data
+	var dataModels []mongo.WriteModel
+	for _, kv := range data {
+		model := mongo.NewReplaceOneModel().
+			SetFilter(bson.M{"_id": toBin(kv.Key)}).
+			SetReplacement(DBData{Key: toBin(kv.Key), Value: toBin(kv.Value)}).
+			SetUpsert(true)
+		dataModels = append(dataModels, model)
 	}
+
+	// B. Upsert Merkle Nodes (Only the new/changed ones)
+	var nodeModels []mongo.WriteModel
+	for _, node := range nodes {
+		model := mongo.NewReplaceOneModel().
+			SetFilter(bson.M{"_id": node.ID}).
+			SetReplacement(node).
+			SetUpsert(true)
+		nodeModels = append(nodeModels, model)
+	}
+
+	// C. Update Global Root Pointer
+	stateModel := mongo.NewReplaceOneModel().
+		SetFilter(bson.M{"_id": "current_root"}).
+		SetReplacement(GlobalState{ID: "current_root", RootHash: toBin(newRoot)}).
+		SetUpsert(true)
+
+	// Execute
+	if len(dataModels) > 0 {
+		tm.MongoCollData.BulkWrite(ctx, dataModels)
+	}
+	if len(nodeModels) > 0 {
+		tm.MongoCollNodes.BulkWrite(ctx, nodeModels)
+	}
+	tm.MongoCollState.BulkWrite(ctx, []mongo.WriteModel{stateModel})
+
+	return nil
 }
 
-// Checkpoint should be called periodically (e.g., every 5 mins)
-func (tm *TreeManager) Checkpoint() {
-	currentID := tm.Wal.GetCurrentSegmentID()
-	// Trigger cleanup logic
-	tm.Wal.TruncateOldSegments(currentID)
+// Helper: Get raw value (used by VM)
+func (tm *TreeManager) Get(key string) ([]byte, error) {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+	var res DBData
+	err := tm.MongoCollData.FindOne(context.Background(), bson.M{"_id": toBin([]byte(key))}).Decode(&res)
+	if err != nil {
+		return nil, nil
+	}
+	return res.Value.Data, nil
 }

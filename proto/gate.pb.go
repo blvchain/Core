@@ -4,7 +4,7 @@
 // 	protoc        v3.21.12
 // source: protos/gate.proto
 
-package protos
+package proto
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -24,8 +24,8 @@ const (
 // Block
 type BlockMeta struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	PreBlockHash  string                 `protobuf:"bytes,1,opt,name=PreBlockHash,proto3" json:"PreBlockHash,omitempty"`
-	NodeUID       string                 `protobuf:"bytes,2,opt,name=NodeUID,proto3" json:"NodeUID,omitempty"`
+	PreBlockHash  []byte                 `protobuf:"bytes,1,opt,name=PreBlockHash,proto3" json:"PreBlockHash,omitempty"`
+	NodeUID       []byte                 `protobuf:"bytes,2,opt,name=NodeUID,proto3" json:"NodeUID,omitempty"`
 	TimeStamp     int64                  `protobuf:"varint,3,opt,name=TimeStamp,proto3" json:"TimeStamp,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -61,18 +61,18 @@ func (*BlockMeta) Descriptor() ([]byte, []int) {
 	return file_protos_gate_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *BlockMeta) GetPreBlockHash() string {
+func (x *BlockMeta) GetPreBlockHash() []byte {
 	if x != nil {
 		return x.PreBlockHash
 	}
-	return ""
+	return nil
 }
 
-func (x *BlockMeta) GetNodeUID() string {
+func (x *BlockMeta) GetNodeUID() []byte {
 	if x != nil {
 		return x.NodeUID
 	}
-	return ""
+	return nil
 }
 
 func (x *BlockMeta) GetTimeStamp() int64 {
@@ -84,14 +84,14 @@ func (x *BlockMeta) GetTimeStamp() int64 {
 
 type Contract struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=Name,proto3" json:"Name,omitempty"`
-	Version       string                 `protobuf:"bytes,2,opt,name=Version,proto3" json:"Version,omitempty"`
-	Language      string                 `protobuf:"bytes,3,opt,name=Language,proto3" json:"Language,omitempty"`
-	Compiler      string                 `protobuf:"bytes,4,opt,name=Compiler,proto3" json:"Compiler,omitempty"`
-	Description   string                 `protobuf:"bytes,5,opt,name=Description,proto3" json:"Description,omitempty"`
-	Checksum      string                 `protobuf:"bytes,6,opt,name=Checksum,proto3" json:"Checksum,omitempty"`
-	Author        string                 `protobuf:"bytes,7,opt,name=Author,proto3" json:"Author,omitempty"`
-	License       string                 `protobuf:"bytes,8,opt,name=License,proto3" json:"License,omitempty"`
+	Name          []byte                 `protobuf:"bytes,1,opt,name=Name,proto3" json:"Name,omitempty"`
+	Version       []byte                 `protobuf:"bytes,2,opt,name=Version,proto3" json:"Version,omitempty"`
+	Language      []byte                 `protobuf:"bytes,3,opt,name=Language,proto3" json:"Language,omitempty"`
+	Compiler      []byte                 `protobuf:"bytes,4,opt,name=Compiler,proto3" json:"Compiler,omitempty"`
+	Description   []byte                 `protobuf:"bytes,5,opt,name=Description,proto3" json:"Description,omitempty"`
+	Checksum      []byte                 `protobuf:"bytes,6,opt,name=Checksum,proto3" json:"Checksum,omitempty"`
+	Author        []byte                 `protobuf:"bytes,7,opt,name=Author,proto3" json:"Author,omitempty"`
+	License       []byte                 `protobuf:"bytes,8,opt,name=License,proto3" json:"License,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -126,75 +126,73 @@ func (*Contract) Descriptor() ([]byte, []int) {
 	return file_protos_gate_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *Contract) GetName() string {
+func (x *Contract) GetName() []byte {
 	if x != nil {
 		return x.Name
 	}
-	return ""
+	return nil
 }
 
-func (x *Contract) GetVersion() string {
+func (x *Contract) GetVersion() []byte {
 	if x != nil {
 		return x.Version
 	}
-	return ""
+	return nil
 }
 
-func (x *Contract) GetLanguage() string {
+func (x *Contract) GetLanguage() []byte {
 	if x != nil {
 		return x.Language
 	}
-	return ""
+	return nil
 }
 
-func (x *Contract) GetCompiler() string {
+func (x *Contract) GetCompiler() []byte {
 	if x != nil {
 		return x.Compiler
 	}
-	return ""
+	return nil
 }
 
-func (x *Contract) GetDescription() string {
+func (x *Contract) GetDescription() []byte {
 	if x != nil {
 		return x.Description
 	}
-	return ""
+	return nil
 }
 
-func (x *Contract) GetChecksum() string {
+func (x *Contract) GetChecksum() []byte {
 	if x != nil {
 		return x.Checksum
 	}
-	return ""
+	return nil
 }
 
-func (x *Contract) GetAuthor() string {
+func (x *Contract) GetAuthor() []byte {
 	if x != nil {
 		return x.Author
 	}
-	return ""
+	return nil
 }
 
-func (x *Contract) GetLicense() string {
+func (x *Contract) GetLicense() []byte {
 	if x != nil {
 		return x.License
 	}
-	return ""
+	return nil
 }
 
 type BlockData struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	SenderUID      string                 `protobuf:"bytes,1,opt,name=SenderUID,proto3" json:"SenderUID,omitempty"`
-	SenderRole     int64                  `protobuf:"varint,2,opt,name=SenderRole,proto3" json:"SenderRole,omitempty"`
-	SenderPubKey   string                 `protobuf:"bytes,3,opt,name=SenderPubKey,proto3" json:"SenderPubKey,omitempty"`
-	Signature      string                 `protobuf:"bytes,4,opt,name=Signature,proto3" json:"Signature,omitempty"`
-	ReceiverUID    string                 `protobuf:"bytes,5,opt,name=ReceiverUID,proto3" json:"ReceiverUID,omitempty"`
-	ReceiverRole   int64                  `protobuf:"varint,6,opt,name=ReceiverRole,proto3" json:"ReceiverRole,omitempty"`
-	Data           string                 `protobuf:"bytes,7,opt,name=Data,proto3" json:"Data,omitempty"`
-	ContractBase64 []byte                 `protobuf:"bytes,8,opt,name=ContractBase64,proto3" json:"ContractBase64,omitempty"`
-	UseContract    string                 `protobuf:"bytes,9,opt,name=UseContract,proto3" json:"UseContract,omitempty"`
-	ContractData   *Contract              `protobuf:"bytes,10,opt,name=ContractData,proto3" json:"ContractData,omitempty"`
-	TimeStamp      int64                  `protobuf:"varint,11,opt,name=TimeStamp,proto3" json:"TimeStamp,omitempty"`
+	SenderUID      []byte                 `protobuf:"bytes,1,opt,name=SenderUID,proto3" json:"SenderUID,omitempty"`
+	SenderPubKey   []byte                 `protobuf:"bytes,2,opt,name=SenderPubKey,proto3" json:"SenderPubKey,omitempty"`
+	Signature      []byte                 `protobuf:"bytes,3,opt,name=Signature,proto3" json:"Signature,omitempty"`
+	ReceiverUID    []byte                 `protobuf:"bytes,4,opt,name=ReceiverUID,proto3" json:"ReceiverUID,omitempty"`
+	Data           []byte                 `protobuf:"bytes,5,opt,name=Data,proto3" json:"Data,omitempty"`
+	ContractBase64 []byte                 `protobuf:"bytes,6,opt,name=ContractBase64,proto3" json:"ContractBase64,omitempty"`
+	UseContract    []byte                 `protobuf:"bytes,7,opt,name=UseContract,proto3" json:"UseContract,omitempty"`
+	ContractData   *Contract              `protobuf:"bytes,8,opt,name=ContractData,proto3" json:"ContractData,omitempty"`
+	TimeStamp      int64                  `protobuf:"varint,9,opt,name=TimeStamp,proto3" json:"TimeStamp,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -229,53 +227,39 @@ func (*BlockData) Descriptor() ([]byte, []int) {
 	return file_protos_gate_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *BlockData) GetSenderUID() string {
+func (x *BlockData) GetSenderUID() []byte {
 	if x != nil {
 		return x.SenderUID
 	}
-	return ""
+	return nil
 }
 
-func (x *BlockData) GetSenderRole() int64 {
-	if x != nil {
-		return x.SenderRole
-	}
-	return 0
-}
-
-func (x *BlockData) GetSenderPubKey() string {
+func (x *BlockData) GetSenderPubKey() []byte {
 	if x != nil {
 		return x.SenderPubKey
 	}
-	return ""
+	return nil
 }
 
-func (x *BlockData) GetSignature() string {
+func (x *BlockData) GetSignature() []byte {
 	if x != nil {
 		return x.Signature
 	}
-	return ""
+	return nil
 }
 
-func (x *BlockData) GetReceiverUID() string {
+func (x *BlockData) GetReceiverUID() []byte {
 	if x != nil {
 		return x.ReceiverUID
 	}
-	return ""
+	return nil
 }
 
-func (x *BlockData) GetReceiverRole() int64 {
-	if x != nil {
-		return x.ReceiverRole
-	}
-	return 0
-}
-
-func (x *BlockData) GetData() string {
+func (x *BlockData) GetData() []byte {
 	if x != nil {
 		return x.Data
 	}
-	return ""
+	return nil
 }
 
 func (x *BlockData) GetContractBase64() []byte {
@@ -285,11 +269,11 @@ func (x *BlockData) GetContractBase64() []byte {
 	return nil
 }
 
-func (x *BlockData) GetUseContract() string {
+func (x *BlockData) GetUseContract() []byte {
 	if x != nil {
 		return x.UseContract
 	}
-	return ""
+	return nil
 }
 
 func (x *BlockData) GetContractData() *Contract {
@@ -308,7 +292,7 @@ func (x *BlockData) GetTimeStamp() int64 {
 
 type Block struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	BlockHash     string                 `protobuf:"bytes,1,opt,name=BlockHash,proto3" json:"BlockHash,omitempty"`
+	BlockHash     []byte                 `protobuf:"bytes,1,opt,name=BlockHash,proto3" json:"BlockHash,omitempty"`
 	BlockMeta     *BlockMeta             `protobuf:"bytes,2,opt,name=BlockMeta,proto3" json:"BlockMeta,omitempty"`
 	BlockData     *BlockData             `protobuf:"bytes,3,opt,name=BlockData,proto3" json:"BlockData,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -345,11 +329,11 @@ func (*Block) Descriptor() ([]byte, []int) {
 	return file_protos_gate_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *Block) GetBlockHash() string {
+func (x *Block) GetBlockHash() []byte {
 	if x != nil {
 		return x.BlockHash
 	}
-	return ""
+	return nil
 }
 
 func (x *Block) GetBlockMeta() *BlockMeta {
@@ -370,7 +354,7 @@ type AddDataResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	IsSuccess     bool                   `protobuf:"varint,1,opt,name=IsSuccess,proto3" json:"IsSuccess,omitempty"`
 	Log           string                 `protobuf:"bytes,2,opt,name=Log,proto3" json:"Log,omitempty"`
-	BlockHash     string                 `protobuf:"bytes,3,opt,name=BlockHash,proto3" json:"BlockHash,omitempty"`
+	BlockHash     []byte                 `protobuf:"bytes,3,opt,name=BlockHash,proto3" json:"BlockHash,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -419,29 +403,27 @@ func (x *AddDataResult) GetLog() string {
 	return ""
 }
 
-func (x *AddDataResult) GetBlockHash() string {
+func (x *AddDataResult) GetBlockHash() []byte {
 	if x != nil {
 		return x.BlockHash
 	}
-	return ""
+	return nil
 }
 
 type ReadDataRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Limit         int64                  `protobuf:"varint,1,opt,name=Limit,proto3" json:"Limit,omitempty"`
 	Skip          int64                  `protobuf:"varint,2,opt,name=Skip,proto3" json:"Skip,omitempty"`
-	SenderUID     string                 `protobuf:"bytes,3,opt,name=SenderUID,proto3" json:"SenderUID,omitempty"`
-	SenderRole    int64                  `protobuf:"varint,4,opt,name=SenderRole,proto3" json:"SenderRole,omitempty"`
-	SenderPubKey  string                 `protobuf:"bytes,5,opt,name=SenderPubKey,proto3" json:"SenderPubKey,omitempty"`
-	ReceiverUID   string                 `protobuf:"bytes,6,opt,name=ReceiverUID,proto3" json:"ReceiverUID,omitempty"`
-	ReceiverRole  int64                  `protobuf:"varint,7,opt,name=ReceiverRole,proto3" json:"ReceiverRole,omitempty"`
-	BlockHash     string                 `protobuf:"bytes,8,opt,name=BlockHash,proto3" json:"BlockHash,omitempty"`
-	PreBlockHash  string                 `protobuf:"bytes,9,opt,name=PreBlockHash,proto3" json:"PreBlockHash,omitempty"`
-	NodeUID       string                 `protobuf:"bytes,10,opt,name=NodeUID,proto3" json:"NodeUID,omitempty"`
-	TimeStampFrom int64                  `protobuf:"varint,11,opt,name=TimeStampFrom,proto3" json:"TimeStampFrom,omitempty"`
-	TimeStampTo   int64                  `protobuf:"varint,12,opt,name=TimeStampTo,proto3" json:"TimeStampTo,omitempty"`
-	UseContract   string                 `protobuf:"bytes,13,opt,name=UseContract,proto3" json:"UseContract,omitempty"`
-	UID           string                 `protobuf:"bytes,14,opt,name=UID,proto3" json:"UID,omitempty"`
+	SenderUID     []byte                 `protobuf:"bytes,3,opt,name=SenderUID,proto3" json:"SenderUID,omitempty"`
+	SenderPubKey  []byte                 `protobuf:"bytes,4,opt,name=SenderPubKey,proto3" json:"SenderPubKey,omitempty"`
+	ReceiverUID   []byte                 `protobuf:"bytes,5,opt,name=ReceiverUID,proto3" json:"ReceiverUID,omitempty"`
+	BlockHash     []byte                 `protobuf:"bytes,6,opt,name=BlockHash,proto3" json:"BlockHash,omitempty"`
+	PreBlockHash  []byte                 `protobuf:"bytes,7,opt,name=PreBlockHash,proto3" json:"PreBlockHash,omitempty"`
+	NodeUID       []byte                 `protobuf:"bytes,8,opt,name=NodeUID,proto3" json:"NodeUID,omitempty"`
+	TimeStampFrom int64                  `protobuf:"varint,9,opt,name=TimeStampFrom,proto3" json:"TimeStampFrom,omitempty"`
+	TimeStampTo   int64                  `protobuf:"varint,10,opt,name=TimeStampTo,proto3" json:"TimeStampTo,omitempty"`
+	UseContract   []byte                 `protobuf:"bytes,11,opt,name=UseContract,proto3" json:"UseContract,omitempty"`
+	UID           []byte                 `protobuf:"bytes,12,opt,name=UID,proto3" json:"UID,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -490,60 +472,46 @@ func (x *ReadDataRequest) GetSkip() int64 {
 	return 0
 }
 
-func (x *ReadDataRequest) GetSenderUID() string {
+func (x *ReadDataRequest) GetSenderUID() []byte {
 	if x != nil {
 		return x.SenderUID
 	}
-	return ""
+	return nil
 }
 
-func (x *ReadDataRequest) GetSenderRole() int64 {
-	if x != nil {
-		return x.SenderRole
-	}
-	return 0
-}
-
-func (x *ReadDataRequest) GetSenderPubKey() string {
+func (x *ReadDataRequest) GetSenderPubKey() []byte {
 	if x != nil {
 		return x.SenderPubKey
 	}
-	return ""
+	return nil
 }
 
-func (x *ReadDataRequest) GetReceiverUID() string {
+func (x *ReadDataRequest) GetReceiverUID() []byte {
 	if x != nil {
 		return x.ReceiverUID
 	}
-	return ""
+	return nil
 }
 
-func (x *ReadDataRequest) GetReceiverRole() int64 {
-	if x != nil {
-		return x.ReceiverRole
-	}
-	return 0
-}
-
-func (x *ReadDataRequest) GetBlockHash() string {
+func (x *ReadDataRequest) GetBlockHash() []byte {
 	if x != nil {
 		return x.BlockHash
 	}
-	return ""
+	return nil
 }
 
-func (x *ReadDataRequest) GetPreBlockHash() string {
+func (x *ReadDataRequest) GetPreBlockHash() []byte {
 	if x != nil {
 		return x.PreBlockHash
 	}
-	return ""
+	return nil
 }
 
-func (x *ReadDataRequest) GetNodeUID() string {
+func (x *ReadDataRequest) GetNodeUID() []byte {
 	if x != nil {
 		return x.NodeUID
 	}
-	return ""
+	return nil
 }
 
 func (x *ReadDataRequest) GetTimeStampFrom() int64 {
@@ -560,18 +528,18 @@ func (x *ReadDataRequest) GetTimeStampTo() int64 {
 	return 0
 }
 
-func (x *ReadDataRequest) GetUseContract() string {
+func (x *ReadDataRequest) GetUseContract() []byte {
 	if x != nil {
 		return x.UseContract
 	}
-	return ""
+	return nil
 }
 
-func (x *ReadDataRequest) GetUID() string {
+func (x *ReadDataRequest) GetUID() []byte {
 	if x != nil {
 		return x.UID
 	}
-	return ""
+	return nil
 }
 
 type ReadDataResult struct {
@@ -640,59 +608,50 @@ const file_protos_gate_proto_rawDesc = "" +
 	"\n" +
 	"\x11protos/gate.proto\x12\x04gate\"g\n" +
 	"\tBlockMeta\x12\"\n" +
-	"\fPreBlockHash\x18\x01 \x01(\tR\fPreBlockHash\x12\x18\n" +
-	"\aNodeUID\x18\x02 \x01(\tR\aNodeUID\x12\x1c\n" +
+	"\fPreBlockHash\x18\x01 \x01(\fR\fPreBlockHash\x12\x18\n" +
+	"\aNodeUID\x18\x02 \x01(\fR\aNodeUID\x12\x1c\n" +
 	"\tTimeStamp\x18\x03 \x01(\x03R\tTimeStamp\"\xe0\x01\n" +
 	"\bContract\x12\x12\n" +
-	"\x04Name\x18\x01 \x01(\tR\x04Name\x12\x18\n" +
-	"\aVersion\x18\x02 \x01(\tR\aVersion\x12\x1a\n" +
-	"\bLanguage\x18\x03 \x01(\tR\bLanguage\x12\x1a\n" +
-	"\bCompiler\x18\x04 \x01(\tR\bCompiler\x12 \n" +
-	"\vDescription\x18\x05 \x01(\tR\vDescription\x12\x1a\n" +
-	"\bChecksum\x18\x06 \x01(\tR\bChecksum\x12\x16\n" +
-	"\x06Author\x18\a \x01(\tR\x06Author\x12\x18\n" +
-	"\aLicense\x18\b \x01(\tR\aLicense\"\x81\x03\n" +
+	"\x04Name\x18\x01 \x01(\fR\x04Name\x12\x18\n" +
+	"\aVersion\x18\x02 \x01(\fR\aVersion\x12\x1a\n" +
+	"\bLanguage\x18\x03 \x01(\fR\bLanguage\x12\x1a\n" +
+	"\bCompiler\x18\x04 \x01(\fR\bCompiler\x12 \n" +
+	"\vDescription\x18\x05 \x01(\fR\vDescription\x12\x1a\n" +
+	"\bChecksum\x18\x06 \x01(\fR\bChecksum\x12\x16\n" +
+	"\x06Author\x18\a \x01(\fR\x06Author\x12\x18\n" +
+	"\aLicense\x18\b \x01(\fR\aLicense\"\xbd\x02\n" +
 	"\tBlockData\x12\x1c\n" +
-	"\tSenderUID\x18\x01 \x01(\tR\tSenderUID\x12\x1e\n" +
-	"\n" +
-	"SenderRole\x18\x02 \x01(\x03R\n" +
-	"SenderRole\x12\"\n" +
-	"\fSenderPubKey\x18\x03 \x01(\tR\fSenderPubKey\x12\x1c\n" +
-	"\tSignature\x18\x04 \x01(\tR\tSignature\x12 \n" +
-	"\vReceiverUID\x18\x05 \x01(\tR\vReceiverUID\x12\"\n" +
-	"\fReceiverRole\x18\x06 \x01(\x03R\fReceiverRole\x12\x12\n" +
-	"\x04Data\x18\a \x01(\tR\x04Data\x12&\n" +
-	"\x0eContractBase64\x18\b \x01(\fR\x0eContractBase64\x12 \n" +
-	"\vUseContract\x18\t \x01(\tR\vUseContract\x122\n" +
-	"\fContractData\x18\n" +
-	" \x01(\v2\x0e.gate.ContractR\fContractData\x12\x1c\n" +
-	"\tTimeStamp\x18\v \x01(\x03R\tTimeStamp\"\x83\x01\n" +
+	"\tSenderUID\x18\x01 \x01(\fR\tSenderUID\x12\"\n" +
+	"\fSenderPubKey\x18\x02 \x01(\fR\fSenderPubKey\x12\x1c\n" +
+	"\tSignature\x18\x03 \x01(\fR\tSignature\x12 \n" +
+	"\vReceiverUID\x18\x04 \x01(\fR\vReceiverUID\x12\x12\n" +
+	"\x04Data\x18\x05 \x01(\fR\x04Data\x12&\n" +
+	"\x0eContractBase64\x18\x06 \x01(\fR\x0eContractBase64\x12 \n" +
+	"\vUseContract\x18\a \x01(\fR\vUseContract\x122\n" +
+	"\fContractData\x18\b \x01(\v2\x0e.gate.ContractR\fContractData\x12\x1c\n" +
+	"\tTimeStamp\x18\t \x01(\x03R\tTimeStamp\"\x83\x01\n" +
 	"\x05Block\x12\x1c\n" +
-	"\tBlockHash\x18\x01 \x01(\tR\tBlockHash\x12-\n" +
+	"\tBlockHash\x18\x01 \x01(\fR\tBlockHash\x12-\n" +
 	"\tBlockMeta\x18\x02 \x01(\v2\x0f.gate.BlockMetaR\tBlockMeta\x12-\n" +
 	"\tBlockData\x18\x03 \x01(\v2\x0f.gate.BlockDataR\tBlockData\"]\n" +
 	"\rAddDataResult\x12\x1c\n" +
 	"\tIsSuccess\x18\x01 \x01(\bR\tIsSuccess\x12\x10\n" +
 	"\x03Log\x18\x02 \x01(\tR\x03Log\x12\x1c\n" +
-	"\tBlockHash\x18\x03 \x01(\tR\tBlockHash\"\xbb\x03\n" +
+	"\tBlockHash\x18\x03 \x01(\fR\tBlockHash\"\xf7\x02\n" +
 	"\x0fReadDataRequest\x12\x14\n" +
 	"\x05Limit\x18\x01 \x01(\x03R\x05Limit\x12\x12\n" +
 	"\x04Skip\x18\x02 \x01(\x03R\x04Skip\x12\x1c\n" +
-	"\tSenderUID\x18\x03 \x01(\tR\tSenderUID\x12\x1e\n" +
-	"\n" +
-	"SenderRole\x18\x04 \x01(\x03R\n" +
-	"SenderRole\x12\"\n" +
-	"\fSenderPubKey\x18\x05 \x01(\tR\fSenderPubKey\x12 \n" +
-	"\vReceiverUID\x18\x06 \x01(\tR\vReceiverUID\x12\"\n" +
-	"\fReceiverRole\x18\a \x01(\x03R\fReceiverRole\x12\x1c\n" +
-	"\tBlockHash\x18\b \x01(\tR\tBlockHash\x12\"\n" +
-	"\fPreBlockHash\x18\t \x01(\tR\fPreBlockHash\x12\x18\n" +
-	"\aNodeUID\x18\n" +
-	" \x01(\tR\aNodeUID\x12$\n" +
-	"\rTimeStampFrom\x18\v \x01(\x03R\rTimeStampFrom\x12 \n" +
-	"\vTimeStampTo\x18\f \x01(\x03R\vTimeStampTo\x12 \n" +
-	"\vUseContract\x18\r \x01(\tR\vUseContract\x12\x10\n" +
-	"\x03UID\x18\x0e \x01(\tR\x03UID\"a\n" +
+	"\tSenderUID\x18\x03 \x01(\fR\tSenderUID\x12\"\n" +
+	"\fSenderPubKey\x18\x04 \x01(\fR\fSenderPubKey\x12 \n" +
+	"\vReceiverUID\x18\x05 \x01(\fR\vReceiverUID\x12\x1c\n" +
+	"\tBlockHash\x18\x06 \x01(\fR\tBlockHash\x12\"\n" +
+	"\fPreBlockHash\x18\a \x01(\fR\fPreBlockHash\x12\x18\n" +
+	"\aNodeUID\x18\b \x01(\fR\aNodeUID\x12$\n" +
+	"\rTimeStampFrom\x18\t \x01(\x03R\rTimeStampFrom\x12 \n" +
+	"\vTimeStampTo\x18\n" +
+	" \x01(\x03R\vTimeStampTo\x12 \n" +
+	"\vUseContract\x18\v \x01(\fR\vUseContract\x12\x10\n" +
+	"\x03UID\x18\f \x01(\fR\x03UID\"a\n" +
 	"\x0eReadDataResult\x12\x1c\n" +
 	"\tIsSuccess\x18\x01 \x01(\bR\tIsSuccess\x12\x10\n" +
 	"\x03Log\x18\x02 \x01(\tR\x03Log\x12\x1f\n" +

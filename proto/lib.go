@@ -1,4 +1,4 @@
-package protos
+package proto
 
 import (
 	"blvchain/core/config"
@@ -30,11 +30,6 @@ func validateAddDataRequest(req *BlockData) error {
 		return errors.New("senderUID is required and must be 32 len string")
 	}
 
-	// SenderRole: must be > 0 and < 10000001
-	if err := validate.Var(req.SenderRole, "gt=0,lt=10000001"); err != nil {
-		return errors.New("senderRole is required and must be bigger than zero")
-	}
-
 	if err := validate.Var(req.SenderPubKey, "required,len=66"); err != nil {
 		return errors.New("senderPubKey is required and must be 66 len string")
 	}
@@ -47,34 +42,11 @@ func validateAddDataRequest(req *BlockData) error {
 		return errors.New("receiverUID is required and must be 32 len string")
 	}
 
-	if err := validate.Var(req.ReceiverRole, "gt=0,lt=10000001"); err != nil {
-		return errors.New("receiverRole is required and must be bigger than zero")
-	}
-
-	// Data is required and must be <= configured max size (in KB)
-	// Preserve the original textual error message format:
-	if req.Data == "" {
-		errStr := "data is required and must be lesser than " + config.MAX_DATA_SIZE_KB + "KB"
-		return errors.New(errStr)
-	}
-	// utils.StringSizeInKB returns a float size in KB; compare to configured max
-	maxKB := utils.StringToFloat64(config.MAX_DATA_SIZE_KB)
-	if utils.StringSizeInKB(req.Data) > maxKB {
-		errStr := "data is required and must be lesser than " + config.MAX_DATA_SIZE_KB + "KB"
-		return errors.New(errStr)
-	}
-
 	// If this is a smart contract upload, enforce a 1MB (1024KB) limit for the Wasm file
 	if req.UseContract != "" {
 		// Validate UseContract identifier length
 		if err := validate.Var(req.UseContract, "len=66"); err != nil {
 			return errors.New("useContract must be 66 len string")
-		}
-		// If Data contains the wasm file (base64 encoded), ensure it is <= 1MB
-		if req.Data != "" {
-			if utils.StringSizeInKB(req.Data) > 1024 {
-				return errors.New("wasm file must be lesser than 1024KB")
-			}
 		}
 	}
 
@@ -129,14 +101,6 @@ func validateReadDataRequest(req *ReadDataRequest) error {
 		}
 	}
 
-	// SenderRole (optional if zero)
-	if req.SenderRole != 0 {
-		provided = true
-		if req.SenderRole <= 0 || req.SenderRole >= 10000001 {
-			return errors.New("senderRole must be bigger than zero and within allowed range")
-		}
-	}
-
 	// SenderPubKey
 	if req.SenderPubKey != "" {
 		provided = true
@@ -150,14 +114,6 @@ func validateReadDataRequest(req *ReadDataRequest) error {
 		provided = true
 		if len(req.ReceiverUID) != 32 {
 			return errors.New("receiverUID must be 32 len string")
-		}
-	}
-
-	// ReceiverRole
-	if req.ReceiverRole != 0 {
-		provided = true
-		if req.ReceiverRole <= 0 || req.ReceiverRole >= 10000001 {
-			return errors.New("receiverRole must be bigger than zero and within allowed range")
 		}
 	}
 

@@ -1,47 +1,46 @@
 package db
 
+import "go.mongodb.org/mongo-driver/bson/primitive"
+
 type BlockMeta struct {
-	PreBlockHash string `bson:"preBlockHash,omitempty"`
-	NodeUID      string `bson:"nodeUid,omitempty"`
-	TimeStamp    int64  `bson:"timeStamp,omitempty"`
+	PreBlockHash primitive.Binary `bson:"h,omitempty"`
+	NodeUID      primitive.Binary `bson:"u,omitempty"`
+	TimeStamp    int64            `bson:"t,omitempty"`
 }
 
 type Contract struct {
-	Name        string `bson:"name,omitempty"`
-	Version     string `bson:"version,omitempty"`
-	Language    string `bson:"language,omitempty"`
-	Compiler    string `bson:"compiler,omitempty"`
-	Description string `bson:"description,omitempty"`
-	Checksum    string `bson:"checksum,omitempty"`
-	Author      string `bson:"author,omitempty"`
-	License     string `bson:"license,omitempty"`
+	Name        primitive.Binary `bson:"n,omitempty"`
+	Version     primitive.Binary `bson:"v,omitempty"`
+	Language    primitive.Binary `bson:"l,omitempty"`
+	Compiler    primitive.Binary `bson:"cm,omitempty"`
+	Description primitive.Binary `bson:"d,omitempty"`
+	Checksum    primitive.Binary `bson:"c,omitempty"`
+	Author      primitive.Binary `bson:"a,omitempty"`
+	License     primitive.Binary `bson:"l,omitempty"`
 }
 
 type VerifiableCredential struct {
-	Name        string `bson:"name,omitempty"`
-	Description string `bson:"description,omitempty"`
-	Checksum    string `bson:"checksum,omitempty"`
-	Author      string `bson:"author,omitempty"`
+	Name        primitive.Binary `bson:"n,omitempty"`
+	Description primitive.Binary `bson:"d,omitempty"`
+	Checksum    primitive.Binary `bson:"c,omitempty"`
+	Author      primitive.Binary `bson:"a,omitempty"`
 }
 
 type BlockData struct {
-	SenderUID    string               `bson:"senderUid,omitempty"`
-	SenderRole   int64                `bson:"senderRole,omitempty"`
-	SenderPubKey string               `bson:"senderPubKey,omitempty"`
-	Signature    string               `bson:"signature,omitempty"`
-	ReceiverUID  string               `bson:"receiverUid,omitempty"`
-	ReceiverRole int64                `bson:"receiverRole,omitempty"`
-	Data         string               `bson:"data,omitempty"`
-	UseContract  string               `bson:"useContract,omitempty"`
-	ContractData Contract             `bson:"contractData,omitempty"`
+	SenderUID    primitive.Binary     `bson:"su,omitempty"`
+	SenderPubKey primitive.Binary     `bson:"sp,omitempty"`
+	Signature    primitive.Binary     `bson:"g,omitempty"`
+	ReceiverUID  primitive.Binary     `bson:"ru,omitempty"`
+	UseContract  primitive.Binary     `bson:"uc,omitempty"`
+	ContractData Contract             `bson:"cd,omitempty"`
 	VC           VerifiableCredential `bson:"vc,omitempty"`
-	TimeStamp    int64                `bson:"timeStamp,omitempty"`
+	TimeStamp    int64                `bson:"t,omitempty"`
 }
 
 // Main block struct
 type Block struct {
-	ID        string    `bson:"_id,omitempty"`
-	Boycott   bool      `bson:"boycott"`
-	BlockMeta BlockMeta `bson:"blockMeta,omitempty"`
-	BlockData BlockData `bson:"blockData,omitempty"`
+	ID        primitive.Binary `bson:"_id,omitempty"`
+	Boycott   bool             `bson:"y"`
+	BlockMeta BlockMeta        `bson:"m,omitempty"`
+	BlockData BlockData        `bson:"d,omitempty"`
 }

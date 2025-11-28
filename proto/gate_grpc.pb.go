@@ -4,7 +4,7 @@
 // - protoc             v3.21.12
 // source: protos/gate.proto
 
-package protos
+package proto
 
 import (
 	context "context"

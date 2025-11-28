@@ -20,12 +20,9 @@ func Genesis_check() (bool, error) {
 		},
 		BlockData: BlockData{
 			SenderUID:    config.GENESIS_SENDER_UID,
-			SenderRole:   config.GENESIS_SENDER_ROLE,
 			SenderPubKey: config.GENESIS_PUBKEY,
 			Signature:    config.GENESIS_SIGNATURE,
 			ReceiverUID:  config.GENESIS_RECEIVER_UID,
-			ReceiverRole: config.GENESIS_RECEIVER_ROLE,
-			Data:         config.GENESIS_DATA,
 			TimeStamp:    config.GENESIS_TIMESTAMP,
 		},
 	}
@@ -56,12 +53,9 @@ func BlockHashMaker(b *Block, nodeUID string) {
 		utils.Int64ToStr(b.BlockMeta.TimeStamp)
 
 	blockDataRoot := b.BlockData.SenderUID +
-		utils.Int64ToStr(b.BlockData.SenderRole) +
 		b.BlockData.SenderPubKey +
 		b.BlockData.Signature +
 		b.BlockData.ReceiverUID +
-		utils.Int64ToStr(b.BlockData.ReceiverRole) +
-		b.BlockData.Data +
 		utils.Int64ToStr(b.BlockData.TimeStamp)
 
 	b.ID = utils.D256C(blockMetaRoot+blockDataRoot, config.DELIUM_CONFIG.BLOCK_HASHING_PATH).String
@@ -69,11 +63,8 @@ func BlockHashMaker(b *Block, nodeUID string) {
 
 func MessageMaker(b BlockData) string {
 	return b.SenderUID +
-		utils.Int64ToStr(b.SenderRole) +
 		b.SenderPubKey +
 		b.ReceiverUID +
-		utils.Int64ToStr(b.ReceiverRole) +
-		b.Data +
 		utils.Int64ToStr(b.TimeStamp) +
 		b.UseContract
 }
@@ -126,10 +117,6 @@ func BlockStructValidator(b Block) error {
 		return errors.New("senderUID is required and must be 32 len string")
 	}
 
-	if utils.Bt_int64(b.BlockData.SenderRole, 0, 10000001) {
-		return errors.New("senderRole is required and must be bigger than zero")
-	}
-
 	if utils.E_str(b.BlockData.SenderPubKey, 66) {
 		return errors.New("senderPubKey is required and must be 66 len string")
 	}
@@ -140,15 +127,6 @@ func BlockStructValidator(b Block) error {
 
 	if utils.E_str(b.BlockData.ReceiverUID, 32) {
 		return errors.New("receiverUID is required and must be 32 len string")
-	}
-
-	if utils.Bt_int64(b.BlockData.ReceiverRole, 0, 10000001) {
-		return errors.New("receiverRole is required and must be bigger than zero")
-	}
-
-	if utils.Lt_float(utils.StringSizeInKB(b.BlockData.Data), utils.StringToFloat64(config.MAX_DATA_SIZE_KB)) {
-		errStr := "data is required and must be lesser than " + config.MAX_DATA_SIZE_KB + "KB"
-		return errors.New(errStr)
 	}
 
 	if utils.Bt_int64(b.BlockData.TimeStamp, int64(1262304000000), int64(9262304000000)) {

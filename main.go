@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"time"
 
+	"blvchain/core/acpt"
 	"blvchain/core/bvm"
 	"blvchain/core/config"
 	"blvchain/core/db"
@@ -23,7 +25,43 @@ import (
 
 func main() {
 
+	/// ------- Test area ----------- //
+
+	tm, err := acpt.NewTreeManager("mongodb://localhost:27017", "blockchain_db_prod")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("--- Initial Root: %x ---\n", tm.CurrentRoot)
+
+	// 2. Commit Batch 1
+	batch1 := []acpt.KeyValue{
+		{Key: []byte("user_A"), Value: []byte("1000")},
+	}
+	root1, err := tm.CommitBlock(batch1)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Root after Batch 1: %x\n", root1)
+
+	// 3. Commit Batch 2 (Modifying unrelated key)
+	// logic: This should fetch user_A from DB to calculate the new root
+	batch2 := []acpt.KeyValue{
+		{Key: []byte("user_B"), Value: []byte("5000")},
+	}
+	root2, err := tm.CommitBlock(batch2)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("Root after Batch 2: %x\n", root2)
+
+	/// ------- Test area ----------- //
+	return
+
 	fmt.Println("===== Starting core =====")
+
+	// Run ACPT
 
 	// Init BVM internal functions
 	bvm.InitBVMInternalFunctions()

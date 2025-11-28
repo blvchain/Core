@@ -15,6 +15,8 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // Custom print for errors with red color
@@ -221,4 +223,14 @@ func FileCheckSumSHA256(fileName string) bool {
 	}
 
 	return hex.EncodeToString(h.Sum(nil)) == fileName
+}
+
+func ToMongoBinary(b []byte) primitive.Binary {
+	if len(b) == 0 {
+		return primitive.Binary{}
+	}
+	return primitive.Binary{
+		Data:    b,
+		Subtype: 0x00,
+	}
 }

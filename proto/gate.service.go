@@ -1,11 +1,10 @@
-package protos
+package proto
 
 import (
 	"blvchain/core/config"
 	"blvchain/core/db"
 	"blvchain/core/logger"
 	"blvchain/core/utils"
-	"blvchain/core/ws"
 	context "context"
 	"encoding/base64"
 	"fmt"
@@ -43,12 +42,9 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 		// check block validation
 		message := db.MessageMaker(db.BlockData{
 			SenderUID:    req.SenderUID,
-			SenderRole:   req.SenderRole,
 			SenderPubKey: req.SenderPubKey,
 			Signature:    req.Signature,
 			ReceiverUID:  req.ReceiverUID,
-			ReceiverRole: req.ReceiverRole,
-			Data:         req.Data,
 			UseContract:  req.UseContract,
 			TimeStamp:    req.TimeStamp,
 		})
@@ -94,12 +90,9 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 				},
 				BlockData: db.BlockData{
 					SenderUID:    req.SenderUID,
-					SenderRole:   req.SenderRole,
 					SenderPubKey: req.SenderPubKey,
 					Signature:    req.Signature,
 					ReceiverUID:  req.ReceiverUID,
-					ReceiverRole: req.ReceiverRole,
-					Data:         req.Data,
 					UseContract:  req.UseContract,
 					TimeStamp:    req.TimeStamp,
 				},
@@ -212,17 +205,11 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 		if req.SenderUID != "" {
 			filter = append(filter, bson.M{"blockData.senderUid": req.SenderUID})
 		}
-		if req.SenderRole != 0 {
-			filter = append(filter, bson.M{"blockData.senderRole": req.SenderRole})
-		}
 		if req.SenderPubKey != "" {
 			filter = append(filter, bson.M{"blockData.senderPubKey": req.SenderPubKey})
 		}
 		if req.ReceiverUID != "" {
 			filter = append(filter, bson.M{"blockData.receiverUid": req.ReceiverUID})
-		}
-		if req.ReceiverRole != 0 {
-			filter = append(filter, bson.M{"blockData.receiverRole": req.ReceiverRole})
 		}
 		if req.BlockHash != "" {
 			filter = append(filter, bson.M{"_id": req.BlockHash})
@@ -290,12 +277,9 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 						},
 						BlockData: &BlockData{
 							SenderUID:    dbBlock.BlockData.SenderUID,
-							SenderRole:   dbBlock.BlockData.SenderRole,
 							SenderPubKey: dbBlock.BlockData.SenderPubKey,
 							Signature:    dbBlock.BlockData.Signature,
 							ReceiverUID:  dbBlock.BlockData.ReceiverUID,
-							ReceiverRole: dbBlock.BlockData.ReceiverRole,
-							Data:         dbBlock.BlockData.Data,
 							UseContract:  dbBlock.BlockData.UseContract,
 							TimeStamp:    dbBlock.BlockData.TimeStamp,
 						},

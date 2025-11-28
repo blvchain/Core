@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func pathMaker(fileName string) string {
@@ -112,4 +113,14 @@ func DefineENVInt(name string, defaultValue int) int {
 		return defaultValue
 	}
 	return StringToInt(envVar)
+}
+
+func ToMongoBinary(b []byte) primitive.Binary {
+	if len(b) == 0 {
+		return primitive.Binary{}
+	}
+	return primitive.Binary{
+		Data:    b,
+		Subtype: 0x00,
+	}
 }
