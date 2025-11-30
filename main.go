@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/http"
 	"time"
 
 	"blvchain/core/acpt"
@@ -13,8 +12,7 @@ import (
 	"blvchain/core/config"
 	"blvchain/core/db"
 	"blvchain/core/logger"
-	"blvchain/core/protos"
-	"blvchain/core/ws"
+	"blvchain/core/proto"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -132,34 +130,6 @@ func main() {
 	// Check genesis block and dns seed in DB in first run of Node
 	if check_genesis {
 
-		//* WebSocket
-		go func() {
-
-			//* Connect to other servers
-			ws.ClientManagerVar.ConnectToServers(config.DNS_SEED_LIST)
-
-			//* Local server gateways
-			http.HandleFunc("/", ws.WS_Server_Handler)
-
-			logger.WS_S_LOGGER.Println("Success: WebSocket Server is running on port", config.WEBSOCKET_PORT)
-			websocketListener_err := http.ListenAndServe(config.WEBSOCKET_PORT, nil)
-			if websocketListener_err != nil {
-				fmt.Println("Error: see log/websocket/fail folder for details.")
-				logger.WS_F_LOGGER.Fatalf("Failed to listen WebSocket: %v", websocketListener_err)
-			}
-
-		}()
-
-		// Monitor and reconnect to missed nodes
-		go func() {
-			ws.MonitorAndReconnectToServers(&ws.ClientManagerVar)
-		}()
-
-		go func() {
-			genesis_sync_result := ws.FirstTimeSyncData(&ws.ClientManagerVar)
-			syncDone <- genesis_sync_result
-		}()
-
 		// Wait for sync to complete before starting gRPC server
 		if <-syncDone {
 
@@ -175,24 +145,24 @@ func main() {
 				}
 
 				// Per-method configuration
-				methodCfg := map[string]protos.MethodLimit{
+				methodCfg := map[string]proto.MethodLimit{
 					"/gate.AddData/addData":   {R: config.ADD_DATA_R, Burst: config.ADD_DATA_BURST},
 					"/gate.ReadData/readData": {R: config.READ_DATA_R, Burst: config.READ_DATA_BURST},
 				}
 
 				// default used for other RPCs (if any)
-				defaultCfg := protos.MethodLimit{R: 5, Burst: 10}
+				defaultCfg := proto.MethodLimit{R: 5, Burst: 10}
 
 				// create rate limiter with TTL for idle entries
-				rl := protos.NewRateLimiter(methodCfg, defaultCfg, 5*time.Minute)
+				rl := proto.NewRateLimiter(methodCfg, defaultCfg, 5*time.Minute)
 				grpcServer := grpc.NewServer(
 					grpc.UnaryInterceptor(rl.UnaryServerInterceptor()),
 					grpc.StreamInterceptor(rl.StreamServerInterceptor()),
 				)
 
 				// Register the services
-				protos.RegisterAddDataServer(grpcServer, &protos.AddDataService{})
-				protos.RegisterReadDataServer(grpcServer, &protos.ReadDataService{})
+				proto.RegisterAddDataServer(grpcServer, &proto.AddDataService{})
+				proto.RegisterReadDataServer(grpcServer, &proto.ReadDataService{})
 
 				logger.GRPC_S_LOGGER.Println("Success: gRPC server is running on port", config.GRPC_PORT)
 				fmt.Println("Success: gRPC server is running on port", config.GRPC_PORT)
@@ -202,11 +172,6 @@ func main() {
 					logger.GRPC_F_LOGGER.Fatalf("Error: Failed to serve: %v", grpcServer_err)
 				}
 
-			}()
-
-			// Sync missed data
-			go func() {
-				ws.SyncData(&ws.ClientManagerVar)
 			}()
 
 		} else {

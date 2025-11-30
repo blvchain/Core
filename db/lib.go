@@ -3,10 +3,12 @@ package db
 import (
 	"blvchain/core/config"
 	"blvchain/core/utils"
+	"bytes"
+	"encoding/binary"
 	"errors"
-	"reflect"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func Genesis_check() (bool, error) {
@@ -17,6 +19,7 @@ func Genesis_check() (bool, error) {
 		BlockMeta: BlockMeta{
 			PreBlockHash: config.GENESIS_BLOCK_PREHASH,
 			TimeStamp:    config.GENESIS_TIMESTAMP,
+			NodeUID:      config.GENESIS_NODE_UID,
 		},
 		BlockData: BlockData{
 			SenderUID:    config.GENESIS_SENDER_UID,
@@ -28,7 +31,7 @@ func Genesis_check() (bool, error) {
 	}
 
 	// creating genesis block hash
-	BlockHashMaker(&genesis_block, config.GENESIS_NODE_UID)
+	BlockHashMaker(&genesis_block)
 
 	db_genesis_blocks, _ := FindAllBlocks(bson.M{"blockMeta.preBlockHash": config.GENESIS_BLOCK_PREHASH})
 
@@ -45,106 +48,112 @@ func Genesis_check() (bool, error) {
 	return true, nil
 }
 
-func BlockHashMaker(b *Block, nodeUID string) {
-	b.BlockMeta.NodeUID = nodeUID
+func BlockHashMaker(b *Block) {
+	tsMeta := make([]byte, 8)
+	binary.BigEndian.PutUint64(tsMeta, uint64(b.BlockMeta.TimeStamp))
 
-	blockMetaRoot := b.BlockMeta.PreBlockHash +
-		b.BlockMeta.NodeUID +
-		utils.Int64ToStr(b.BlockMeta.TimeStamp)
+	tsData := make([]byte, 8)
+	binary.BigEndian.PutUint64(tsData, uint64(b.BlockData.TimeStamp))
 
-	blockDataRoot := b.BlockData.SenderUID +
-		b.BlockData.SenderPubKey +
-		b.BlockData.Signature +
-		b.BlockData.ReceiverUID +
-		utils.Int64ToStr(b.BlockData.TimeStamp)
+	boycott := make([]byte, 1)
+	if b.Boycott {
+		boycott[0] = 1
+	} else {
+		boycott[0] = 0
+	}
 
-	b.ID = utils.D256C(blockMetaRoot+blockDataRoot, config.DELIUM_CONFIG.BLOCK_HASHING_PATH).String
+	parts := [][]byte{
+		b.ID.Data,
+
+		boycott,
+
+		b.BlockMeta.PreBlockHash.Data,
+		b.BlockMeta.NodeUID.Data,
+		tsMeta,
+
+		b.BlockData.SenderUID.Data,
+		b.BlockData.SenderPubKey.Data,
+		b.BlockData.Signature.Data,
+		b.BlockData.ReceiverUID.Data,
+		b.BlockData.UseContract.Data,
+
+		b.BlockData.ContractData.Name.Data,
+		b.BlockData.ContractData.Version.Data,
+		b.BlockData.ContractData.Language.Data,
+		b.BlockData.ContractData.Compiler.Data,
+		b.BlockData.ContractData.Description.Data,
+		b.BlockData.ContractData.Checksum.Data,
+		b.BlockData.ContractData.Author.Data,
+		b.BlockData.ContractData.License.Data,
+
+		b.BlockData.VC.Name.Data,
+		b.BlockData.VC.Description.Data,
+		b.BlockData.VC.Checksum.Data,
+		b.BlockData.VC.Author.Data,
+
+		tsData,
+	}
+
+	total := 0
+	for _, p := range parts {
+		total += len(p)
+	}
+
+	byteData := make([]byte, total)
+	offset := 0
+
+	for _, p := range parts {
+		copy(byteData[offset:], p)
+		offset += len(p)
+	}
+
+	blockHash, _ := utils.D256C(utils.ToMongoBinary(byteData), config.DELIUM_CONFIG.BLOCK_HASHING_PATH)
+
+	b.ID = blockHash.Primitive_binary
 }
 
-func MessageMaker(b BlockData) string {
-	return b.SenderUID +
-		b.SenderPubKey +
-		b.ReceiverUID +
-		utils.Int64ToStr(b.TimeStamp) +
-		b.UseContract
+func MessageMaker(b BlockData) primitive.Binary {
+
+	parts := [][]byte{
+		b.SenderUID.Data,
+		b.SenderPubKey.Data,
+		b.ReceiverUID.Data,
+		b.UseContract.Data,
+		utils.Int64ToBytes(b.TimeStamp),
+	}
+
+	total := 0
+	for _, p := range parts {
+		total += len(p)
+	}
+
+	byteData := make([]byte, total)
+	offset := 0
+
+	for _, p := range parts {
+		copy(byteData[offset:], p)
+		offset += len(p)
+	}
+
+	return utils.ToMongoBinary(byteData)
+
 }
 
 func BlockValidator(block Block) error {
 	testBlock := block
 
-	BlockHashMaker(&testBlock, block.BlockMeta.NodeUID)
+	BlockHashMaker(&testBlock)
 
-	if block.ID != testBlock.ID {
+	if !bytes.Equal(block.ID.Data, testBlock.ID.Data) {
 		return errors.New("hash not match")
 	}
 
 	message := MessageMaker(block.BlockData)
-	valid, validation_err := utils.Verify(block.BlockData.SenderPubKey, block.BlockData.SenderUID, message, block.BlockData.Signature)
+	valid, validation_err := utils.Verify(block.BlockData.SenderPubKey.Data, block.BlockData.SenderUID.Data, message.Data, block.BlockData.Signature.Data)
 
 	if !valid {
 		return validation_err
 	}
 
 	return nil
-}
-
-func BlockStructValidator(b Block) error {
-
-	// Block
-	if utils.E_str(b.ID, 64) {
-		return errors.New("_id is required and must be 64 len string")
-	}
-
-	if utils.BoolCheck(b.Boycott) {
-		return errors.New("boycott is required")
-	}
-
-	// Block Meta
-	if utils.E_str(b.BlockMeta.PreBlockHash, 64) {
-		return errors.New("preBlockHash is required and must be 64 len string")
-	}
-
-	if utils.Gt_str(b.BlockMeta.NodeUID, 9) {
-		return errors.New("nodeUid is required and must be greater than 9 len string")
-	}
-
-	if utils.Bt_int64(b.BlockMeta.TimeStamp, int64(1262304000000), int64(9262304000000)) {
-		return errors.New("timeStamp must be a valid unix format with milliseconds")
-	}
-
-	// Block Data
-	if utils.E_str(b.BlockData.SenderUID, 32) {
-		return errors.New("senderUID is required and must be 32 len string")
-	}
-
-	if utils.E_str(b.BlockData.SenderPubKey, 66) {
-		return errors.New("senderPubKey is required and must be 66 len string")
-	}
-
-	if utils.E_str(b.BlockData.Signature, 128) {
-		return errors.New("signature is required and must be 128 len string")
-	}
-
-	if utils.E_str(b.BlockData.ReceiverUID, 32) {
-		return errors.New("receiverUID is required and must be 32 len string")
-	}
-
-	if utils.Bt_int64(b.BlockData.TimeStamp, int64(1262304000000), int64(9262304000000)) {
-		return errors.New("timeStamp must be a valid unix format with milliseconds")
-	}
-
-	return nil
-}
-
-func AreBlocksIdentical(blocks []Block) bool {
-
-	firstBlock := blocks[0]
-
-	for _, block := range blocks[1:] {
-		if !reflect.DeepEqual(firstBlock, block) {
-			return false
-		}
-	}
-
-	return true
 }

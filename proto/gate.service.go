@@ -8,7 +8,6 @@ import (
 	context "context"
 	"encoding/base64"
 	"fmt"
-	"os"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -41,16 +40,15 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 		//* Valid data
 		// check block validation
 		message := db.MessageMaker(db.BlockData{
-			SenderUID:    req.SenderUID,
-			SenderPubKey: req.SenderPubKey,
-			Signature:    req.Signature,
-			ReceiverUID:  req.ReceiverUID,
-			UseContract:  req.UseContract,
+			SenderUID:    utils.ToMongoBinary(req.SenderUID),
+			SenderPubKey: utils.ToMongoBinary(req.SenderPubKey),
+			ReceiverUID:  utils.ToMongoBinary(req.ReceiverUID),
+			UseContract:  utils.ToMongoBinary(req.UseContract),
 			TimeStamp:    req.TimeStamp,
 		})
 
-		valid, validation_err := utils.Verify(req.SenderPubKey, req.SenderUID, message, req.Signature)
-		fmt.Println("valid", valid)
+		valid, validation_err := utils.Verify(req.SenderPubKey, req.SenderUID, message.Data, req.Signature)
+
 		if !valid {
 			// Block validation failed
 			logger.GRPC_F_LOGGER.Printf("WARNING!!!: Error in data %v signature validation from %v:\n%v", req, apiKey, validation_err)
@@ -89,11 +87,11 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 					TimeStamp:    utils.NowTimeInt64UnixMilli(),
 				},
 				BlockData: db.BlockData{
-					SenderUID:    req.SenderUID,
-					SenderPubKey: req.SenderPubKey,
-					Signature:    req.Signature,
-					ReceiverUID:  req.ReceiverUID,
-					UseContract:  req.UseContract,
+					SenderUID:    utils.ToMongoBinary(req.SenderUID),
+					SenderPubKey: utils.ToMongoBinary(req.SenderPubKey),
+					Signature:    utils.ToMongoBinary(req.Signature),
+					ReceiverUID:  utils.ToMongoBinary(req.ReceiverUID),
+					UseContract:  utils.ToMongoBinary(req.UseContract),
 					TimeStamp:    req.TimeStamp,
 				},
 			}
@@ -115,20 +113,20 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 				}
 
 				// Compute checksum and save file to SMART_CONTRACT_UPLOAD_PATH
-				if utils.FileCheckSumSHA256(req.ContractData.Checksum) {
-					path := config.SMART_CONTRACT_UPLOAD_PATH + req.ContractData.Checksum
-					if err := os.WriteFile(path, wasmBytes, 0644); err != nil {
-						logger.INTERNAL_LOGGER.Printf("Error saving wasm file %v: %v", path, err)
-						fmt.Println("Error: see log/internal folder for details.")
-						return &AddDataResult{IsSuccess: false, Log: "Internal server error"}, nil
-					}
-				} else {
-					return &AddDataResult{IsSuccess: false, Log: "Checksum not match"}, nil
-				}
+				// if utils.FileCheckSumSHA256(req.ContractData.Checksum) {
+				// 	path := config.SMART_CONTRACT_UPLOAD_PATH + req.ContractData.Checksum
+				// 	if err := os.WriteFile(path, wasmBytes, 0644); err != nil {
+				// 		logger.INTERNAL_LOGGER.Printf("Error saving wasm file %v: %v", path, err)
+				// 		fmt.Println("Error: see log/internal folder for details.")
+				// 		return &AddDataResult{IsSuccess: false, Log: "Internal server error"}, nil
+				// 	}
+				// } else {
+				// 	return &AddDataResult{IsSuccess: false, Log: "Checksum not match"}, nil
+				// }
 
 			}
 
-			db.BlockHashMaker(&block, block.BlockMeta.NodeUID)
+			db.BlockHashMaker(&block)
 
 			db_blocks, _ := db.FindAllBlocks(bson.M{"_id": block.ID})
 
@@ -149,15 +147,14 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 					// Successfully added data to DB
 					logger.GRPC_S_LOGGER.Printf("Success: Block '%v' successfully added from user '%v' ", block.ID, req.SenderUID)
 
-					// Send new block data to other nodes
-					ws.ClientManagerVar.AddBlockToServers(block)
+					//! TODO: Send new block data to other nodes
 				}
 			}
 
 			return &AddDataResult{
 				IsSuccess: true,
 				Log:       "Data successfully added.",
-				BlockHash: block.ID,
+				BlockHash: block.ID.Data,
 			}, nil
 
 		}
@@ -196,28 +193,28 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 
 		filter = append(filter, bson.M{"boycott": false})
 
-		if req.UID != "" {
+		if len(req.UID) != 0 {
 			filter = append(filter, bson.M{"$or": []bson.M{
 				{"blockData.senderUid": req.UID},
 				{"blockData.receiverUid": req.UID},
 			}})
 		}
-		if req.SenderUID != "" {
+		if len(req.SenderUID) != 0 {
 			filter = append(filter, bson.M{"blockData.senderUid": req.SenderUID})
 		}
-		if req.SenderPubKey != "" {
+		if len(req.SenderPubKey) != 0 {
 			filter = append(filter, bson.M{"blockData.senderPubKey": req.SenderPubKey})
 		}
-		if req.ReceiverUID != "" {
+		if len(req.ReceiverUID) != 0 {
 			filter = append(filter, bson.M{"blockData.receiverUid": req.ReceiverUID})
 		}
-		if req.BlockHash != "" {
+		if len(req.BlockHash) != 0 {
 			filter = append(filter, bson.M{"_id": req.BlockHash})
 		}
-		if req.PreBlockHash != "" {
+		if len(req.PreBlockHash) != 0 {
 			filter = append(filter, bson.M{"blockMeta.preBlockHash": req.PreBlockHash})
 		}
-		if req.NodeUID != "" {
+		if len(req.NodeUID) != 0 {
 			filter = append(filter, bson.M{"blockMeta.nodeUid": req.NodeUID})
 		}
 		if req.TimeStampFrom != 0 || req.TimeStampTo != 0 {
@@ -230,7 +227,7 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 			}
 			filter = append(filter, bson.M{"blockData.timeStamp": timeFilter})
 		}
-		if req.UseContract != "" {
+		if len(req.UseContract) != 0 {
 			filter = append(filter, bson.M{"blockData.useContract": req.UseContract})
 		}
 
@@ -265,22 +262,22 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 				// check block validation
 				message := db.MessageMaker(dbBlock.BlockData)
 
-				valid, validation_err := utils.Verify(dbBlock.BlockData.SenderPubKey, dbBlock.BlockData.SenderUID, message, dbBlock.BlockData.Signature)
+				valid, validation_err := utils.Verify(dbBlock.BlockData.SenderPubKey.Data, dbBlock.BlockData.SenderUID.Data, message.Data, dbBlock.BlockData.Signature.Data)
 
 				if valid {
 					grpcBlocks = append(grpcBlocks, &Block{
-						BlockHash: dbBlock.ID,
+						BlockHash: dbBlock.ID.Data,
 						BlockMeta: &BlockMeta{
-							PreBlockHash: dbBlock.BlockMeta.PreBlockHash,
-							NodeUID:      dbBlock.BlockMeta.NodeUID,
+							PreBlockHash: dbBlock.BlockMeta.PreBlockHash.Data,
+							NodeUID:      dbBlock.BlockMeta.NodeUID.Data,
 							TimeStamp:    dbBlock.BlockMeta.TimeStamp,
 						},
 						BlockData: &BlockData{
-							SenderUID:    dbBlock.BlockData.SenderUID,
-							SenderPubKey: dbBlock.BlockData.SenderPubKey,
-							Signature:    dbBlock.BlockData.Signature,
-							ReceiverUID:  dbBlock.BlockData.ReceiverUID,
-							UseContract:  dbBlock.BlockData.UseContract,
+							SenderUID:    dbBlock.BlockData.SenderUID.Data,
+							SenderPubKey: dbBlock.BlockData.SenderPubKey.Data,
+							Signature:    dbBlock.BlockData.Signature.Data,
+							ReceiverUID:  dbBlock.BlockData.ReceiverUID.Data,
+							UseContract:  dbBlock.BlockData.UseContract.Data,
 							TimeStamp:    dbBlock.BlockData.TimeStamp,
 						},
 					})
@@ -294,7 +291,7 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 			fmt.Println("Error: see log/gRPC/fail folder for details.")
 			return &ReadDataResult{
 				IsSuccess: true,
-				Log:       "",
+				Log:       "Success",
 				Data:      grpcBlocks,
 			}, nil
 		}

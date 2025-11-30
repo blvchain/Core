@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package gate;
+package client;
 
-option go_package = "blvchain/core/protos";
+option go_package = "blvchain/core/proto";
 
 // Block
 message BlockMeta {

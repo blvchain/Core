@@ -3,14 +3,14 @@ package utils
 import (
 	"blvchain/core/config"
 	"blvchain/core/logger"
-	"crypto/ecdsa"
-	"crypto/elliptic"
+	"bytes"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
-	"math/big"
 	"net/url"
 	"os"
 	"strconv"
@@ -34,6 +34,12 @@ func Int64ToStr(i int64) string {
 	return strconv.FormatInt(i, 10)
 }
 
+func Int64ToBytes(v int64) []byte {
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, uint64(v))
+	return b
+}
+
 func StringToInt64(strNum string) int64 {
 	num, _ := strconv.ParseInt(strNum, 10, 64)
 	return num
@@ -47,18 +53,6 @@ func StringToInt(strNum string) int {
 func StringToFloat64(strNum string) float64 {
 	num, _ := strconv.ParseFloat(strNum, 64)
 	return num
-}
-
-func privkeyHexToECDSA(privkey string) (*ecdsa.PrivateKey, error) {
-	curve := elliptic.P256()
-	privateKey := new(ecdsa.PrivateKey)
-	privateKey.PublicKey.Curve = curve
-	privateKeyBigInt, _ := new(big.Int).SetString(privkey, 16)
-	privateKey.D = privateKeyBigInt
-
-	privateKey.PublicKey.X, privateKey.PublicKey.Y = curve.ScalarBaseMult(privateKey.D.Bytes())
-
-	return privateKey, nil
 }
 
 func AddQueryParams(baseURL string, params map[string]string) (string, error) {
@@ -80,7 +74,7 @@ func AddQueryParams(baseURL string, params map[string]string) (string, error) {
 
 func NodeUidChecker(nodeUID string) bool {
 	for _, item := range config.DNS_SEED_LIST {
-		if item.UID == nodeUID && item.UID != config.SELF_UID {
+		if item.UID == nodeUID && !bytes.Equal([]byte(item.UID), config.SELF_UID.Data) {
 			return true
 		}
 	}
@@ -90,11 +84,6 @@ func NodeUidChecker(nodeUID string) bool {
 func Data_to_JSON(data any) []byte {
 	byte_data, _ := json.Marshal(data)
 	return byte_data
-}
-
-func Make_UID(pubkey_str string) string {
-	hash := D512C(pubkey_str, config.DELIUM_CONFIG.UID_MAKER_PATH).String
-	return hash[:32]
 }
 
 func StringSizeInKB(s string) float64 {
@@ -233,4 +222,74 @@ func ToMongoBinary(b []byte) primitive.Binary {
 		Data:    b,
 		Subtype: 0x00,
 	}
+}
+
+func ByteToHexString(b []byte) string {
+	const hex = "0123456789abcdef"
+	out := make([]byte, len(b)*2)
+	for i, v := range b {
+		out[i*2] = hex[v>>4]
+		out[i*2+1] = hex[v&0x0f]
+	}
+	return string(out)
+}
+
+func HexStringToBytes(s string) ([]byte, error) {
+	if len(s)%2 != 0 {
+		return nil, errors.New("hex string must be even length")
+	}
+	out := make([]byte, len(s)/2)
+	for i := 0; i < len(out); i++ {
+		b1 := HexValue(s[i*2])
+		b2 := HexValue(s[i*2+1])
+		if b1 < 0 || b2 < 0 {
+			return nil, errors.New("invalid hex")
+		}
+		out[i] = byte((b1 << 4) | b2)
+	}
+	return out, nil
+}
+
+func HexValue(c byte) int {
+	switch {
+	case c >= '0' && c <= '9':
+		return int(c - '0')
+	case c >= 'a' && c <= 'f':
+		return int(c - 'a' + 10)
+	case c >= 'A' && c <= 'F':
+		return int(c - 'A' + 10)
+	default:
+		return -1
+	}
+}
+
+func Make_UID(pubkey primitive.Binary) (D_hash, error) {
+	// Step 1. Perform binary hashing
+	h, err := D256C(pubkey, config.DELIUM_CONFIG.UID_MAKER_PATH)
+	if err != nil {
+		return D_hash{}, err
+	}
+
+	// Step 2. Convert to hex
+	fullHex := h.String
+
+	if len(fullHex) < 32 {
+		return D_hash{}, errors.New("hash too short, unexpected")
+	}
+
+	// Step 3. First 32 hex characters (this is your address string)
+	addrHex := fullHex[:32]
+
+	// Step 4. Decode those 32 hex characters back into 16 raw bytes
+	addrBytes, err := HexStringToBytes(addrHex)
+	if err != nil {
+		return D_hash{}, err
+	}
+
+	// Step 5. Wrap in D_hash like every other Delium output
+	return D_hash{
+		Byte_slice:       addrBytes,
+		String:           addrHex,
+		Primitive_binary: ToMongoBinary(addrBytes),
+	}, nil
 }

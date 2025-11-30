@@ -59,7 +59,7 @@ var (
 
 	BLOCK_COLL *mongo.Collection
 
-	FIRST_BLOCK_HASH string
+	FIRST_BLOCK_HASH primitive.Binary
 
 	// Get vars form files
 	DELIUM_CONFIG = GetDeliumConfigFile()
@@ -67,8 +67,8 @@ var (
 	API_KEY_LIST  = GetApiKeyFile()
 
 	// Terminal variables
-	SELF_UID         string = DefineENV("SELF_UID", GetEnv("SELF_UID"))
-	DATABASE_NAME    string = DefineENV("DB", "BLVchain")
-	GRPC_PORT        string = DefineENV("GP", ":50051")
-	MAX_DATA_SIZE_KB string = DefineENV("MAX_DATA_SIZE_KB", "2048")
+	SELF_UID         primitive.Binary = ToMongoBinary([]byte(DefineENV("SELF_UID", GetEnv("SELF_UID"))))
+	DATABASE_NAME    string           = DefineENV("DB", "BLVchain")
+	GRPC_PORT        string           = DefineENV("GP", ":50051")
+	MAX_DATA_SIZE_KB string           = DefineENV("MAX_DATA_SIZE_KB", "2048")
 )

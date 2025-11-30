@@ -3,7 +3,6 @@ package proto
 import (
 	"blvchain/core/config"
 	"blvchain/core/logger"
-	"blvchain/core/utils"
 	context "context"
 	"errors"
 	"fmt"
@@ -25,28 +24,31 @@ func init() {
 // things like data size, wasm size, and timestamp windows.
 func validateAddDataRequest(req *BlockData) error {
 
-	// Basic string length and required checks using validator.Var
-	if err := validate.Var(req.SenderUID, "required,len=32"); err != nil {
-		return errors.New("senderUID is required and must be 32 len string")
+	// SenderUID: 32 hex chars -> 16 bytes
+	if err := validate.Var(req.SenderUID, "required,len=16"); err != nil {
+		return errors.New("senderUID is required and must be 16 bytes")
 	}
 
-	if err := validate.Var(req.SenderPubKey, "required,len=66"); err != nil {
-		return errors.New("senderPubKey is required and must be 66 len string")
+	// SenderPubKey: 66 hex chars -> 33 bytes
+	if err := validate.Var(req.SenderPubKey, "required,len=33"); err != nil {
+		return errors.New("senderPubKey is required and must be 33 bytes")
 	}
 
-	if err := validate.Var(req.Signature, "required,len=128"); err != nil {
-		return errors.New("signature is required and must be 128 len string")
+	// Signature: 128 hex chars -> 64 bytes
+	if err := validate.Var(req.Signature, "required,len=64"); err != nil {
+		return errors.New("signature is required and must be 64 bytes")
 	}
 
-	if err := validate.Var(req.ReceiverUID, "required,len=32"); err != nil {
-		return errors.New("receiverUID is required and must be 32 len string")
+	// ReceiverUID: 32 hex chars -> 16 bytes
+	if err := validate.Var(req.ReceiverUID, "required,len=16"); err != nil {
+		return errors.New("receiverUID is required and must be 16 bytes")
 	}
 
-	// If this is a smart contract upload, enforce a 1MB (1024KB) limit for the Wasm file
-	if req.UseContract != "" {
-		// Validate UseContract identifier length
-		if err := validate.Var(req.UseContract, "len=66"); err != nil {
-			return errors.New("useContract must be 66 len string")
+	// Smart contract field: UseContract = contract address or ID
+	if len(req.UseContract) > 0 {
+		// 66 hex chars -> 33 bytes
+		if err := validate.Var(req.UseContract, "len=33"); err != nil {
+			return errors.New("useContract must be 33 bytes")
 		}
 	}
 
@@ -85,59 +87,59 @@ func validateReadDataRequest(req *ReadDataRequest) error {
 		provided = true
 	}
 
-	// UID
-	if req.UID != "" {
+	// UID: 32 hex chars -> 16 bytes
+	if len(req.UID) > 0 {
 		provided = true
-		if len(req.UID) != 32 {
-			return errors.New("uid must be 32 len string")
+		if len(req.UID) != 16 {
+			return errors.New("uid must be 16 bytes")
 		}
 	}
 
-	// SenderUID
-	if req.SenderUID != "" {
+	// SenderUID: 32 hex chars -> 16 bytes
+	if len(req.SenderUID) > 0 {
 		provided = true
-		if len(req.SenderUID) != 32 {
-			return errors.New("senderUID must be 32 len string")
+		if len(req.SenderUID) != 16 {
+			return errors.New("senderUID must be 16 bytes")
 		}
 	}
 
-	// SenderPubKey
-	if req.SenderPubKey != "" {
+	// SenderPubKey: 66 hex chars -> 33 bytes
+	if len(req.SenderPubKey) > 0 {
 		provided = true
-		if len(req.SenderPubKey) != 66 {
-			return errors.New("senderPubKey must be 66 len string")
+		if len(req.SenderPubKey) != 33 {
+			return errors.New("senderPubKey must be 33 bytes")
 		}
 	}
 
-	// ReceiverUID
-	if req.ReceiverUID != "" {
+	// ReceiverUID: 32 hex chars -> 16 bytes
+	if len(req.ReceiverUID) > 0 {
 		provided = true
-		if len(req.ReceiverUID) != 32 {
-			return errors.New("receiverUID must be 32 len string")
+		if len(req.ReceiverUID) != 16 {
+			return errors.New("receiverUID must be 16 bytes")
 		}
 	}
 
-	// BlockHash
-	if req.BlockHash != "" {
+	// BlockHash: 64 hex chars -> 32 bytes
+	if len(req.BlockHash) > 0 {
 		provided = true
-		if len(req.BlockHash) != 64 {
-			return errors.New("blockHash must be 64 len string")
+		if len(req.BlockHash) != 32 {
+			return errors.New("blockHash must be 32 bytes")
 		}
 	}
 
-	// PreBlockHash
-	if req.PreBlockHash != "" {
+	// PreBlockHash: 64 hex chars -> 32 bytes
+	if len(req.PreBlockHash) > 0 {
 		provided = true
-		if len(req.PreBlockHash) != 64 {
-			return errors.New("preBlockHash must be 64 len string")
+		if len(req.PreBlockHash) != 32 {
+			return errors.New("preBlockHash must be 32 bytes")
 		}
 	}
 
-	// NodeUID (original used utils.Gt_str(req.NodeUID, 9) — require length > 9)
-	if req.NodeUID != "" {
+	// NodeUID: old rule > 9 chars, now > 9 bytes
+	if len(req.NodeUID) > 0 {
 		provided = true
 		if len(req.NodeUID) <= 9 {
-			return errors.New("nodeUID must be longer than 9 characters")
+			return errors.New("nodeUID must be longer than 9 bytes")
 		}
 	}
 
@@ -155,11 +157,11 @@ func validateReadDataRequest(req *ReadDataRequest) error {
 		}
 	}
 
-	// UseContract
-	if req.UseContract != "" {
-		provided = true
-		if len(req.UseContract) != 66 {
-			return errors.New("useContract must be 66 len string")
+	// Smart contract field: UseContract = contract address or ID
+	if len(req.UseContract) > 0 {
+		// 66 hex chars -> 33 bytes
+		if err := validate.Var(req.UseContract, "len=33"); err != nil {
+			return errors.New("useContract must be 33 bytes")
 		}
 	}
 

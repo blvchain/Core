@@ -3,116 +3,115 @@ package utils
 import (
 	"crypto/sha256"
 	"crypto/sha512"
-	"encoding/hex"
-	"fmt"
-	"log"
+	"errors"
 	"strconv"
 	"strings"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type D_hash struct {
-	Byte_slice []byte
-	String     string
+	Byte_slice       []byte
+	String           string
+	Primitive_binary primitive.Binary
 }
 
-func D256(strData string, deleteStep int, repeat int) *D_hash {
+func D256C(data primitive.Binary, path string) (D_hash, error) {
 
-	dataHash := sha256.Sum256([]byte(strData))
-	var strDataHash string = hex.EncodeToString(dataHash[:])
+	current := sha256.Sum256(data.Data)
+	hashBytes := current[:]
 
-	for i := 0; i < repeat; i++ {
+	if path != "" {
+		steps := strings.Split(path, "/")
 
-		var result string = ""
-		for r := 0; r < len(strDataHash); r++ {
-			if (r+1)%deleteStep != 0 {
-				result += string(strDataHash[r])
+		for _, step := range steps {
+			if step == "" {
+				continue
+			}
+
+			parts := strings.Split(step, "#")
+			if len(parts) != 2 {
+				return D_hash{}, errors.New("invalid path segment")
+			}
+
+			addon := []byte(parts[0])
+
+			deleteStep, err := strconv.Atoi(parts[1])
+			if err != nil {
+				return D_hash{}, errors.New("invalid delete step")
+			}
+
+			merged := make([]byte, 0, len(hashBytes)+len(addon))
+			merged = append(merged, hashBytes...)
+			merged = append(merged, addon...)
+
+			h := sha256.Sum256(merged)
+			hashBytes = h[:]
+
+			if deleteStep > 0 {
+				if deleteStep >= len(hashBytes) {
+					return D_hash{}, errors.New("delete step too large")
+				}
+				hashBytes = hashBytes[:len(hashBytes)-deleteStep]
 			}
 		}
-
-		hashByte32 := sha256.Sum256([]byte(result))
-		strDataHash = hex.EncodeToString(hashByte32[:])
 	}
 
-	return &D_hash{
-		Byte_slice: []byte(strDataHash),
-		String:     strDataHash,
-	}
+	hexString := ByteToHexString(hashBytes)
+
+	return D_hash{
+		Byte_slice:       hashBytes,
+		String:           hexString,
+		Primitive_binary: ToMongoBinary(hashBytes),
+	}, nil
 }
 
-func D512(strData string, deleteStep int, repeat int) *D_hash {
+func D512C(data primitive.Binary, path string) (D_hash, error) {
 
-	dataHash := sha512.Sum512([]byte(strData))
-	var strDataHash string = hex.EncodeToString(dataHash[:])
+	current := sha512.Sum512(data.Data)
+	hashBytes := current[:]
 
-	for i := 0; i < repeat; i++ {
+	if path != "" {
+		steps := strings.Split(path, "/")
 
-		var result string = ""
-		for r := 0; r < len(strDataHash); r++ {
-			if (r+1)%deleteStep != 0 {
-				result += string(strDataHash[r])
+		for _, step := range steps {
+			if step == "" {
+				continue
+			}
+
+			parts := strings.Split(step, "#")
+			if len(parts) != 2 {
+				return D_hash{}, errors.New("invalid path segment")
+			}
+
+			addon := []byte(parts[0])
+
+			deleteStep, err := strconv.Atoi(parts[1])
+			if err != nil {
+				return D_hash{}, errors.New("invalid delete step")
+			}
+
+			merged := make([]byte, 0, len(hashBytes)+len(addon))
+			merged = append(merged, hashBytes...)
+			merged = append(merged, addon...)
+
+			h := sha512.Sum512(merged)
+			hashBytes = h[:]
+
+			if deleteStep > 0 {
+				if deleteStep >= len(hashBytes) {
+					return D_hash{}, errors.New("delete step too large")
+				}
+				hashBytes = hashBytes[:len(hashBytes)-deleteStep]
 			}
 		}
-
-		hashByte32 := sha512.Sum512([]byte(result))
-		strDataHash = hex.EncodeToString(hashByte32[:])
 	}
 
-	return &D_hash{
-		Byte_slice: []byte(strDataHash),
-		String:     strDataHash,
-	}
-}
+	hexString := ByteToHexString(hashBytes)
 
-func D256C(strData string, path string) *D_hash {
-
-	dataHash := sha256.Sum256([]byte(strData))
-	var strDataHash string = hex.EncodeToString(dataHash[:])
-	parts := strings.Split(path, "/")
-
-	for _, part := range parts {
-		d := strings.Split(part, "#")
-
-		addonString := d[0]
-		newString := strDataHash + addonString
-
-		deleteStep, strconvErr := strconv.Atoi(d[1])
-		if strconvErr != nil {
-			fmt.Println("Error: see log/internal folder for details.")
-			log.Fatal("Hashing path is incorrect!")
-		}
-
-		strDataHash = D256(newString, deleteStep, 1).String
-	}
-
-	return &D_hash{
-		Byte_slice: []byte(strDataHash),
-		String:     strDataHash,
-	}
-}
-
-func D512C(strData string, path string) *D_hash {
-
-	dataHash := sha512.Sum512([]byte(strData))
-	var strDataHash string = hex.EncodeToString(dataHash[:])
-	parts := strings.Split(path, "/")
-
-	for _, part := range parts {
-		d := strings.Split(part, "#")
-
-		addonString := d[0]
-		newString := strDataHash + addonString
-
-		deleteStep, strconvErr := strconv.Atoi(d[1])
-		if strconvErr != nil {
-			fmt.Println("Error: see log/internal folder for details.")
-			log.Fatal("Hashing path is incorrect!")
-		}
-
-		strDataHash = D512(newString, deleteStep, 1).String
-	}
-
-	return &D_hash{
-		Byte_slice: []byte(strDataHash),
-		String:     strDataHash,
-	}
+	return D_hash{
+		Byte_slice:       hashBytes,
+		String:           hexString,
+		Primitive_binary: ToMongoBinary(hashBytes),
+	}, nil
 }
