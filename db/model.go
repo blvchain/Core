@@ -4,19 +4,19 @@ import "go.mongodb.org/mongo-driver/bson/primitive"
 
 type BlockMeta struct {
 	PreBlockHash primitive.Binary `bson:"h,omitempty"`
-	NodeUID      primitive.Binary `bson:"u,omitempty"`
+	NodeUID      primitive.Binary `bson:"nu,omitempty"`
 	TimeStamp    int64            `bson:"t,omitempty"`
 }
 
 type Contract struct {
 	Name        primitive.Binary `bson:"n,omitempty"`
 	Version     primitive.Binary `bson:"v,omitempty"`
-	Language    primitive.Binary `bson:"l,omitempty"`
+	Language    primitive.Binary `bson:"la,omitempty"`
 	Compiler    primitive.Binary `bson:"cm,omitempty"`
 	Description primitive.Binary `bson:"d,omitempty"`
 	Checksum    primitive.Binary `bson:"c,omitempty"`
 	Author      primitive.Binary `bson:"a,omitempty"`
-	License     primitive.Binary `bson:"l,omitempty"`
+	License     primitive.Binary `bson:"li,omitempty"`
 }
 
 type VerifiableCredential struct {

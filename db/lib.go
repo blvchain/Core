@@ -33,7 +33,7 @@ func Genesis_check() (bool, error) {
 	// creating genesis block hash
 	BlockHashMaker(&genesis_block)
 
-	db_genesis_blocks, _ := FindAllBlocks(bson.M{"blockMeta.preBlockHash": config.GENESIS_BLOCK_PREHASH})
+	db_genesis_blocks, _ := FindAllBlocks(bson.M{"m.h": config.GENESIS_BLOCK_PREHASH})
 
 	// No genesis block
 	if len(db_genesis_blocks) == 0 {

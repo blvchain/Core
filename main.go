@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	// "log"
 	"net"
 	"time"
 
-	"blvchain/core/acpt"
-	"blvchain/core/bvm"
+	// "blvchain/core/acpt"
+	// "blvchain/core/bvm"
 	"blvchain/core/config"
 	"blvchain/core/db"
 	"blvchain/core/logger"
@@ -23,53 +23,52 @@ import (
 
 func main() {
 
-	/// ------- Test area ----------- //
+	// /// ------- Test area ----------- //
 
-	tm, err := acpt.NewTreeManager("mongodb://localhost:27017", "blockchain_db_prod")
-	if err != nil {
-		log.Fatal(err)
-	}
+	// tm, err := acpt.NewTreeManager("mongodb://localhost:27017", "blockchain_db_prod")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	fmt.Printf("--- Initial Root: %x ---\n", tm.CurrentRoot)
+	// fmt.Printf("--- Initial Root: %x ---\n", tm.CurrentRoot)
 
-	// 2. Commit Batch 1
-	batch1 := []acpt.KeyValue{
-		{Key: []byte("user_A"), Value: []byte("1000")},
-	}
-	root1, err := tm.CommitBlock(batch1)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("Root after Batch 1: %x\n", root1)
+	// // 2. Commit Batch 1
+	// batch1 := []acpt.KeyValue{
+	// 	{Key: []byte("user_A"), Value: []byte("1000")},
+	// }
+	// root1, err := tm.CommitBlock(batch1)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// fmt.Printf("Root after Batch 1: %x\n", root1)
 
-	// 3. Commit Batch 2 (Modifying unrelated key)
-	// logic: This should fetch user_A from DB to calculate the new root
-	batch2 := []acpt.KeyValue{
-		{Key: []byte("user_B"), Value: []byte("5000")},
-	}
-	root2, err := tm.CommitBlock(batch2)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// // 3. Commit Batch 2 (Modifying unrelated key)
+	// // logic: This should fetch user_A from DB to calculate the new root
+	// batch2 := []acpt.KeyValue{
+	// 	{Key: []byte("user_B"), Value: []byte("5000")},
+	// }
+	// root2, err := tm.CommitBlock(batch2)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	fmt.Printf("Root after Batch 2: %x\n", root2)
+	// fmt.Printf("Root after Batch 2: %x\n", root2)
 
-	/// ------- Test area ----------- //
-	return
+	// return /// ------- Test area ----------- //
 
-	fmt.Println("===== Starting core =====")
+	// fmt.Println("===== Starting core =====")
 
-	// Run ACPT
+	// // Run ACPT
 
-	// Init BVM internal functions
-	bvm.InitBVMInternalFunctions()
+	// // Init BVM internal functions
+	// bvm.InitBVMInternalFunctions()
 
-	// Run Smart contract
-	bvm_err := bvm.RunSmartContract("./bvm/smart_contract.wasm")
-	if bvm_err != nil {
-		fmt.Println("Error: see smartContract/fail folder for details.")
-		logger.SC_F_LOGGER.Fatal(bvm_err)
-	}
+	// // Run Smart contract
+	// bvm_err := bvm.RunSmartContract("./bvm/smart_contract.wasm")
+	// if bvm_err != nil {
+	// 	fmt.Println("Error: see smartContract/fail folder for details.")
+	// 	logger.SC_F_LOGGER.Fatal(bvm_err)
+	// }
 
 	syncDone := make(chan bool)
 
@@ -95,24 +94,24 @@ func main() {
 
 		// Single-field index for timestamp (used for sorting and range queries)
 		tsIndexModel := mongo.IndexModel{
-			Keys:    bson.D{{Key: "blockMeta.timeStamp", Value: -1}},
+			Keys:    bson.D{{Key: "m.t", Value: -1}},
 			Options: options.Index().SetName("idx_blockmeta_timestamp_desc"),
 		}
 
 		// Compound indexes to support common query patterns: filter by sender/receiver and sort by timestamp
 		senderUidTsIndex := mongo.IndexModel{
-			Keys:    bson.D{{Key: "blockData.senderUid", Value: 1}, {Key: "blockMeta.timeStamp", Value: -1}},
+			Keys:    bson.D{{Key: "d.su", Value: 1}, {Key: "m.t", Value: -1}},
 			Options: options.Index().SetName("idx_blockdata_senderuid_ts"),
 		}
 
 		receiverUidTsIndex := mongo.IndexModel{
-			Keys:    bson.D{{Key: "blockData.receiverUid", Value: 1}, {Key: "blockMeta.timeStamp", Value: -1}},
+			Keys:    bson.D{{Key: "d.ru", Value: 1}, {Key: "m.t", Value: -1}},
 			Options: options.Index().SetName("idx_blockdata_receiveruid_ts"),
 		}
 
 		// Indexes for equality filters used in several places
 		useContractIndex := mongo.IndexModel{
-			Keys:    bson.D{{Key: "blockData.useContract", Value: 1}},
+			Keys:    bson.D{{Key: "d.uc", Value: 1}},
 			Options: options.Index().SetName("idx_blockdata_usecontract"),
 		}
 

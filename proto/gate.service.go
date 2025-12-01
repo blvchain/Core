@@ -61,7 +61,7 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 			// valid signature
 			// find last sender block for make preHashBlock
 			var preBlock db.Block
-			sender_last_blocks, sender_last_blocks_err := db.FindManyBlocksLimited(bson.M{"blockData.senderUid": req.SenderUID}, 0, 1)
+			sender_last_blocks, sender_last_blocks_err := db.FindManyBlocksLimited(bson.M{"d.su": req.SenderUID}, 0, 1)
 
 			if sender_last_blocks_err != nil {
 				if sender_last_blocks_err == mongo.ErrNoDocuments {
@@ -195,27 +195,27 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 
 		if len(req.UID) != 0 {
 			filter = append(filter, bson.M{"$or": []bson.M{
-				{"blockData.senderUid": req.UID},
-				{"blockData.receiverUid": req.UID},
+				{"d.su": req.UID},
+				{"d.ru": req.UID},
 			}})
 		}
 		if len(req.SenderUID) != 0 {
-			filter = append(filter, bson.M{"blockData.senderUid": req.SenderUID})
+			filter = append(filter, bson.M{"d.su": req.SenderUID})
 		}
 		if len(req.SenderPubKey) != 0 {
-			filter = append(filter, bson.M{"blockData.senderPubKey": req.SenderPubKey})
+			filter = append(filter, bson.M{"d.senderPubKey": req.SenderPubKey})
 		}
 		if len(req.ReceiverUID) != 0 {
-			filter = append(filter, bson.M{"blockData.receiverUid": req.ReceiverUID})
+			filter = append(filter, bson.M{"d.ru": req.ReceiverUID})
 		}
 		if len(req.BlockHash) != 0 {
 			filter = append(filter, bson.M{"_id": req.BlockHash})
 		}
 		if len(req.PreBlockHash) != 0 {
-			filter = append(filter, bson.M{"blockMeta.preBlockHash": req.PreBlockHash})
+			filter = append(filter, bson.M{"m.h": req.PreBlockHash})
 		}
 		if len(req.NodeUID) != 0 {
-			filter = append(filter, bson.M{"blockMeta.nodeUid": req.NodeUID})
+			filter = append(filter, bson.M{"m.nodeUid": req.NodeUID})
 		}
 		if req.TimeStampFrom != 0 || req.TimeStampTo != 0 {
 			timeFilter := bson.M{}
@@ -225,10 +225,10 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 			if req.TimeStampTo != 0 {
 				timeFilter["$lte"] = req.TimeStampTo
 			}
-			filter = append(filter, bson.M{"blockData.timeStamp": timeFilter})
+			filter = append(filter, bson.M{"d.t": timeFilter})
 		}
 		if len(req.UseContract) != 0 {
-			filter = append(filter, bson.M{"blockData.useContract": req.UseContract})
+			filter = append(filter, bson.M{"d.uc": req.UseContract})
 		}
 
 		blocks, err := db.FindManyBlocksLimited(bson.M{"$and": filter}, req.Skip, req.Limit)
