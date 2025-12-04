@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package node;
+
+option go_package = "blvchain/core/proto";
+
+// Block
+message BlockMeta {
+    bytes PreBlockHash = 1;
+    bytes NodeUID = 2;
+    int64 TimeStamp = 3;
+}
+message Contract {
+    bytes Name = 1;
+    bytes Version = 2;
+    bytes Language = 3;
+    bytes Compiler = 4;
+    bytes Description = 5;
+    bytes Checksum = 6;
+    bytes Author = 7;
+    bytes License = 8;
+}
+
+message BlockData {
+    bytes SenderUID = 1;
+    bytes SenderPubKey = 2;
+    bytes Signature = 3;
+    bytes ReceiverUID = 4;
+    bytes Data = 5;
+    bytes  ContractBase64 = 6;
+    bytes UseContract = 7;
+    Contract ContractData = 8;
+    int64  TimeStamp = 9;
+}
+message Block {
+    bytes    BlockHash = 1;
+    BlockMeta BlockMeta = 2;
+    BlockData BlockData = 3;
+}
+
+
+// Add data
+service AddData {
+    rpc addData (BlockData) returns (AddDataResult);
+}
+
+
+message AddDataResult {
+    bool   IsSuccess = 1;
+    string Log = 2;
+    bytes BlockHash = 3;
+}
+
+// Read data
+service ReadData {
+    rpc readData (ReadDataRequest) returns (ReadDataResult);
+}
+
+message ReadDataRequest {
+    int64  Limit = 1;
+    int64  Skip = 2;
+    bytes SenderUID = 3;
+    bytes SenderPubKey = 4;
+    bytes ReceiverUID = 5;
+    bytes BlockHash = 6;
+    bytes PreBlockHash = 7;
+    bytes NodeUID = 8;
+    int64  TimeStampFrom = 9;
+    int64  TimeStampTo = 10;
+    bytes UseContract = 11;
+    bytes UID = 12;
+}
+
+message ReadDataResult {
+    bool           IsSuccess = 1;
+    string         Log = 2;
+    repeated Block Data = 3;
+}
+

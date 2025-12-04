@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.10
 // 	protoc        v3.21.12
-// source: protos/gate.proto
+// source: proto/client.proto
 
 package proto
 
@@ -33,7 +33,7 @@ type BlockMeta struct {
 
 func (x *BlockMeta) Reset() {
 	*x = BlockMeta{}
-	mi := &file_protos_gate_proto_msgTypes[0]
+	mi := &file_proto_client_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -45,7 +45,7 @@ func (x *BlockMeta) String() string {
 func (*BlockMeta) ProtoMessage() {}
 
 func (x *BlockMeta) ProtoReflect() protoreflect.Message {
-	mi := &file_protos_gate_proto_msgTypes[0]
+	mi := &file_proto_client_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -58,7 +58,7 @@ func (x *BlockMeta) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BlockMeta.ProtoReflect.Descriptor instead.
 func (*BlockMeta) Descriptor() ([]byte, []int) {
-	return file_protos_gate_proto_rawDescGZIP(), []int{0}
+	return file_proto_client_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *BlockMeta) GetPreBlockHash() []byte {
@@ -98,7 +98,7 @@ type Contract struct {
 
 func (x *Contract) Reset() {
 	*x = Contract{}
-	mi := &file_protos_gate_proto_msgTypes[1]
+	mi := &file_proto_client_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -110,7 +110,7 @@ func (x *Contract) String() string {
 func (*Contract) ProtoMessage() {}
 
 func (x *Contract) ProtoReflect() protoreflect.Message {
-	mi := &file_protos_gate_proto_msgTypes[1]
+	mi := &file_proto_client_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -123,7 +123,7 @@ func (x *Contract) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Contract.ProtoReflect.Descriptor instead.
 func (*Contract) Descriptor() ([]byte, []int) {
-	return file_protos_gate_proto_rawDescGZIP(), []int{1}
+	return file_proto_client_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Contract) GetName() []byte {
@@ -199,7 +199,7 @@ type BlockData struct {
 
 func (x *BlockData) Reset() {
 	*x = BlockData{}
-	mi := &file_protos_gate_proto_msgTypes[2]
+	mi := &file_proto_client_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -211,7 +211,7 @@ func (x *BlockData) String() string {
 func (*BlockData) ProtoMessage() {}
 
 func (x *BlockData) ProtoReflect() protoreflect.Message {
-	mi := &file_protos_gate_proto_msgTypes[2]
+	mi := &file_proto_client_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -224,7 +224,7 @@ func (x *BlockData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BlockData.ProtoReflect.Descriptor instead.
 func (*BlockData) Descriptor() ([]byte, []int) {
-	return file_protos_gate_proto_rawDescGZIP(), []int{2}
+	return file_proto_client_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *BlockData) GetSenderUID() []byte {
@@ -301,7 +301,7 @@ type Block struct {
 
 func (x *Block) Reset() {
 	*x = Block{}
-	mi := &file_protos_gate_proto_msgTypes[3]
+	mi := &file_proto_client_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -313,7 +313,7 @@ func (x *Block) String() string {
 func (*Block) ProtoMessage() {}
 
 func (x *Block) ProtoReflect() protoreflect.Message {
-	mi := &file_protos_gate_proto_msgTypes[3]
+	mi := &file_proto_client_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -326,7 +326,7 @@ func (x *Block) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Block.ProtoReflect.Descriptor instead.
 func (*Block) Descriptor() ([]byte, []int) {
-	return file_protos_gate_proto_rawDescGZIP(), []int{3}
+	return file_proto_client_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Block) GetBlockHash() []byte {
@@ -361,7 +361,7 @@ type AddDataResult struct {
 
 func (x *AddDataResult) Reset() {
 	*x = AddDataResult{}
-	mi := &file_protos_gate_proto_msgTypes[4]
+	mi := &file_proto_client_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -373,7 +373,7 @@ func (x *AddDataResult) String() string {
 func (*AddDataResult) ProtoMessage() {}
 
 func (x *AddDataResult) ProtoReflect() protoreflect.Message {
-	mi := &file_protos_gate_proto_msgTypes[4]
+	mi := &file_proto_client_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -386,7 +386,7 @@ func (x *AddDataResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddDataResult.ProtoReflect.Descriptor instead.
 func (*AddDataResult) Descriptor() ([]byte, []int) {
-	return file_protos_gate_proto_rawDescGZIP(), []int{4}
+	return file_proto_client_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *AddDataResult) GetIsSuccess() bool {
@@ -430,7 +430,7 @@ type ReadDataRequest struct {
 
 func (x *ReadDataRequest) Reset() {
 	*x = ReadDataRequest{}
-	mi := &file_protos_gate_proto_msgTypes[5]
+	mi := &file_proto_client_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -442,7 +442,7 @@ func (x *ReadDataRequest) String() string {
 func (*ReadDataRequest) ProtoMessage() {}
 
 func (x *ReadDataRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_protos_gate_proto_msgTypes[5]
+	mi := &file_proto_client_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -455,7 +455,7 @@ func (x *ReadDataRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadDataRequest.ProtoReflect.Descriptor instead.
 func (*ReadDataRequest) Descriptor() ([]byte, []int) {
-	return file_protos_gate_proto_rawDescGZIP(), []int{5}
+	return file_proto_client_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ReadDataRequest) GetLimit() int64 {
@@ -553,7 +553,7 @@ type ReadDataResult struct {
 
 func (x *ReadDataResult) Reset() {
 	*x = ReadDataResult{}
-	mi := &file_protos_gate_proto_msgTypes[6]
+	mi := &file_proto_client_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -565,7 +565,7 @@ func (x *ReadDataResult) String() string {
 func (*ReadDataResult) ProtoMessage() {}
 
 func (x *ReadDataResult) ProtoReflect() protoreflect.Message {
-	mi := &file_protos_gate_proto_msgTypes[6]
+	mi := &file_proto_client_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -578,7 +578,7 @@ func (x *ReadDataResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadDataResult.ProtoReflect.Descriptor instead.
 func (*ReadDataResult) Descriptor() ([]byte, []int) {
-	return file_protos_gate_proto_rawDescGZIP(), []int{6}
+	return file_proto_client_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ReadDataResult) GetIsSuccess() bool {
@@ -602,11 +602,11 @@ func (x *ReadDataResult) GetData() []*Block {
 	return nil
 }
 
-var File_protos_gate_proto protoreflect.FileDescriptor
+var File_proto_client_proto protoreflect.FileDescriptor
 
-const file_protos_gate_proto_rawDesc = "" +
+const file_proto_client_proto_rawDesc = "" +
 	"\n" +
-	"\x11protos/gate.proto\x12\x04gate\"g\n" +
+	"\x12proto/client.proto\x12\x06client\"g\n" +
 	"\tBlockMeta\x12\"\n" +
 	"\fPreBlockHash\x18\x01 \x01(\fR\fPreBlockHash\x12\x18\n" +
 	"\aNodeUID\x18\x02 \x01(\fR\aNodeUID\x12\x1c\n" +
@@ -619,7 +619,7 @@ const file_protos_gate_proto_rawDesc = "" +
 	"\vDescription\x18\x05 \x01(\fR\vDescription\x12\x1a\n" +
 	"\bChecksum\x18\x06 \x01(\fR\bChecksum\x12\x16\n" +
 	"\x06Author\x18\a \x01(\fR\x06Author\x12\x18\n" +
-	"\aLicense\x18\b \x01(\fR\aLicense\"\xbd\x02\n" +
+	"\aLicense\x18\b \x01(\fR\aLicense\"\xbf\x02\n" +
 	"\tBlockData\x12\x1c\n" +
 	"\tSenderUID\x18\x01 \x01(\fR\tSenderUID\x12\"\n" +
 	"\fSenderPubKey\x18\x02 \x01(\fR\fSenderPubKey\x12\x1c\n" +
@@ -627,13 +627,13 @@ const file_protos_gate_proto_rawDesc = "" +
 	"\vReceiverUID\x18\x04 \x01(\fR\vReceiverUID\x12\x12\n" +
 	"\x04Data\x18\x05 \x01(\fR\x04Data\x12&\n" +
 	"\x0eContractBase64\x18\x06 \x01(\fR\x0eContractBase64\x12 \n" +
-	"\vUseContract\x18\a \x01(\fR\vUseContract\x122\n" +
-	"\fContractData\x18\b \x01(\v2\x0e.gate.ContractR\fContractData\x12\x1c\n" +
-	"\tTimeStamp\x18\t \x01(\x03R\tTimeStamp\"\x83\x01\n" +
+	"\vUseContract\x18\a \x01(\fR\vUseContract\x124\n" +
+	"\fContractData\x18\b \x01(\v2\x10.client.ContractR\fContractData\x12\x1c\n" +
+	"\tTimeStamp\x18\t \x01(\x03R\tTimeStamp\"\x87\x01\n" +
 	"\x05Block\x12\x1c\n" +
-	"\tBlockHash\x18\x01 \x01(\fR\tBlockHash\x12-\n" +
-	"\tBlockMeta\x18\x02 \x01(\v2\x0f.gate.BlockMetaR\tBlockMeta\x12-\n" +
-	"\tBlockData\x18\x03 \x01(\v2\x0f.gate.BlockDataR\tBlockData\"]\n" +
+	"\tBlockHash\x18\x01 \x01(\fR\tBlockHash\x12/\n" +
+	"\tBlockMeta\x18\x02 \x01(\v2\x11.client.BlockMetaR\tBlockMeta\x12/\n" +
+	"\tBlockData\x18\x03 \x01(\v2\x11.client.BlockDataR\tBlockData\"]\n" +
 	"\rAddDataResult\x12\x1c\n" +
 	"\tIsSuccess\x18\x01 \x01(\bR\tIsSuccess\x12\x10\n" +
 	"\x03Log\x18\x02 \x01(\tR\x03Log\x12\x1c\n" +
@@ -651,47 +651,47 @@ const file_protos_gate_proto_rawDesc = "" +
 	"\vTimeStampTo\x18\n" +
 	" \x01(\x03R\vTimeStampTo\x12 \n" +
 	"\vUseContract\x18\v \x01(\fR\vUseContract\x12\x10\n" +
-	"\x03UID\x18\f \x01(\fR\x03UID\"a\n" +
+	"\x03UID\x18\f \x01(\fR\x03UID\"c\n" +
 	"\x0eReadDataResult\x12\x1c\n" +
 	"\tIsSuccess\x18\x01 \x01(\bR\tIsSuccess\x12\x10\n" +
-	"\x03Log\x18\x02 \x01(\tR\x03Log\x12\x1f\n" +
-	"\x04Data\x18\x03 \x03(\v2\v.gate.BlockR\x04Data2:\n" +
-	"\aAddData\x12/\n" +
-	"\aaddData\x12\x0f.gate.BlockData\x1a\x13.gate.AddDataResult2C\n" +
-	"\bReadData\x127\n" +
-	"\breadData\x12\x15.gate.ReadDataRequest\x1a\x14.gate.ReadDataResultB\x16Z\x14blvchain/core/protosb\x06proto3"
+	"\x03Log\x18\x02 \x01(\tR\x03Log\x12!\n" +
+	"\x04Data\x18\x03 \x03(\v2\r.client.BlockR\x04Data2>\n" +
+	"\aAddData\x123\n" +
+	"\aaddData\x12\x11.client.BlockData\x1a\x15.client.AddDataResult2G\n" +
+	"\bReadData\x12;\n" +
+	"\breadData\x12\x17.client.ReadDataRequest\x1a\x16.client.ReadDataResultB\x15Z\x13blvchain/core/protob\x06proto3"
 
 var (
-	file_protos_gate_proto_rawDescOnce sync.Once
-	file_protos_gate_proto_rawDescData []byte
+	file_proto_client_proto_rawDescOnce sync.Once
+	file_proto_client_proto_rawDescData []byte
 )
 
-func file_protos_gate_proto_rawDescGZIP() []byte {
-	file_protos_gate_proto_rawDescOnce.Do(func() {
-		file_protos_gate_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_protos_gate_proto_rawDesc), len(file_protos_gate_proto_rawDesc)))
+func file_proto_client_proto_rawDescGZIP() []byte {
+	file_proto_client_proto_rawDescOnce.Do(func() {
+		file_proto_client_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_client_proto_rawDesc), len(file_proto_client_proto_rawDesc)))
 	})
-	return file_protos_gate_proto_rawDescData
+	return file_proto_client_proto_rawDescData
 }
 
-var file_protos_gate_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
-var file_protos_gate_proto_goTypes = []any{
-	(*BlockMeta)(nil),       // 0: gate.BlockMeta
-	(*Contract)(nil),        // 1: gate.Contract
-	(*BlockData)(nil),       // 2: gate.BlockData
-	(*Block)(nil),           // 3: gate.Block
-	(*AddDataResult)(nil),   // 4: gate.AddDataResult
-	(*ReadDataRequest)(nil), // 5: gate.ReadDataRequest
-	(*ReadDataResult)(nil),  // 6: gate.ReadDataResult
+var file_proto_client_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_proto_client_proto_goTypes = []any{
+	(*BlockMeta)(nil),       // 0: client.BlockMeta
+	(*Contract)(nil),        // 1: client.Contract
+	(*BlockData)(nil),       // 2: client.BlockData
+	(*Block)(nil),           // 3: client.Block
+	(*AddDataResult)(nil),   // 4: client.AddDataResult
+	(*ReadDataRequest)(nil), // 5: client.ReadDataRequest
+	(*ReadDataResult)(nil),  // 6: client.ReadDataResult
 }
-var file_protos_gate_proto_depIdxs = []int32{
-	1, // 0: gate.BlockData.ContractData:type_name -> gate.Contract
-	0, // 1: gate.Block.BlockMeta:type_name -> gate.BlockMeta
-	2, // 2: gate.Block.BlockData:type_name -> gate.BlockData
-	3, // 3: gate.ReadDataResult.Data:type_name -> gate.Block
-	2, // 4: gate.AddData.addData:input_type -> gate.BlockData
-	5, // 5: gate.ReadData.readData:input_type -> gate.ReadDataRequest
-	4, // 6: gate.AddData.addData:output_type -> gate.AddDataResult
-	6, // 7: gate.ReadData.readData:output_type -> gate.ReadDataResult
+var file_proto_client_proto_depIdxs = []int32{
+	1, // 0: client.BlockData.ContractData:type_name -> client.Contract
+	0, // 1: client.Block.BlockMeta:type_name -> client.BlockMeta
+	2, // 2: client.Block.BlockData:type_name -> client.BlockData
+	3, // 3: client.ReadDataResult.Data:type_name -> client.Block
+	2, // 4: client.AddData.addData:input_type -> client.BlockData
+	5, // 5: client.ReadData.readData:input_type -> client.ReadDataRequest
+	4, // 6: client.AddData.addData:output_type -> client.AddDataResult
+	6, // 7: client.ReadData.readData:output_type -> client.ReadDataResult
 	6, // [6:8] is the sub-list for method output_type
 	4, // [4:6] is the sub-list for method input_type
 	4, // [4:4] is the sub-list for extension type_name
@@ -699,26 +699,26 @@ var file_protos_gate_proto_depIdxs = []int32{
 	0, // [0:4] is the sub-list for field type_name
 }
 
-func init() { file_protos_gate_proto_init() }
-func file_protos_gate_proto_init() {
-	if File_protos_gate_proto != nil {
+func init() { file_proto_client_proto_init() }
+func file_proto_client_proto_init() {
+	if File_proto_client_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_protos_gate_proto_rawDesc), len(file_protos_gate_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_client_proto_rawDesc), len(file_proto_client_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   2,
 		},
-		GoTypes:           file_protos_gate_proto_goTypes,
-		DependencyIndexes: file_protos_gate_proto_depIdxs,
-		MessageInfos:      file_protos_gate_proto_msgTypes,
+		GoTypes:           file_proto_client_proto_goTypes,
+		DependencyIndexes: file_proto_client_proto_depIdxs,
+		MessageInfos:      file_proto_client_proto_msgTypes,
 	}.Build()
-	File_protos_gate_proto = out.File
-	file_protos_gate_proto_goTypes = nil
-	file_protos_gate_proto_depIdxs = nil
+	File_proto_client_proto = out.File
+	file_proto_client_proto_goTypes = nil
+	file_proto_client_proto_depIdxs = nil
 }

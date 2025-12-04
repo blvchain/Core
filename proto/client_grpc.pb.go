@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v3.21.12
-// source: protos/gate.proto
+// source: proto/client.proto
 
 package proto
 
@@ -19,7 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AddData_AddData_FullMethodName = "/gate.AddData/addData"
+	AddData_AddData_FullMethodName = "/client.AddData/addData"
 )
 
 // AddDataClient is the client API for AddData service.
@@ -112,7 +112,7 @@ func _AddData_AddData_Handler(srv interface{}, ctx context.Context, dec func(int
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var AddData_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "gate.AddData",
+	ServiceName: "client.AddData",
 	HandlerType: (*AddDataServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -121,11 +121,11 @@ var AddData_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "protos/gate.proto",
+	Metadata: "proto/client.proto",
 }
 
 const (
-	ReadData_ReadData_FullMethodName = "/gate.ReadData/readData"
+	ReadData_ReadData_FullMethodName = "/client.ReadData/readData"
 )
 
 // ReadDataClient is the client API for ReadData service.
@@ -218,7 +218,7 @@ func _ReadData_ReadData_Handler(srv interface{}, ctx context.Context, dec func(i
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ReadData_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "gate.ReadData",
+	ServiceName: "client.ReadData",
 	HandlerType: (*ReadDataServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -227,5 +227,5 @@ var ReadData_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "protos/gate.proto",
+	Metadata: "proto/client.proto",
 }
