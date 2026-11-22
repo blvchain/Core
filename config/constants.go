@@ -56,6 +56,37 @@ const (
 	MIN_LIMIT_OF_DATA_SYNC = 1
 	SYNC_DATA_SLEEP_TIME   = 5
 
+	// Inventory-based sync bounds (NET-1). Every sync request is bounded so a
+	// peer cannot make the node allocate without limit.
+	//
+	// SYNC_INVENTORY_PAGE_SIZE is how many block IDs one "inventory" reply may
+	// contain. SYNC_BLOCK_BATCH_SIZE is how many blocks one "getblocks" request
+	// may ask for. SYNC_MAX_BLOCKS_PER_ROUND caps the total number of blocks a
+	// single node pulls from one peer per round; the rest arrive on the next
+	// round, so a huge backlog cannot pin the sync loop.
+	SYNC_INVENTORY_PAGE_SIZE  int64 = 256
+	SYNC_BLOCK_BATCH_SIZE     int   = 64
+	SYNC_MAX_BLOCKS_PER_ROUND int   = 1000
+	// SYNC_MAX_PENDING_PASSES bounds the dependency-ordering passes used when
+	// merging a batch whose predecessors may also be in the batch.
+	SYNC_MAX_PENDING_PASSES int = 8
+	// SYNC_MAX_INVENTORY_PAGES_PER_ROUND bounds how many inventory pages one
+	// peer may serve in a single round. A peer with a very large chain is
+	// reconciled over several rounds instead of monopolising the sync loop.
+	SYNC_MAX_INVENTORY_PAGES_PER_ROUND int = 20
+
+	// WebSocket denial-of-service limits (NET-4).
+	WS_MAX_CONNECTIONS         = 32
+	WS_MAX_GETBLOCKS_IDS       = 256
+	WS_HANDSHAKE_TIMEOUT       = 10 * time.Second
+	WS_MESSAGES_PER_SECOND int = 20
+	WS_MESSAGE_BURST       int = 40
+
+	// Default client-timestamp skew for AddData, in milliseconds (24h). A
+	// client clock may legitimately differ from the node's; this is a sanity
+	// window, not a consensus rule. Override with TIMESTAMP_SKEW_MS.
+	DEFAULT_TIMESTAMP_SKEW_MS int64 = 24 * 60 * 60 * 1000
+
 	// Smart contract
 	SMART_CONTRACT_FUNCTION_NAME string = "smart_contract"
 

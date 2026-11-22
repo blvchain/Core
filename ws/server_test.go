@@ -10,6 +10,8 @@ import (
 
 	"blvchain/core/config"
 	"blvchain/core/db"
+	"blvchain/core/db/dbtest"
+	"blvchain/core/utils"
 
 	"github.com/gorilla/websocket"
 	"go.mongodb.org/mongo-driver/bson"
@@ -75,22 +77,19 @@ func TestHandleAddBlock(t *testing.T) {
 	if !res.IsSuccess {
 		t.Fatalf("handleAddBlock rejected a valid block")
 	}
-	if res.Block.Boycott {
-		t.Fatal("a valid block must not be boycotted")
-	}
 
 	blocks, err := db.FindAllBlocks(bson.M{"_id": block.ID})
 	if err != nil || len(blocks) != 1 {
 		t.Fatalf("block was not stored: %v (%d)", err, len(blocks))
 	}
 
-	// A duplicate must be rejected.
-	if duplicate := handleAddBlock("node_2_test", block); duplicate.IsSuccess {
-		t.Fatal("handleAddBlock accepted a duplicate")
+	// A duplicate must be accepted idempotently.
+	if duplicate := handleAddBlock("node_2_test", block); !duplicate.IsSuccess {
+		t.Fatal("handleAddBlock rejected a duplicate instead of treating it as success")
 	}
 }
 
-func TestHandleAddBlockQuarantinesInvalidSignatures(t *testing.T) {
+func TestHandleAddBlockDropsInvalidSignatures(t *testing.T) {
 	resetStore(t)
 
 	sender := newIdentity(t)
@@ -100,11 +99,11 @@ func TestHandleAddBlockQuarantinesInvalidSignatures(t *testing.T) {
 	db.BlockHashMaker(&block, block.BlockMeta.NodeUID)
 
 	res := handleAddBlock("node_2_test", block)
-	if !res.IsSuccess {
-		t.Fatal("handleAddBlock should store the block with Boycott=true")
+	if res.IsSuccess {
+		t.Fatal("handleAddBlock accepted a block with an invalid signature")
 	}
-	if !res.Block.Boycott {
-		t.Fatal("a block with an invalid signature must be boycotted")
+	if blocks, _ := db.FindAllBlocks(bson.M{}); len(blocks) != 0 {
+		t.Fatalf("a signature-invalid block was persisted (%d blocks)", len(blocks))
 	}
 }
 
@@ -124,89 +123,198 @@ func TestHandleAddBlockRejectsMalformed(t *testing.T) {
 	}
 }
 
-func TestHandleSyncBlocks(t *testing.T) {
+func TestHandleInventoryAndGetBlocks(t *testing.T) {
 	resetStore(t)
 
 	sender := newIdentity(t)
 	receiver := newIdentity(t)
 
 	genesis := db.MakeGenesisBlock()
-	old := makeBlock(t, sender, receiver, "old", 1700000000010)
-	recent := makeBlock(t, sender, receiver, "recent", 1700000000020)
-	for _, block := range []db.Block{genesis, old, recent} {
+	b1 := makeBlock(t, sender, receiver, "one", 1700000000010)
+	b2 := makeBlock(t, sender, receiver, "two", 1700000000020)
+	for _, block := range []db.Block{genesis, b1, b2} {
 		if ok, err := db.InsertOneBlock(block); !ok || err != nil {
 			t.Fatalf("insert: %v %v", ok, err)
 		}
 	}
 
-	res := handleSyncBlocks("node_2_test", db.Block{BlockMeta: db.BlockMeta{TimeStamp: old.BlockMeta.TimeStamp}})
-	if !res.IsSuccess {
-		t.Fatal("handleSyncBlocks should succeed")
+	first := handleInventory("")
+	if !first.IsSuccess {
+		t.Fatal("handleInventory failed")
+	}
+	if len(first.IDs) != 3 {
+		t.Fatalf("inventory returned %d IDs, want 3", len(first.IDs))
+	}
+	if first.HasMore {
+		t.Fatal("inventory reported more pages for a single page of results")
 	}
 
-	// The genesis block (preBlockHash == zero hash) is never replicated.
-	for _, block := range res.Blocks {
-		if block.ID == genesis.ID {
-			t.Fatal("handleSyncBlocks returned the genesis block")
+	// IDs must be strictly ascending, which is what makes cursor paging stable.
+	for i := 1; i < len(first.IDs); i++ {
+		if first.IDs[i-1] >= first.IDs[i] {
+			t.Fatalf("inventory IDs are not ascending: %q then %q", first.IDs[i-1], first.IDs[i])
 		}
 	}
-	if len(res.Blocks) == 0 {
-		t.Fatal("handleSyncBlocks returned no blocks")
+
+	// Paging from the last ID returns nothing.
+	next := handleInventory(first.IDs[len(first.IDs)-1])
+	if !next.IsSuccess || len(next.IDs) != 0 || next.HasMore {
+		t.Fatalf("inventory after the last ID = %+v", next)
 	}
 
-	// Nothing newer than the newest block.
-	tip := db.Block{ID: recent.ID, BlockMeta: db.BlockMeta{TimeStamp: recent.BlockMeta.TimeStamp}}
-	if latest := handleSyncBlocks("node_2_test", tip); latest.IsSuccess {
-		t.Fatalf("handleSyncBlocks reported success with no new blocks")
+	blocks := handleGetBlocks(first.IDs)
+	if !blocks.IsSuccess || len(blocks.Blocks) != 3 {
+		t.Fatalf("getblocks returned %+v", blocks)
 	}
 }
 
-func TestFilterNewBlocks(t *testing.T) {
+func TestMergeBlocksDropsInvalid(t *testing.T) {
 	resetStore(t)
 
 	sender := newIdentity(t)
 	receiver := newIdentity(t)
 
 	valid := makeBlock(t, sender, receiver, "valid", 1700000000100)
-	known := makeBlock(t, sender, receiver, "known", 1700000000101)
-	badSignature := makeBlock(t, sender, receiver, "bad", 1700000000102)
+	relink(t, &valid, config.FIRST_BLOCK_HASH)
+	if err := db.BlockValidator(valid); err != nil {
+		t.Fatalf("valid block does not validate: %v", err)
+	}
+
+	badSignature := makeBlock(t, sender, receiver, "bad", 1700000000101)
 	badSignature.BlockData.Signature = strings.Repeat("0", 128)
 	db.BlockHashMaker(&badSignature, badSignature.BlockMeta.NodeUID)
 
-	malformed := makeBlock(t, sender, receiver, "malformed", 1700000000103)
+	malformed := makeBlock(t, sender, receiver, "malformed", 1700000000102)
 	malformed.ID = "broken"
 
-	contract := makeBlock(t, sender, receiver, "contract", 1700000000104)
-	contract.BlockData.UseContract = strings.Repeat("a", 66)
-	contract.BlockData.ContractData = db.Contract{Name: "counter", Checksum: strings.Repeat("b", 64)}
-	db.BlockHashMaker(&contract, contract.BlockMeta.NodeUID)
+	inserted := mergeBlocks([]db.Block{valid, badSignature, malformed}, "node_2_test")
+	if inserted != 1 {
+		t.Fatalf("mergeBlocks inserted %d blocks, want 1", inserted)
+	}
+	if blocks, _ := db.FindAllBlocks(bson.M{}); len(blocks) != 1 || blocks[0].ID != valid.ID {
+		t.Fatalf("unexpected stored blocks: %+v", blocks)
+	}
+}
 
-	if ok, err := db.InsertOneBlock(known); !ok || err != nil {
-		t.Fatalf("insert: %v %v", ok, err)
+func TestMergeBlocksDefersUnknownPredecessor(t *testing.T) {
+	resetStore(t)
+
+	genesis := db.MakeGenesisBlock()
+	sender := newIdentity(t)
+	receiver := newIdentity(t)
+
+	b1 := makeBlock(t, sender, receiver, "one", 1700000000200)
+	relink(t, &b1, genesis.ID)
+
+	b2 := makeBlock(t, sender, receiver, "two", 1700000000210)
+	relink(t, &b2, b1.ID)
+
+	if ok, err := db.InsertOneBlock(genesis); !ok || err != nil {
+		t.Fatalf("insert genesis: %v %v", ok, err)
 	}
 
-	received := []db.Block{valid, known, badSignature, malformed, contract}
-	got := filterNewBlocks(received, "node_2_test")
-
-	if len(got) != 3 {
-		t.Fatalf("filterNewBlocks returned %d blocks, want 3", len(got))
+	// b2 arrives before b1: its predecessor is unknown, so it must be deferred.
+	if inserted := mergeBlocks([]db.Block{b2}, "node_2_test"); inserted != 0 {
+		t.Fatalf("mergeBlocks stored a block with an unknown predecessor")
+	}
+	if blocks, _ := db.FindAllBlocks(bson.M{}); len(blocks) != 1 {
+		t.Fatalf("deferred block was persisted: %d blocks", len(blocks))
 	}
 
-	byID := map[string]db.Block{}
-	for _, block := range got {
-		byID[block.ID] = block
+	// Once b1 arrives, b2 becomes valid on a later round.
+	if inserted := mergeBlocks([]db.Block{b1}, "node_2_test"); inserted != 1 {
+		t.Fatalf("mergeBlocks did not store b1")
+	}
+	if inserted := mergeBlocks([]db.Block{b2}, "node_2_test"); inserted != 1 {
+		t.Fatalf("mergeBlocks did not store b2 after its predecessor arrived")
+	}
+}
+
+// TestSyncReconcilesMissingEarlierRecords is the regression test for NET-1.
+//
+// Node B holds a later block (b3) but is missing earlier ones (b1, b2). The old
+// timestamp sync asked "what is newer than my tip?" and would therefore never
+// return b1/b2, permanently diverging. The inventory exchange returns every ID,
+// so B discovers b1/b2 and pulls them explicitly.
+func TestSyncReconcilesMissingEarlierRecords(t *testing.T) {
+	genesis := db.MakeGenesisBlock()
+	sender := newIdentity(t)
+	receiver := newIdentity(t)
+
+	b1 := makeBlock(t, sender, receiver, "one", 1700000000300)
+	relink(t, &b1, genesis.ID)
+
+	b2 := makeBlock(t, sender, receiver, "two", 1700000000310)
+	relink(t, &b2, b1.ID)
+
+	b3 := makeBlock(t, sender, receiver, "three", 1700000000320)
+	relink(t, &b3, b2.ID)
+
+	// Node A has the full chain.
+	storeA := dbtest.New()
+	db.SetCollection(storeA)
+	for _, block := range []db.Block{genesis, b1, b2, b3} {
+		if ok, err := db.InsertOneBlock(block); !ok || err != nil {
+			t.Fatalf("seed A: %v %v", ok, err)
+		}
 	}
 
-	if _, ok := byID[known.ID]; ok {
-		t.Error("filterNewBlocks returned a block the node already has")
+	// Node B has only the genesis and the *latest* block.
+	storeB := dbtest.New()
+	db.SetCollection(storeB)
+	for _, block := range []db.Block{genesis, b3} {
+		if ok, err := db.InsertOneBlock(block); !ok || err != nil {
+			t.Fatalf("seed B: %v %v", ok, err)
+		}
 	}
-	if block, ok := byID[badSignature.ID]; !ok || !block.Boycott {
-		t.Error("a block with an invalid signature should be kept and boycotted")
+	t.Cleanup(db.ResetCollection)
+
+	// While A is the active store, page its inventory and fetch what B lacks.
+	db.SetCollection(storeA)
+	inventory := handleInventory("")
+	if !inventory.IsSuccess {
+		t.Fatal("inventory failed")
 	}
-	if block, ok := byID[contract.ID]; !ok {
-		t.Fatal("the contract block was dropped")
-	} else if block.BlockData.UseContract == "" || block.BlockData.ContractData.Name != "counter" {
-		t.Fatalf("sync dropped the contract metadata: %+v", block.BlockData)
+
+	bHas := map[string]bool{genesis.ID: true, b3.ID: true}
+	var missing []string
+	for _, id := range inventory.IDs {
+		if !bHas[id] {
+			missing = append(missing, id)
+		}
+	}
+	if len(missing) != 2 {
+		t.Fatalf("B is missing %d blocks, want 2 (b1 and b2)", len(missing))
+	}
+
+	fetched := handleGetBlocks(missing)
+	if !fetched.IsSuccess || len(fetched.Blocks) != 2 {
+		t.Fatalf("getblocks returned %+v", fetched)
+	}
+
+	// Now merge into B.
+	db.SetCollection(storeB)
+	inserted := mergeBlocks(fetched.Blocks, "node_2_test")
+	if inserted != 2 {
+		t.Fatalf("mergeBlocks inserted %d blocks, want 2", inserted)
+	}
+	if blocks, _ := db.FindAllBlocks(bson.M{}); len(blocks) != 4 {
+		t.Fatalf("B has %d blocks after sync, want 4", len(blocks))
+	}
+
+	// Re-running the same merge is a no-op (idempotent replication).
+	if inserted := mergeBlocks(fetched.Blocks, "node_2_test"); inserted != 0 {
+		t.Fatalf("a repeated merge inserted %d blocks, want 0", inserted)
+	}
+}
+
+// relink points a block at a new predecessor and re-signs it, because the
+// predecessor is covered by the node signature.
+func relink(t *testing.T, block *db.Block, preHash string) {
+	t.Helper()
+	block.BlockMeta.PreBlockHash = preHash
+	if err := db.SignBlock(block, config.NODE_PRIVATE_KEY); err != nil {
+		t.Fatalf("re-sign block: %v", err)
 	}
 }
 
@@ -247,17 +355,44 @@ func TestWSHandlerEndToEnd(t *testing.T) {
 		t.Fatalf("get response = %+v", getRes)
 	}
 
-	// --- sync ---
-	tip := db.Block{BlockMeta: db.BlockMeta{TimeStamp: block.BlockMeta.TimeStamp - 1}}
-	if err := writeRequest(conn, WS_Req{Method: MethodSync, Block: tip}); err != nil {
-		t.Fatalf("write sync: %v", err)
+	// --- inventory + getblocks (the sync path) ---
+	if err := writeRequest(conn, WS_Req{Method: MethodInventory}); err != nil {
+		t.Fatalf("write inventory: %v", err)
 	}
-	var syncRes WS_Sync_Res
-	if err := readResponse(conn, &syncRes); err != nil {
-		t.Fatalf("read sync response: %v", err)
+	var invRes WS_Inventory_Res
+	if err := readResponse(conn, &invRes); err != nil {
+		t.Fatalf("read inventory response: %v", err)
 	}
-	if !syncRes.IsSuccess || len(syncRes.Blocks) != 1 {
-		t.Fatalf("sync response = %+v", syncRes)
+	if !invRes.IsSuccess || len(invRes.IDs) != 1 || invRes.IDs[0] != block.ID {
+		t.Fatalf("inventory response = %+v", invRes)
+	}
+
+	if err := writeRequest(conn, WS_Req{Method: MethodGetBlocks, IDs: invRes.IDs}); err != nil {
+		t.Fatalf("write getblocks: %v", err)
+	}
+	var blocksRes WS_Blocks_Res
+	if err := readResponse(conn, &blocksRes); err != nil {
+		t.Fatalf("read getblocks response: %v", err)
+	}
+	if !blocksRes.IsSuccess || len(blocksRes.Blocks) != 1 {
+		t.Fatalf("getblocks response = %+v", blocksRes)
+	}
+}
+
+func TestWSHandlerRejectsUnauthenticatedPeer(t *testing.T) {
+	resetStore(t)
+
+	server := httptest.NewServer(http.HandlerFunc(WS_Server_Handler))
+	defer server.Close()
+
+	// The X-UID header passes the cheap pre-upgrade filter, but the peer cannot
+	// complete the handshake without node_2's private key.
+	conn, err := dialPeerWithKey(server.URL, "node_2_test", node1Priv)
+	if err == nil {
+		t.Fatal("the server accepted a peer that could not sign the challenge")
+	}
+	if conn != nil {
+		defer conn.Close()
 	}
 }
 
@@ -283,14 +418,78 @@ func TestWSHandlerClosesOnMalformedJSON(t *testing.T) {
 	}
 }
 
+func TestWSHandlerRateLimitsFlooding(t *testing.T) {
+	resetStore(t)
+
+	server := httptest.NewServer(http.HandlerFunc(WS_Server_Handler))
+	defer server.Close()
+
+	conn := dialPeer(t, server.URL, "node_2_test")
+	defer conn.Close()
+
+	// The per-peer token bucket allows a burst and then closes the connection.
+	closed := false
+	for i := 0; i < 200; i++ {
+		if err := writeRequest(conn, WS_Req{Method: MethodInventory}); err != nil {
+			closed = true
+			break
+		}
+		var res WS_Inventory_Res
+		if err := readResponse(conn, &res); err != nil {
+			closed = true
+			break
+		}
+	}
+	if !closed {
+		t.Fatal("the server kept serving a peer that flooded it with requests")
+	}
+}
+
+func TestWSHandlerRejectsOversizedMessage(t *testing.T) {
+	resetStore(t)
+
+	server := httptest.NewServer(http.HandlerFunc(WS_Server_Handler))
+	defer server.Close()
+
+	conn := dialPeer(t, server.URL, "node_2_test")
+	defer conn.Close()
+
+	// One byte over the configured read limit.
+	oversized := make([]byte, config.WS_READ_LIMIT_BYTES+1024)
+	_ = conn.WriteMessage(websocket.TextMessage, oversized)
+
+	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	for {
+		if _, _, err := conn.ReadMessage(); err != nil {
+			return
+		}
+	}
+}
+
 func TestServerManagerBroadcast(t *testing.T) {
 	// A broadcast to zero clients must be a no-op rather than a panic.
 	ServerManagerVar.BroadcastMessageFromLocalServer(map[string]string{"hello": "world"})
 }
 
+// ---------------------------------------------------------------------------
+// Handshake helpers
+// ---------------------------------------------------------------------------
+
 func dialPeer(t *testing.T, httpURL, uid string) *websocket.Conn {
 	t.Helper()
 
+	priv := node2Priv
+	if uid == config.SELF_UID {
+		priv = node1Priv
+	}
+	conn, err := dialPeerWithKey(httpURL, uid, priv)
+	if err != nil {
+		t.Fatalf("handshake as %s: %v", uid, err)
+	}
+	return conn
+}
+
+func dialPeerWithKey(httpURL, uid, priv string) (*websocket.Conn, error) {
 	wsURL := "ws" + strings.TrimPrefix(httpURL, "http")
 
 	header := http.Header{}
@@ -298,18 +497,69 @@ func dialPeer(t *testing.T, httpURL, uid string) *websocket.Conn {
 
 	conn, _, err := websocket.DefaultDialer.Dial(wsURL, header)
 	if err != nil {
-		t.Fatalf("dial %s: %v", wsURL, err)
+		return nil, err
 	}
-	return conn
+
+	// Complete the challenge/response handshake as uid.
+	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	_, data, err := conn.ReadMessage()
+	if err != nil {
+		return conn, err
+	}
+	var challenge WS_Challenge
+	if err := json.Unmarshal(data, &challenge); err != nil {
+		return conn, err
+	}
+	if challenge.Method != MethodChallenge {
+		return conn, errUnexpectedChallenge
+	}
+
+	pub, err := utils.DerivePubKeyHex(priv)
+	if err != nil {
+		return conn, err
+	}
+	signature, err := utils.Sign(priv, authMessage(challenge.Nonce, uid, pub))
+	if err != nil {
+		return conn, err
+	}
+	if err := writeJSON(conn, WS_Auth{Method: MethodAuth, UID: uid, PubKey: pub, Signature: signature}); err != nil {
+		return conn, err
+	}
+
+	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	_, data, err = conn.ReadMessage()
+	if err != nil {
+		return conn, err
+	}
+	var res WS_Auth_Res
+	if err := json.Unmarshal(data, &res); err != nil {
+		return conn, err
+	}
+	if !res.IsSuccess {
+		return conn, errAuthenticationRejected
+	}
+
+	return conn, nil
 }
 
-func writeRequest(conn *websocket.Conn, req WS_Req) error {
-	data, err := json.Marshal(req)
+var (
+	errUnexpectedChallenge    = errTest("server did not send a challenge")
+	errAuthenticationRejected = errTest("authentication rejected")
+)
+
+type errTest string
+
+func (e errTest) Error() string { return string(e) }
+
+func writeJSON(conn *websocket.Conn, v any) error {
+	data, err := json.Marshal(v)
 	if err != nil {
 		return err
 	}
 	return conn.WriteMessage(websocket.TextMessage, data)
 }
+
+func writeRequest(conn *websocket.Conn, req WS_Req) error { return writeJSON(conn, req) }
 
 func readResponse(conn *websocket.Conn, out any) error {
 	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))

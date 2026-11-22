@@ -58,11 +58,14 @@ func makeBlock(t *testing.T, sender identity, receiverUID, data string, preHash 
 		Boycott: false,
 		BlockMeta: BlockMeta{
 			PreBlockHash: preHash,
+			NodeUID:      config.SELF_UID,
 			TimeStamp:    blockData.TimeStamp,
 		},
 		BlockData: blockData,
 	}
-	BlockHashMaker(&block, config.SELF_UID)
+	if err := SignBlock(&block, config.NODE_PRIVATE_KEY); err != nil {
+		t.Fatalf("sign block: %v", err)
+	}
 	return block
 }
 
@@ -110,6 +113,43 @@ func TestBlockHashMakerCoversEveryField(t *testing.T) {
 		if tampered.ID == base.ID {
 			t.Errorf("changing %s did not change the block ID", name)
 		}
+	}
+}
+
+func TestBlockValidatorRejectsTamperedNodeMetadata(t *testing.T) {
+	sender := newIdentity(t)
+	receiver := newIdentity(t)
+	block := makeBlock(t, sender, receiver.uid, "hello chain", strings.Repeat("0", 64))
+
+	// The predecessor is covered by the node signature. Changing it and
+	// recomputing the block ID must invalidate the attestation.
+	block.BlockMeta.PreBlockHash = strings.Repeat("f", 64)
+	BlockHashMaker(&block, block.BlockMeta.NodeUID)
+
+	if err := BlockValidator(block); err == nil {
+		t.Fatal("BlockValidator accepted a block whose node metadata was changed after signing")
+	}
+}
+
+func TestBlockValidatorRejectsUnknownNode(t *testing.T) {
+	sender := newIdentity(t)
+	receiver := newIdentity(t)
+	block := makeBlock(t, sender, receiver.uid, "hello chain", strings.Repeat("0", 64))
+
+	// Sign as a node that is not pinned in dns_seed.json. The block is
+	// internally consistent (hash and client signature valid) but its
+	// provenance cannot be trusted.
+	otherPriv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("generate key: %v", err)
+	}
+	block.BlockMeta.NodeUID = "node_not_in_dns_seed"
+	if err := SignBlock(&block, utils.PrivateKeyHex(otherPriv)); err != nil {
+		t.Fatalf("sign block: %v", err)
+	}
+
+	if err := BlockValidator(block); err == nil {
+		t.Fatal("BlockValidator accepted a block signed by an unknown node")
 	}
 }
 
@@ -293,8 +333,8 @@ func TestMessageMakerIncludesContractFields(t *testing.T) {
 }
 
 func TestMessageMakerPinsTheWireFormat(t *testing.T) {
-	// The signed message is a plain concatenation of the fields. This test pins
-	// that format so any future change is deliberate (and breaking, because
+	// The signed message is a length-prefixed encoding of the fields. This test
+	// pins that format so any future change is deliberate (and breaking, because
 	// peers would reject the new signatures).
 	data := BlockData{
 		SenderUID:    strings.Repeat("a", 32),
@@ -306,10 +346,40 @@ func TestMessageMakerPinsTheWireFormat(t *testing.T) {
 		TimeStamp:    1720108080000,
 	}
 
-	want := strings.Repeat("a", 32) + "1" + strings.Repeat("b", 66) +
-		strings.Repeat("c", 32) + "2" + "payload" + "1720108080000"
+	want := utils.EncodeFields(
+		strings.Repeat("a", 32), "1", strings.Repeat("b", 66),
+		strings.Repeat("c", 32), "2", "payload", "", utils.EncodeFields(
+			"", "", "", "", "", "", "", ""), "1720108080000",
+	)
 
 	if got := MessageMaker(data); got != want {
 		t.Fatalf("MessageMaker = %q, want %q", got, want)
+	}
+}
+
+// TestMessageMakerIsUnambiguous is the regression test for the concatenated-
+// fields ambiguity: two different field tuples must never encode to the same
+// string. The old plain concatenation failed this for ("ab","c") vs ("a","bc").
+func TestMessageMakerIsUnambiguous(t *testing.T) {
+	base := BlockData{
+		SenderUID:    strings.Repeat("a", 32),
+		SenderRole:   1,
+		SenderPubKey: strings.Repeat("b", 66),
+		ReceiverUID:  strings.Repeat("c", 32),
+		ReceiverRole: 1,
+		Data:         "payload",
+		TimeStamp:    1720108080000,
+	}
+
+	// Shifting a byte across the Data/UseContract boundary must change the
+	// encoding. Under plain concatenation "payload"+"" and "payloa"+"d" collide.
+	a := base
+	a.Data, a.UseContract = "payload", ""
+
+	b := base
+	b.Data, b.UseContract = "payloa", "d"
+
+	if MessageMaker(a) == MessageMaker(b) {
+		t.Fatal("MessageMaker is ambiguous across the Data/UseContract boundary")
 	}
 }

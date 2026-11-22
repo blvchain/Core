@@ -347,6 +347,41 @@ func TestAddDataRejectsContractChecksumMismatch(t *testing.T) {
 	}
 }
 
+func TestAddDataRejectsTimestampOutsideSkewWindow(t *testing.T) {
+	resetStore(t)
+	config.FIRST_BLOCK_HASH = strings.Repeat("b", 64)
+
+	sender := newIdentity(t)
+	receiver := newIdentity(t)
+	service := &AddDataService{}
+
+	now := utils.NowTimeInt64UnixMilli()
+	skew := config.TIMESTAMP_SKEW_MS
+	if skew <= 0 {
+		skew = config.DEFAULT_TIMESTAMP_SKEW_MS
+	}
+
+	cases := map[string]int64{
+		"backdated": now - skew - 60_000,
+		"postdated": now + skew + 60_000,
+	}
+	for name, ts := range cases {
+		t.Run(name, func(t *testing.T) {
+			req := signedRequest(t, sender, receiver, "hello", ts)
+			result, err := service.AddData(authContext(testAPIKey), req)
+			// Validation failures surface as an InvalidArgument gRPC error; a
+			// successful call must never accept the timestamp.
+			if err == nil && result.IsSuccess {
+				t.Fatalf("AddData accepted a %s timestamp", name)
+			}
+		})
+	}
+
+	if blocks := allBlocks(t); len(blocks) != 0 {
+		t.Fatalf("%d blocks were stored for rejected timestamps", len(blocks))
+	}
+}
+
 func TestReadDataReturnsStoredBlocks(t *testing.T) {
 	resetStore(t)
 	config.FIRST_BLOCK_HASH = strings.Repeat("8", 64)
@@ -435,11 +470,17 @@ func TestReadDataTimestampFilterUsesMilliseconds(t *testing.T) {
 	sender := newIdentity(t)
 	receiver := newIdentity(t)
 
+	// Client submissions must be near the node's clock (VAL-3), so use recent
+	// timestamps and filter on a narrow window around them.
+	now := utils.NowTimeInt64UnixMilli()
+	first := now - 10000
+	second := now - 5000
+
 	add := &AddDataService{}
-	if _, err := add.AddData(authContext(testAPIKey), signedRequest(t, sender, receiver, "one", config.MIN_TIMESTAMP_MS+1000)); err != nil {
+	if _, err := add.AddData(authContext(testAPIKey), signedRequest(t, sender, receiver, "one", first)); err != nil {
 		t.Fatalf("AddData: %v", err)
 	}
-	if _, err := add.AddData(authContext(testAPIKey), signedRequest(t, sender, receiver, "two", config.MIN_TIMESTAMP_MS+5000)); err != nil {
+	if _, err := add.AddData(authContext(testAPIKey), signedRequest(t, sender, receiver, "two", second)); err != nil {
 		t.Fatalf("AddData: %v", err)
 	}
 
@@ -459,14 +500,28 @@ func TestReadDataTimestampFilterUsesMilliseconds(t *testing.T) {
 	millisRange, err := read.ReadData(authContext(testAPIKey), &ReadDataRequest{
 		Limit:         10,
 		SenderUID:     sender.uid,
-		TimeStampFrom: config.MIN_TIMESTAMP_MS + 3000,
-		TimeStampTo:   config.MIN_TIMESTAMP_MS + 6000,
+		TimeStampFrom: first - 1000,
+		TimeStampTo:   second + 1000,
 	})
 	if err != nil {
 		t.Fatalf("ReadData: %v", err)
 	}
-	if len(millisRange.Data) != 1 {
-		t.Fatalf("milliseconds range returned %d blocks, want 1", len(millisRange.Data))
+	if len(millisRange.Data) != 2 {
+		t.Fatalf("milliseconds range returned %d blocks, want 2", len(millisRange.Data))
+	}
+
+	// A narrow window around the first block returns exactly that block.
+	narrow, err := read.ReadData(authContext(testAPIKey), &ReadDataRequest{
+		Limit:         10,
+		SenderUID:     sender.uid,
+		TimeStampFrom: first - 1000,
+		TimeStampTo:   first + 1000,
+	})
+	if err != nil {
+		t.Fatalf("ReadData: %v", err)
+	}
+	if len(narrow.Data) != 1 {
+		t.Fatalf("narrow range returned %d blocks, want 1", len(narrow.Data))
 	}
 }
 

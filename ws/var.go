@@ -4,13 +4,16 @@ import (
 	"net/http"
 	"sync"
 
+	"blvchain/core/config"
 	"blvchain/core/utils"
 
 	"github.com/gorilla/websocket"
 )
 
 var upgrader = websocket.Upgrader{
-	// Only nodes listed in dns_seed.json may open an inbound connection.
+	// Cheap pre-upgrade filter only: it keeps obviously unknown peers from
+	// consuming a connection slot. It is *not* authentication — the real
+	// identity check is the challenge/response handshake in WS_Server_Handler.
 	CheckOrigin: func(r *http.Request) bool {
 		return utils.NodeUidChecker(r.Header.Get("X-UID"))
 	},
@@ -18,6 +21,9 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  4096,
 	WriteBufferSize: 4096,
 }
+
+// inboundSem caps the number of concurrently served inbound peer connections.
+var inboundSem = make(chan struct{}, config.WS_MAX_CONNECTIONS)
 
 // ServerManager tracks the peers that connected *to* this node.
 type ServerManager struct {

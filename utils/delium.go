@@ -8,9 +8,20 @@ import (
 	"strings"
 )
 
+// This file implements Delium, the project's original educational hash
+// pipeline. It is deliberately kept as a teaching artefact and is **not** used
+// for anything security-critical. Block IDs, UIDs, message digests and
+// signatures all use the domain-separated SHA-256 in hash.go instead.
+//
+// Why Delium is not a cryptographic primitive: every pipeline step hashes, then
+// calls deleteChars on the 64-hex digest before re-hashing. Deleting characters
+// discards entropy from the value the next SHA-256 compresses, so the weakest
+// round caps the whole pipeline's collision resistance below the 2^128 of the
+// SHA-256 it wraps (~2^86 for the configured message path, ~2^104 for the block
+// path). See AUDIT_REPORT.md (DEL-1). Do not use Delium where collisions matter.
+
 // D_hash is the result of a Delium hash. String is the hex digest and
-// Byte_slice holds the same digest as raw bytes (still ASCII hex, which is what
-// the rest of the codebase signs and stores).
+// Byte_slice holds the same digest as raw bytes (still ASCII hex).
 type D_hash struct {
 	Byte_slice []byte
 	String     string

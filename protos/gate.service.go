@@ -118,7 +118,17 @@ func (s *AddDataService) AddData(ctx context.Context, req *BlockData) (*AddDataR
 		},
 	}
 
+	nodePrivKey, keyErr := config.LoadNodePrivateKey()
+	if keyErr != nil {
+		logger.INTERNAL_LOGGER.Printf("Error: no node key configured: %v", keyErr)
+		return &AddDataResult{IsSuccess: false, Log: "Internal server error"}, nil
+	}
+
 	db.BlockHashMaker(&block, block.BlockMeta.NodeUID)
+	if err := db.SignBlock(&block, nodePrivKey); err != nil {
+		logger.INTERNAL_LOGGER.Printf("Error: could not sign block '%v': %v", block.ID, err)
+		return &AddDataResult{IsSuccess: false, Log: "Internal server error"}, nil
+	}
 
 	// ------------------------------------------------------------------
 	// 7. Persist
@@ -315,13 +325,10 @@ func (s *ReadDataService) ReadData(ctx context.Context, req *ReadDataRequest) (*
 	// ------------------------------------------------------------------
 	grpcBlocks := make([]*Block, 0, len(blocks))
 	for _, dbBlock := range blocks {
-		message := db.MessageMaker(dbBlock.BlockData)
-		valid, verifyErr := utils.Verify(dbBlock.BlockData.SenderPubKey, dbBlock.BlockData.SenderUID, message, dbBlock.BlockData.Signature)
-		if verifyErr != nil || !valid {
-			if verifyErr == nil {
-				verifyErr = errors.New("signature is not valid")
-			}
-			logger.GRPC_F_LOGGER.Printf("WARNING!!!: Block %v failed validation: %v", dbBlock.ID, verifyErr)
+		// Re-validate on read: a record whose contents, client signature or
+		// node attestation no longer matches its ID must not be served.
+		if err := db.BlockValidator(dbBlock); err != nil {
+			logger.GRPC_F_LOGGER.Printf("WARNING!!!: Block %v failed validation: %v", dbBlock.ID, err)
 			continue
 		}
 

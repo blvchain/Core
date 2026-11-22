@@ -16,6 +16,15 @@ import (
 	"blvchain/core/utils"
 )
 
+// Node identities used by the handshake tests. node1 is this node (SELF_UID);
+// node2 is the peer that dials in.
+var (
+	node1Priv string
+	node1Pub  string
+	node2Priv string
+	node2Pub  string
+)
+
 func TestMain(m *testing.M) {
 	logger.SetOutput(io.Discard)
 
@@ -23,17 +32,31 @@ func TestMain(m *testing.M) {
 	config.ReloadDotEnv()
 	config.DELIUM_CONFIG = config.GetDeliumConfigFile()
 	config.SELF_UID = "node_1_test"
-	config.DNS_SEED_LIST = []config.Dns_seed_config{
-		{UID: "node_1_test", Address: "ws://localhost:8081"},
-		{UID: "node_2_test", Address: "ws://localhost:8082"},
-	}
 	config.MAX_DATA_SIZE_KB = "2048"
-	config.FIRST_BLOCK_HASH = ""
+
+	node1Priv, node1Pub = mustNodeKey()
+	node2Priv, node2Pub = mustNodeKey()
+	config.NODE_PRIVATE_KEY = node1Priv
+	config.NODE_PUBLIC_KEY = node1Pub
+	config.DNS_SEED_LIST = []config.Dns_seed_config{
+		{UID: "node_1_test", Address: "ws://localhost:8081", PubKey: node1Pub},
+		{UID: "node_2_test", Address: "ws://localhost:8082", PubKey: node2Pub},
+	}
 
 	db.ResetCollection()
+	db.SetCollection(dbtest.New())
+	config.FIRST_BLOCK_HASH = db.MakeGenesisBlock().ID
 
 	code := m.Run()
 	os.Exit(code)
+}
+
+func mustNodeKey() (privHex, pubHex string) {
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		panic(err)
+	}
+	return utils.PrivateKeyHex(priv), utils.PubKeyHex(&priv.PublicKey)
 }
 
 type identity struct {
@@ -89,11 +112,23 @@ func makeBlock(t *testing.T, sender identity, receiver identity, data string, ti
 
 	block := db.Block{
 		BlockMeta: db.BlockMeta{
-			PreBlockHash: fmt.Sprintf("%064x", timestamp),
+			PreBlockHash: preBlockHash(timestamp),
+			NodeUID:      config.SELF_UID,
 			TimeStamp:    timestamp,
 		},
 		BlockData: blockData,
 	}
-	db.BlockHashMaker(&block, config.SELF_UID)
+	if err := db.SignBlock(&block, config.NODE_PRIVATE_KEY); err != nil {
+		t.Fatalf("sign block: %v", err)
+	}
 	return block
+}
+
+// preBlockHash returns the configured genesis ID when it is known, so blocks
+// built by the tests link to a predecessor the node actually has.
+func preBlockHash(timestamp int64) string {
+	if config.FIRST_BLOCK_HASH != "" {
+		return config.FIRST_BLOCK_HASH
+	}
+	return fmt.Sprintf("%064x", timestamp)
 }

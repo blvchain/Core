@@ -64,7 +64,9 @@ func blockWithTime(t *testing.T, sender identity, receiverUID string, timestamp 
 
 	block := makeBlock(t, sender, receiverUID, data, fmt.Sprintf("%064x", timestamp))
 	block.BlockMeta.TimeStamp = timestamp
-	BlockHashMaker(&block, config.SELF_UID)
+	if err := SignBlock(&block, config.NODE_PRIVATE_KEY); err != nil {
+		t.Fatalf("sign block: %v", err)
+	}
 	return block
 }
 

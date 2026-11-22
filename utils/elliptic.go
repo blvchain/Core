@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
-
-	"blvchain/core/config"
 )
 
 const (
@@ -30,14 +28,37 @@ func Sign(hexPrivateKey string, message string) (string, error) {
 		return "", err
 	}
 
-	hash := D256C(message, config.DELIUM_CONFIG.MESSAGE_HASH_PATH).Byte_slice
+	// Sign the raw 32-byte SHA-256 digest (CRY-2). Domain separation is applied
+	// inside MessageDigest so a signature can never be replayed in another
+	// context (block hash, UID derivation, ...).
+	hash := MessageDigest(message)
 
 	r, s, err := ecdsa.Sign(rand.Reader, privateKey, hash)
 	if err != nil {
 		return "", fmt.Errorf("sign: %w", err)
 	}
 
-	return hex.EncodeToString(encodeSignature(r, s)), nil
+	return hex.EncodeToString(encodeSignature(normaliseS(r, s))), nil
+}
+
+// normaliseS returns (r, s) with s in the lower half of the P-256 group order.
+//
+// ECDSA is malleable: for any valid (r, s) the pair (r, N-s) is also a valid
+// signature over the same message (N is the curve order). Go's ecdsa package
+// does not canonicalise this, so without normalisation a third party who sees a
+// signature could rewrite s into N-s and produce a *second* valid signature for
+// the same block. Because the signature is part of the block hash, that would
+// yield a distinct block ID for identical content and defeat the duplicate-block
+// guard. Producing only low-S signatures (and rejecting high-S ones in
+// decodeSignature, see below) removes this malleability, the same approach used
+// by Bitcoin (BIP-62) and Ethereum (EIP-2).
+func normaliseS(r, s *big.Int) (*big.Int, *big.Int) {
+	n := elliptic.P256().Params().N
+	half := new(big.Int).Rsh(n, 1)
+	if s.Cmp(half) > 0 {
+		s = new(big.Int).Sub(n, s)
+	}
+	return r, s
 }
 
 // Verify checks an r||s signature against the compressed public key. The UID is
@@ -57,12 +78,46 @@ func Verify(hexPublicKey string, uid string, message string, hexSignature string
 		return false, err
 	}
 
-	hash := D256C(message, config.DELIUM_CONFIG.MESSAGE_HASH_PATH).Byte_slice
+	hash := MessageDigest(message)
 
 	if !ecdsa.Verify(publicKey, hash, r, s) {
 		return false, errors.New("signature is not valid")
 	}
 	return true, nil
+}
+
+// VerifySignature checks an r||s signature against a compressed public key,
+// without the UID-binding check that Verify performs.
+//
+// It exists for node authentication (NET-2): a node's UID is an
+// operator-assigned label from dns_seed.json, not a key-derived identifier, so
+// the Make_UID(pubkey) == uid rule does not apply there. For record signatures,
+// use Verify.
+func VerifySignature(hexPublicKey string, message string, hexSignature string) (bool, error) {
+	publicKey, err := ParsePublicKey(hexPublicKey)
+	if err != nil {
+		return false, err
+	}
+
+	r, s, err := decodeSignature(hexSignature)
+	if err != nil {
+		return false, err
+	}
+
+	if !ecdsa.Verify(publicKey, MessageDigest(message), r, s) {
+		return false, errors.New("signature is not valid")
+	}
+	return true, nil
+}
+
+// DerivePubKeyHex returns the compressed hex encoding of the public key that
+// belongs to hexPrivateKey.
+func DerivePubKeyHex(hexPrivateKey string) (string, error) {
+	privateKey, err := privkeyHexToECDSA(hexPrivateKey)
+	if err != nil {
+		return "", err
+	}
+	return PubKeyHex(&privateKey.PublicKey), nil
 }
 
 // ParsePublicKey decodes a 33-byte compressed P-256 public key.
@@ -150,6 +205,19 @@ func decodeSignature(hexSignature string) (*big.Int, *big.Int, error) {
 
 	if r.Sign() <= 0 || s.Sign() <= 0 {
 		return nil, nil, errors.New("signature values must be positive")
+	}
+
+	// Reject non-canonical (malleated) signatures. r and s must both be in
+	// [1, N-1], and s must be in the lower half [1, N/2]. This complements
+	// normaliseS in Sign so the chain only ever carries one valid encoding per
+	// (message, key) pair.
+	n := elliptic.P256().Params().N
+	half := new(big.Int).Rsh(n, 1)
+	if r.Cmp(n) >= 0 {
+		return nil, nil, errors.New("signature r is out of range")
+	}
+	if s.Cmp(half) > 0 {
+		return nil, nil, errors.New("signature s is not in canonical low-S form")
 	}
 
 	return r, s, nil

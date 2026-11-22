@@ -83,3 +83,20 @@ func (c *safeConn) read() (int, []byte, error) {
 	}
 	return c.conn.ReadMessage()
 }
+
+// readJSON reads one message and decodes it into out, applying timeout as the
+// read deadline. The handshake uses a much shorter timeout than a normal
+// request so an unauthenticated peer cannot pin a goroutine.
+func (c *safeConn) readJSON(out any, timeout time.Duration) error {
+	c.readMu.Lock()
+	defer c.readMu.Unlock()
+
+	if err := c.conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
+		return err
+	}
+	_, data, err := c.conn.ReadMessage()
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
+}

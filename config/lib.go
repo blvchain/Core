@@ -198,11 +198,27 @@ func Validate() error {
 		problems = append(problems, "api_key.json must contain at least one enabled key")
 	}
 
+	// Node identity: this node must be listed (with a public key) so it can sign
+	// blocks, and every peer must have a pinned key so it can be authenticated.
+	selfListed := false
 	for _, seed := range DNS_SEED_LIST {
 		if seed.UID == "" || seed.Address == "" {
 			problems = append(problems, "dns_seed.json entries need both UID and Address")
 			break
 		}
+		if seed.UID == SELF_UID {
+			selfListed = true
+			if seed.PubKey == "" {
+				problems = append(problems, "dns_seed.json entry for SELF_UID needs a PubKey")
+			}
+			continue
+		}
+		if seed.PubKey == "" {
+			problems = append(problems, "dns_seed.json peer "+seed.UID+" needs a PubKey")
+		}
+	}
+	if SELF_UID != "" && !selfListed {
+		problems = append(problems, "SELF_UID must appear in dns_seed.json with its node public key")
 	}
 
 	if len(problems) > 0 {
@@ -235,4 +251,43 @@ func ValidateDeliumPath(path string) error {
 		}
 	}
 	return nil
+}
+
+// NodePublicKey returns the pinned public key for a node UID from
+// dns_seed.json. The second result is false when the UID is unknown or has no
+// key configured. This is the trust anchor for block node-signatures and for
+// the WebSocket handshake.
+func NodePublicKey(uid string) (string, bool) {
+	for _, seed := range DNS_SEED_LIST {
+		if seed.UID == uid {
+			return seed.PubKey, seed.PubKey != ""
+		}
+	}
+	return "", false
+}
+
+// LoadNodePrivateKey returns this node's P-256 private key in hex.
+//
+// NODE_PRIVATE_KEY wins. Otherwise the key is read from config/node_keys.json,
+// a map of node UID -> private key, using SELF_UID. That file is gitignored:
+// private keys must never be committed. See docs/MIGRATION.md and README.
+func LoadNodePrivateKey() (string, error) {
+	if NODE_PRIVATE_KEY != "" {
+		return NODE_PRIVATE_KEY, nil
+	}
+
+	var keys map[string]string
+	if err := readJSONFile(pathMaker("node_keys.json"), &keys); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return "", errors.New("NODE_PRIVATE_KEY is not set and config/node_keys.json is missing; " +
+				"generate a node key with `go run ./cmd/nodekeygen` (see README)")
+		}
+		return "", fmt.Errorf("read node_keys.json: %w", err)
+	}
+
+	key := keys[SELF_UID]
+	if key == "" {
+		return "", fmt.Errorf("no private key for SELF_UID %q in node_keys.json", SELF_UID)
+	}
+	return key, nil
 }

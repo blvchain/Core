@@ -49,6 +49,18 @@ var (
 	MAX_WASM_SIZE     int64         = MAX_WASM_SIZE_KB * 1024
 
 	SMART_CONTRACT_DIR string = DefineENV("SMART_CONTRACT_DIR", SMART_CONTRACT_FILES_PATH)
+
+	// TIMESTAMP_SKEW_MS is the maximum tolerated difference between the node's
+	// clock and a client-supplied block timestamp, in milliseconds. It is a
+	// sanity bound on AddData submissions, never a synchronisation mechanism.
+	TIMESTAMP_SKEW_MS int64 = int64(DefineENVInt("TIMESTAMP_SKEW_MS", int(DEFAULT_TIMESTAMP_SKEW_MS)))
+
+	// Node identity used by the WebSocket peer-authentication handshake (NET-2).
+	// NODE_PRIVATE_KEY is this node's P-256 private key (hex); NODE_PUBLIC_KEY is
+	// its compressed public key. If NODE_PRIVATE_KEY is empty, LoadNodePrivateKey
+	// falls back to config/node_keys.json keyed by SELF_UID.
+	NODE_PRIVATE_KEY = DefineENV("NODE_PRIVATE_KEY", "")
+	NODE_PUBLIC_KEY  = DefineENV("NODE_PUBLIC_KEY", "")
 )
 
 // Ensure the execution limits are usable even when an operator sets nonsense in

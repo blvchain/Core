@@ -1,14 +1,17 @@
 [
     {
         "UID": "node_1_729ea2f23d456b626df2f27183047912",
-        "Address": "ws://localhost:8081"
+        "Address": "ws://localhost:8081",
+        "PubKey": "0328a433dd71861b466366be03e21597b2d5ae9b4f096555124408ce88369e9cf1"
     },
     {
         "UID": "node_2_9dfb3e539c95da78a09977a918bcc372",
-        "Address": "ws://localhost:8082"
+        "Address": "ws://localhost:8082",
+        "PubKey": "035a4cc426baec32fd5d841edea795a7fd58bb4d17d6dd128712fa3413ced2256f"
     },
     {
         "UID": "node_3_563cb86be0b2035fc440fdd426855c41",
-        "Address": "ws://localhost:8083"
+        "Address": "ws://localhost:8083",
+        "PubKey": "02f48397df84e3ba3bda89b84da7b5e0bafa2a8e9d25f7d3ae9e55869d7e3b8b6d"
     }
 ]

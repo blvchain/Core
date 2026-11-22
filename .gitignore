@@ -21,3 +21,9 @@ Thumbs.db
 
 # Rust scratch directory (no longer part of the node)
 /bvm/smart-contract/target
+
+# Secrets: never commit real credentials or node private keys.
+/config/.env
+/config/api_key.json
+/config/node_keys.json
+/config/*.key

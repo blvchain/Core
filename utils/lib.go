@@ -49,12 +49,10 @@ func StringToFloat64(strNum string) float64 {
 
 // MakeUID derives the 32-character node/client identifier from a compressed
 // public key. It is deterministic: the same key always maps to the same UID.
+// The derivation is the protocol's domain-separated SHA-256 (see hash.go), not
+// Delium.
 func Make_UID(pubkey_str string) string {
-	hash := D512C(pubkey_str, config.DELIUM_CONFIG.UID_MAKER_PATH).String
-	if len(hash) < 32 {
-		return hash
-	}
-	return hash[:32]
+	return UIDDigest(pubkey_str)
 }
 
 func AddQueryParams(baseURL string, params map[string]string) (string, error) {

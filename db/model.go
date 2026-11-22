@@ -4,6 +4,11 @@ type BlockMeta struct {
 	PreBlockHash string `bson:"preBlockHash,omitempty"`
 	NodeUID      string `bson:"nodeUid,omitempty"`
 	TimeStamp    int64  `bson:"timeStamp,omitempty"`
+	// NodeSignature is the producing node's ECDSA signature over the block ID
+	// and the authenticated metadata (see NodeMessage). It is what makes
+	// NodeUID trustworthy: without it any peer could attribute a block to any
+	// node. The genesis block has no node signature.
+	NodeSignature string `bson:"nodeSignature,omitempty"`
 }
 
 type Contract struct {

@@ -27,6 +27,19 @@ func TestMain(m *testing.M) {
 	config.ReloadDotEnv()
 	config.DELIUM_CONFIG = config.GetDeliumConfigFile()
 	config.SELF_UID = "node_1_test"
+
+	// Node key used to sign produced blocks (NET-3), plus the dns_seed trust
+	// anchor that BlockValidator verifies it against.
+	nodePriv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		panic(err)
+	}
+	config.NODE_PRIVATE_KEY = utils.PrivateKeyHex(nodePriv)
+	config.NODE_PUBLIC_KEY = utils.PubKeyHex(&nodePriv.PublicKey)
+	config.DNS_SEED_LIST = []config.Dns_seed_config{
+		{UID: config.SELF_UID, Address: "ws://localhost:8081", PubKey: config.NODE_PUBLIC_KEY},
+	}
+
 	config.API_KEY_LIST = map[string]bool{testAPIKey: true}
 	config.MAX_DATA_SIZE_KB = "2048"
 	config.MAX_WASM_SIZE_KB = 1024

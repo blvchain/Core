@@ -1,8 +1,10 @@
 # BLVchain Core
 
-An **educational blockchain node** written in Go. It stores signed, hash‑chained blocks in MongoDB, exposes a gRPC API, replicates blocks to peer nodes over WebSocket, and executes user‑supplied WebAssembly contracts inside a sandbox.
+An **educational blockchain node** written in Go. It stores signed, hash‑chained blocks in MongoDB, exposes a gRPC API, replicates blocks to peer nodes over an authenticated WebSocket protocol, and stores user‑supplied WebAssembly contracts.
 
-> ⚠️ **Educational project — not a production blockchain.** There is no consensus algorithm, no account/balance model, no TLS, and no data migration tooling. Do not use it to secure anything of value.
+> ⚠️ **Educational project — not a production blockchain.** There is no consensus algorithm, no account/balance model, and no TLS. Do not use it to secure anything of value.
+>
+> **Protocol v2:** this revision replaces Delium with domain‑separated SHA‑256 for all security‑critical hashing and changes the sync and peer‑authentication protocols. Existing v1 databases are **not** silently migrated — see [`docs/MIGRATION.md`](docs/MIGRATION.md).
 
 - 🇬🇧 **English** documentation: [start here](#english)
 - 🇮🇷 **مستندات فارسی**: [از اینجا شروع کنید](#فارسی)
@@ -34,12 +36,12 @@ An **educational blockchain node** written in Go. It stores signed, hash‑chain
 
 | Feature | Notes |
 |---|---|
-| **Hash‑chained blocks** | Every block ID is a Delium hash over its header, payload, contract metadata and the previous block hash. |
-| **Signatures** | ECDSA over the P‑256 curve. The sender UID is derived from the public key, so a key cannot be swapped after the fact. |
-| **Delium hashing** | A configurable multi‑round SHA‑256 pipeline (`config/delium_config.json`). The same pipeline is used for block IDs, UIDs and message hashes. |
+| **Hash‑chained blocks** | Every block ID is a domain‑separated SHA‑256 hash over its header, payload, contract metadata and the previous block hash. |
+| **Signatures** | ECDSA over the P‑256 curve (canonical low‑S). The sender UID is derived from the public key, so a key cannot be swapped after the fact. Each block also carries the producing node's signature over its ID and authenticated metadata. |
+| **Standard hashing** | `utils/hash.go` provides SHA‑256 with domain separation for block IDs, UIDs and message digests. Delium is kept only as an educational example and is **not** used by the protocol. |
 | **gRPC API** | `AddData` and `ReadData`, protected by an API key and a per‑client token‑bucket rate limiter. |
-| **Peer replication** | Nodes connect to each other over WebSocket (`get` / `add` / `sync` messages) and converge in the background. |
-| **Smart contracts** | WASM modules run on [wazero](https://wazero.io/) with a wall‑clock timeout and a hard memory cap. |
+| **Peer replication** | Nodes connect over WebSocket using an **inventory exchange** (`inventory` / `getblocks`), authenticated by a challenge/response handshake. |
+| **Smart contracts** | WASM modules are **stored**; the [wazero](https://wazero.io/) runner (`bvm`) is a development‑only helper with a wall‑clock timeout and memory cap. |
 | **Structured logging** | Rotating log files (lumberjack) split by outcome: gRPC, WebSocket, smart contract, internal, signature. |
 | **Test suite** | 190+ tests covering every package, including an in‑memory MongoDB fake so no server is required. |
 
@@ -55,13 +57,15 @@ An **educational blockchain node** written in Go. It stores signed, hash‑chain
   (API key + TLS* )    │      │             │                   │
                        │      ▼             ▼                   │
                        │  utils/ (ECDSA,  db/ (MongoDB)          │
-                       │   Delium)          │                   │
+                       │   SHA‑256)         │                   │
                        │      │             │                   │
                        │      ▼             │                   │
-                       │  bvm/ (WASM)       │                   │
+                       │  bvm/ (WASM,       │                   │
+                       │   dev helper)      │                   │
                        │                    │                   │
-  Peer nodes ◀────────▶│  ws/ (get/add/sync)│                   │
-  (X-UID header)       └────────────────────┼───────────────────┘
+  Peer nodes ◀────────▶│  ws/ (inventory /  │                   │
+  (challenge/response) │   getblocks / add) │                   │
+                       └────────────────────┼───────────────────┘
                                             │
                                      ┌──────▼──────┐
                                      │  MongoDB    │
@@ -127,8 +131,10 @@ An **educational blockchain node** written in Go. It stores signed, hash‑chain
 │   └── lib.go              # Formatting, hex, files, validators
 │
 ├── ws/
-│   ├── client.go           # Outbound connections, sync, replication
-│   ├── server.go           # Inbound handler (get / add / sync)
+│   ├── client.go           # Outbound client manager (see manager.go)
+│   ├── manager.go          # Dial, reconnect, inventory sync, replication
+│   ├── auth.go             # Challenge/response peer authentication
+│   ├── server.go           # Inbound handler (get / add / inventory / getblocks)
 │   ├── conn.go             # Goroutine-safe WebSocket wrapper
 │   ├── struct.go           # Wire types
 │   └── var.go              # Upgrader + managers
@@ -308,7 +314,10 @@ All settings come from `config/.env` (or the real environment, which takes prece
 |---|---|---|
 | `MONGO_URI` | — **(required)** | MongoDB connection string. |
 | `DB` | `BLVchain` | Database name. |
-| `SELF_UID` | — **(required)** | This node's identifier, 32 hex characters. |
+| `SELF_UID` | — **(required)** | This node's identifier (for example `node_1_729ea2…`). It is an operator-assigned label, not a key-derived value. |
+| `NODE_PRIVATE_KEY` | — | This node's P‑256 private key (hex). If unset, the node reads `config/node_keys.json` (gitignored) keyed by `SELF_UID`. Required to produce blocks and to dial peers. |
+| `NODE_PUBLIC_KEY` | — | Optional. If set, it must match the key derived from `NODE_PRIVATE_KEY`, and is advertised to peers. |
+| `TIMESTAMP_SKEW_MS` | `86400000` | Maximum tolerated difference between this node's clock and a client-supplied block timestamp (24 h). |
 | `WP` | `:8080` | WebSocket listen address. |
 | `GP` | `:50051` | gRPC listen address. |
 | `READ_DATA_R` | `0.1` | `ReadData` rate limit, tokens per second. |
@@ -326,29 +335,31 @@ All settings come from `config/.env` (or the real environment, which takes prece
 
 The node refuses to start if a required value is missing or malformed; the exact list of problems is printed before exit.
 
-**`config/api_key.json`**
+**`config/api_key.json`** (gitignored — copy from `config/api_key.example.json`)
 
 ```json
 {
-  "384f98b6-ff7e-42c7-97b3-95a8dad59963": true,
-  "03bf9abc-3a03-4bd9-a3e7-aa2b7b198cf1": false
+  "replace-with-a-strong-random-key": true
 }
 ```
 
-A key mapped to `false` is present but always rejected. At least one enabled key is required.
+A key mapped to `false` is present but always rejected. At least one enabled key is required. **Never commit a real key.** If a key was ever committed, rotate it.
 
 **`config/dns_seed.json`**
 
 ```json
 [
-  { "UID": "node_1_729ea2f23d456b626df2f27183047912", "Address": "ws://localhost:8081" },
-  { "UID": "node_2_9dfb3e539c95da78a09977a918bcc372", "Address": "ws://localhost:8082" }
+  {
+    "UID": "node_1_729ea2f23d456b626df2f27183047912",
+    "Address": "ws://localhost:8081",
+    "PubKey": "0328a433dd71861b466366be03e21597b2d5ae9b4f096555124408ce88369e9cf1"
+  }
 ]
 ```
 
-A node dials every entry whose `UID` differs from its own `SELF_UID`. Inbound peers are accepted only if their `X-UID` header matches a listed entry.
+A node dials every entry whose `UID` differs from its own `SELF_UID`. `PubKey` is the node's compressed P‑256 public key and is the **trust anchor** for peer authentication and block node-signatures. A peer must prove possession of the matching private key during the WebSocket handshake; the `X‑UID` header alone is not authentication. Generate keys with `go run ./cmd/nodekeygen <uid>`.
 
-**`config/delium_config.json`**
+**`config/delium_config.json`** — educational only
 
 ```json
 {
@@ -358,7 +369,7 @@ A node dials every entry whose `UID` differs from its own `SELF_UID`. Inbound pe
 }
 ```
 
-Each `/`-separated segment has the form `addon#deleteStep`. The pipeline hashes the input, appends `addon`, deletes every `deleteStep`‑th character of the hex digest, and hashes again. Changing any of these files changes every block ID and UID — treat them as consensus parameters.
+Delium is **not** used by the protocol. It is retained as a teaching example of a hash pipeline; its `deleteChars` step lowers collision resistance below SHA‑256, so it must not be used for anything security-critical. The protocol uses domain-separated SHA‑256 (`utils/hash.go`).
 
 ---
 
@@ -386,7 +397,9 @@ Request (`BlockData`):
 
 Response (`AddDataResult`): `IsSuccess`, `Log`, `BlockHash`.
 
-The signature covers `db.MessageMaker(blockData)`, which includes `UseContract` and the contract metadata. When `ContractBase64` is present, the server decodes it, checks `ContractData.Checksum` against the SHA‑256 of the bytes, and stores the file as `<checksum>.wasm` inside `SMART_CONTRACT_DIR`.
+The client signature covers `db.MessageMaker(blockData)`, a length‑prefixed encoding of the record fields including `UseContract` and the contract metadata. When `ContractBase64` is present, the server decodes it, checks `ContractData.Checksum` against the SHA‑256 of the bytes, and stores the file as `<checksum>.wasm` inside `SMART_CONTRACT_DIR`.
+
+After verifying the client signature, the node links the block to the sender's previous block and **signs the block itself** with its node key (`BlockMeta.NodeSignature`). The node signature covers the block ID and the authenticated metadata (`PreBlockHash`, `NodeUID`, `BlockMeta.TimeStamp`), so peers can verify which node produced the block and that the predecessor was not altered.
 
 Retrying the exact same request is idempotent: the server looks the signature up and returns the existing block hash instead of creating a second block.
 
@@ -408,18 +421,26 @@ Request (`ReadDataRequest`): `Limit` (1–100) and `Skip` are required, plus **a
 | `TimeStampFrom` / `TimeStampTo` | int64 | `blockData.timeStamp` range, **in milliseconds**. |
 | `UseContract` | string | `blockData.useContract`. |
 
-Blocks whose signature no longer verifies are silently skipped; `Boycott` blocks are never returned.
+Blocks that fail full validation (client signature, node signature or hash) are silently skipped; `Boycott` blocks are never returned.
 
 ---
 
 ### WebSocket protocol
 
-Peers connect to `ws://host:WP` with an `X-UID` header. Messages are JSON.
+Peers connect to `ws://host:WP` with an `X-UID` header (a cheap pre-upgrade filter) and then complete a **challenge/response handshake** before any other message is accepted. Messages are JSON.
 
-**Request**
+**Handshake**
+
+1. Server → dialer: `{ "method": "challenge", "nonce": "…", "serverUid": "…", "serverPubKey": "…" }`.
+2. Dialer → server: `{ "method": "auth", "uid": "…", "pubKey": "…", "signature": "…" }`, where the signature is over the nonce, UID and public key.
+3. Server verifies the signature against the public key pinned for that UID in `dns_seed.json`. An unauthenticated connection cannot issue any other request.
+
+**Requests**
 
 ```json
 { "method": "add", "block": { ... } }
+{ "method": "inventory", "cursor": "" }
+{ "method": "getblocks", "ids": ["…", "…"] }
 ```
 
 **Methods**
@@ -427,21 +448,25 @@ Peers connect to `ws://host:WP` with an `X-UID` header. Messages are JSON.
 | Method | Meaning | Reply |
 |---|---|---|
 | `get` | Look up one block by any combination of fields. | `WS_Res` |
-| `add` | Replicate a block. The receiver validates the structure and signature, stores it (quarantining invalid signatures with `boycott: true`) and rejects duplicates. | `WS_Res` |
-| `sync` | Send every block newer than the peer's tip (the genesis block is never sent). | `WS_Sync_Res` |
+| `add` | Replicate a block. The receiver validates structure, both signatures and the hash, stores it, and treats a duplicate as success. Invalid blocks are dropped, not quarantined. | `WS_Res` |
+| `inventory` | Return one page of block IDs in ascending `_id` order, plus `nextCursor`/`hasMore`. | `WS_Inventory_Res` |
+| `getblocks` | Return the blocks for the supplied IDs (bounded). | `WS_Blocks_Res` |
 
 **Replies**
 
 ```json
 { "isSuccess": true, "block": { ... } }
 { "isSuccess": true, "blocks": [ { ... }, { ... } ] }
+{ "isSuccess": true, "ids": ["…"], "nextCursor": "…", "hasMore": true }
 ```
+
+**Why inventory sync is correct:** it never relies on timestamps. The requester pages the peer's complete, immutable `_id`-ordered inventory, asks explicitly for the IDs it lacks, validates them, and stores them in dependency order. Already-known IDs are ignored, so replication is idempotent and re-running a sync is a no-op. A peer that was offline, restarted, or received blocks out of order converges on the next round. The old `sync` message (timestamp-ordered) has been removed because it could permanently strand a block older than the requester's tip.
 
 The node runs three background loops:
 
 - `MonitorAndReconnectToServers` — pings peers every 10 s and re‑dials the dead ones.
-- `FirstTimeSyncData` — blocks start‑up until every peer reports "nothing new".
-- `SyncData` — pulls new blocks every 5 s.
+- `FirstTimeSyncData` — blocks start‑up until every peer is up to date.
+- `SyncData` — reconciles with peers every 5 s.
 
 ---
 
@@ -499,12 +524,12 @@ go test -p 1 ./...
 
 | Package | What is covered |
 |---|---|
-| `utils` | Delium hashing (determinism, malformed paths, manual pipeline), ECDSA sign/verify (tampering, wrong key, bad encodings), hex/file helpers, validators. |
+| `utils` | Domain-separated SHA‑256 (domains, unambiguous encoding), educational Delium (determinism, malformed paths, entropy loss), ECDSA sign/verify (tampering, wrong key, bad encodings), hex/file helpers, validators. |
 | `config` | Every loader, `.env` precedence, `Validate()`, hashing‑path syntax, genesis constant lengths. |
 | `db` | Block hashing (field coverage), signature validation, genesis creation/idempotency, CRUD, pagination, empty‑result semantics. |
 | `db/dbtest` | The in‑memory fake: operators, dotted paths, sort, skip/limit, concurrency. |
 | `protos` | Request validation (every field), auth, rate limiting (burst, isolation, cleanup, interceptors), `AddData`/`ReadData` end‑to‑end, contract uploads. |
-| `ws` | Origin checks, `get`/`add`/`sync` handlers, quarantine, sync filtering, replication, reconnects. |
+| `ws` | Origin checks, challenge/response authentication, `get`/`add`/`inventory`/`getblocks` handlers, rate limiting, dependency-aware sync, replication, reconnects. |
 | `bvm` | Minimal module execution, missing file, bad WASM, missing export, timeout, memory limit, host functions. |
 | `logger` | Initialisation and output redirection. |
 | `main` | Fail‑fast on invalid configuration. |
@@ -528,6 +553,51 @@ This revision is a correctness and safety pass. The following changes are **prot
 
 Other fixes: `AddData` no longer prints debug output, reports duplicate submissions idempotently, and logs success to the success logger; `ConnectToOneServer` no longer stores a nil connection after a failed dial; the rate limiter uses the same metadata keys as authentication.
 
+**Phase 2 security-audit revision.** A full adversarial audit is recorded in
+[`AUDIT_REPORT.md`](AUDIT_REPORT.md), with a prioritised checklist in
+[`REMEDIATION_PLAN.md`](REMEDIATION_PLAN.md), the threat model in
+[`SECURITY.md`](SECURITY.md) and the upgrade steps in
+[`docs/MIGRATION.md`](docs/MIGRATION.md). This phase is **protocol-visible and
+requires a fresh database**:
+
+11. **ECDSA signatures are canonical low-S (anti-malleability).** `Sign` emits
+    only the lower-half form of `s`; `decodeSignature` rejects high-S and
+    out-of-range scalars. Previously `(r, s)` and `(r, N−s)` both verified, so
+    one payload could produce two block IDs.
+12. **Sender/receiver role bounds are consistent** across gRPC and replication
+    (`[1, 10 000 000]`).
+13. **Delium is no longer used for anything security-critical.** Block IDs,
+    UIDs, message digests and node signatures use domain-separated SHA‑256
+    (`utils/hash.go`). Delium remains only as an educational module; its
+    `deleteChars` step lowers collision resistance to ≈2^86 (message) / 2^104
+    (block), below SHA‑256.
+14. **Signatures cover the raw 32-byte digest**, not 64 ASCII hex characters
+    (previously only the first 128 bits reached ECDSA).
+15. **Serialisation is unambiguous.** The signed message, contract root and
+    block-hash root are length-prefixed, so different field tuples cannot
+    encode identically.
+16. **Sync is inventory-based, not timestamp-based.** A node that is offline,
+    restarted, or receives blocks out of order converges; no record is stranded
+    because it is older than the local tip. Replication is idempotent.
+17. **Peers are authenticated by a challenge/response signature** against the
+    key pinned in `dns_seed.json`. The `X-UID` header is no longer an
+    authentication mechanism.
+18. **Blocks carry a node signature** over the block ID and authenticated
+    metadata; peers verify it. The predecessor link is resolved before a
+    replicated block is stored.
+19. **WebSocket denial-of-service protections**: per-peer rate limiting,
+    inbound connection cap, bounded sync pages, bounded messages, and invalid
+    blocks are dropped instead of quarantined.
+20. **Secrets are out of source control** (`.env`, `api_key.json`,
+    `node_keys.json` are gitignored). **The previously committed API key must
+    still be rotated.**
+
+> **Delium is not a stronger hash.** It is a configurable multi-round SHA-256/512
+> pipeline kept for teaching. Its `deleteChars` step *lowers* collision
+> resistance below SHA-256 (to roughly 2^86 for the message path, 2^104 for the
+> block path). It is no longer referenced by the protocol — see
+> `AUDIT_REPORT.md` finding DEL-1.
+
 ---
 
 ### Known limitations
@@ -536,7 +606,8 @@ Other fixes: `AddData` no longer prints debug output, reports duplicate submissi
 - **No accounts or balances.** The chain stores arbitrary data; `SenderRole`/`ReceiverRole` are free integers.
 - **No TLS.** Run the node behind a TLS‑terminating proxy.
 - **Synchronous replication.** `AddData` waits for the peers before answering; unreachable peers slow the request down (each write is bounded by `WS_WRITE_TIMEOUT`).
-- **No migrations.** Changing the genesis constants or the hashing paths invalidates existing blocks.
+- **No automatic data migration.** The v2 hash profile is incompatible with v1 databases; see `docs/MIGRATION.md` for the backup/reset procedure.
+- **Node keys are an operator responsibility.** A node needs a P‑256 key (`config/node_keys.json` or `NODE_PRIVATE_KEY`) to produce blocks and to dial peers.
 - **Single process, single collection.** There is no sharding, no compaction and no pruning.
 - **The API key is a shared secret** stored in plain text.
 
@@ -545,10 +616,12 @@ Other fixes: `AddData` no longer prints debug output, reports duplicate submissi
 ### Security notes
 
 - Put the node behind a reverse proxy that terminates TLS and applies network‑level restrictions.
-- Keep `config/api_key.json` and `config/.env` out of version control in real deployments.
+- Keep `config/api_key.json`, `config/.env` and `config/node_keys.json` out of version control in real deployments. **Rotate any key that was ever committed.**
 - The WASM sandbox is a resource limit, not a full isolation boundary; treat uploaded contracts as untrusted input.
-- Inbound WebSocket peers are authenticated only by the `X-UID` header, which is spoofable by anyone who can reach the port. Bind the WebSocket port to the private network only.
-- Rate limiting is per API key and per method, with a 5‑minute idle timeout.
+- Inbound WebSocket peers are authenticated by a challenge/response signature against the key pinned in `dns_seed.json`; a spoofed `X-UID` header alone is rejected. Still bind the WebSocket port to a private network.
+- Rate limiting is per API key and per method, with a 5‑minute idle timeout; WebSocket peers are also rate-limited per connection.
+- **Delium is not a security primitive.** It is kept only as an educational example and is not used by the protocol.
+  There is **no consensus** and **no TLS** — see `SECURITY.md` for the full model.
 
 ---
 
@@ -583,12 +656,12 @@ This project is part of the **BLVchain** ecosystem. See the repository for licen
 
 | ویژگی | توضیح |
 |---|---|
-| **بلاک‌های زنجیره‌ای با هش** | شناسهٔ هر بلاک، هش Delium از هدر، داده، فرادادهٔ قرارداد و هش بلاک قبلی است. |
-| **امضا** | ECDSA روی منحنی P‑256. شناسهٔ فرستنده از کلید عمومی ساخته می‌شود، بنابراین کلید قابل جابجایی نیست. |
-| **هش Delium** | یک خط لولهٔ چندمرحله‌ای SHA‑256 با پیکربندی دلخواه در `config/delium_config.json`. |
+| **بلاک‌های زنجیره‌ای با هش** | شناسهٔ هر بلاک، هش SHA‑256 با جداسازی دامنه از هدر، داده، فرادادهٔ قرارداد و هش بلاک قبلی است. |
+| **امضا** | ECDSA روی منحنی P‑256 (low‑S). شناسهٔ فرستنده از کلید عمومی ساخته می‌شود. هر بلاک همچنین امضای نود تولیدکننده را دارد. |
+| **هش استاندارد** | `utils/hash.go` برای شناسهٔ بلاک، UID و پیام از SHA‑256 با جداسازی دامنه استفاده می‌کند. Delium فقط آموزشی است و در پروتکل استفاده نمی‌شود. |
 | **رابط gRPC** | دو متد `AddData` و `ReadData` با احراز هویت کلید API و محدودکنندهٔ نرخ به ازای هر کلاینت. |
-| **همگام‌سازی نظیرها** | نودها با WebSocket به هم متصل می‌شوند و بلاک‌ها را رد و بدل می‌کنند. |
-| **قرارداد هوشمند** | ماژول‌های WASM با کرانل زمانی و سقف حافظه اجرا می‌شوند. |
+| **همگام‌سازی نظیرها** | نودها با WebSocket و تبادل موجودی (`inventory`/`getblocks`) و احراز هویت چالش/پاسخ همگام می‌شوند. |
+| **قرارداد هوشمند** | ماژول‌های WASM **ذخیره** می‌شوند؛ اجرای `bvm` فقط یک helper توسعه است. |
 | **گزارش‌گیری ساخت‌یافته** | فایل‌های چرخشی لاگ بر اساس نتیجه: gRPC، WebSocket، قرارداد، داخلی و امضا. |
 | **مجموعهٔ تست** | بیش از ۱۹۰ تست برای همهٔ بسته‌ها، همراه با یک شبیه‌ساز MongoDB در حافظه. |
 
@@ -606,12 +679,14 @@ This project is part of the **BLVchain** ecosystem. See the repository for licen
                        │      │             │                   │
                        │      ▼             ▼                   │
                        │  utils/ (ECDSA،   db/ (MongoDB)          │
-                       │   Delium)          │                   │
+                       │   SHA‑256)         │                   │
                        │      │             │                   │
                        │      ▼             │                   │
-                       │  bvm/ (WASM)       │                   │
+                       │  bvm/ (WASM،       │                   │
+                       │   dev helper)      │                   │
                        │                    │                   │
-  نودهای نظیر ◀───────▶│  ws/ (get/add/sync)│                   │
+  نودهای نظیر ◀───────▶│ ws/ (inventory /   │                   │
+  (چالش/پاسخ)          │  getblocks / add)  │                   │
                        └────────────────────┼───────────────────┘
                                             │
                                      ┌──────▼──────┐
@@ -851,7 +926,10 @@ func main() {
 |---|---|---|
 | `MONGO_URI` | — **الزامی** | رشتهٔ اتصال MongoDB. |
 | `DB` | `BLVchain` | نام پایگاه داده. |
-| `SELF_UID` | — **الزامی** | شناسهٔ این نود، ۳۲ کاراکتر hex. |
+| `SELF_UID` | — **الزامی** | شناسهٔ این نود (یک برچسب). |
+| `NODE_PRIVATE_KEY` | — | کلید خصوصی P‑256 این نود (hex). در صورت نبودن مقدار، از `config/node_keys.json` خوانده می‌شود. برای ساخت بلاک و اتصال به نظیرها لازم است. |
+| `NODE_PUBLIC_KEY` | — | اختیاری؛ باید با کلید مشتق‌شده از `NODE_PRIVATE_KEY` یکسان باشد. |
+| `TIMESTAMP_SKEW_MS` | `86400000` | بیشترین اختلاف مجاز ساعت نود و زمان‌سندای کلاینت (۲۴ ساعت). |
 | `WP` | `:8080` | آدرس WebSocket. |
 | `GP` | `:50051` | آدرس gRPC. |
 | `READ_DATA_R` | `0.1` | نرخ مجاز `ReadData`. |
@@ -869,11 +947,11 @@ func main() {
 
 اگر مقدار الزامی ناموجود یا نامعتبر باشد، نود اجرا نمی‌شود و فهرست خطاها چاپ می‌شود.
 
-**`config/api_key.json`** — کلیدی با مقدار `false` وجود دارد اما همیشه رد می‌شود. حداقل یک کلید فعال لازم است.
+**`config/api_key.json`** (در `.gitignore` — از `config/api_key.example.json` کپی کنید) — کلیدی با مقدار `false` وجود دارد اما همیشه رد می‌شود. حداقل یک کلید فعال لازم است. **هر کلیدی که قبلاً commit شده باید بچرخد.**
 
-**`config/dns_seed.json`** — هر ورودی که `UID` آن با `SELF_UID` خود نود متفاوت باشد، شماره‌گیری می‌شود. نظیرهای ورودی فقط اگر `X-UID` آن‌ها در فهرست باشد پذیرفته می‌شوند.
+**`config/dns_seed.json`** — هر ورودی که `UID` آن با `SELF_UID` خود نود متفاوت باشد، شماره‌گیری می‌شود. `PubKey` کلید عمومی P‑256 نود است و لنگر اعتماد احراز هویت نظیر و امضای نود است. هدر `X-UID` به‌تنهایی احراز هویت نیست.
 
-**`config/delium_config.json`** — هر بخش با `/` جدا شده و شکل `addon#deleteStep` دارد. تغییر این فایل‌ها همهٔ شناسه‌های بلاک و UID را تغییر می‌دهد؛ آن‌ها را پارامتر اجماع در نظر بگیرید.
+**`config/delium_config.json`** — فقط آموزشی. Delium در پروتکل استفاده نمی‌شود؛ به‌دلیل مرحلهٔ `deleteChars` مقاومت برخورد آن کمتر از SHA‑256 است. پروتکل از SHA‑256 با جداسازی دامنه استفاده می‌کند.
 
 ---
 
@@ -923,21 +1001,24 @@ func main() {
 | `TimeStampFrom` / `TimeStampTo` | int64 | بازهٔ `blockData.timeStamp` **بر حسب میلی‌ثانیه**. |
 | `UseContract` | string | `blockData.useContract`. |
 
-بلاک‌هایی که امضایشان دیگر معتبر نیست نادیده گرفته می‌شوند و بلاک‌های `Boycott` هرگز برگردانده نمی‌شوند.
+بلاک‌هایی که اعتبارسنجی کامل آن‌ها (امضای کلاینت، امضای نود یا هش) ناموفق است نادیده گرفته می‌شوند و بلاک‌های `Boycott` هرگز برگردانده نمی‌شوند.
 
 ---
 
 ### پروتکل WebSocket
 
-نظیرها با هدر `X-UID` به `ws://host:WP` وصل می‌شوند. پیام‌ها JSON هستند.
+نظیرها با هدر `X-UID` (فقط یک فیلتر سریع پیش از ارتقا) به `ws://host:WP` وصل می‌شوند و سپس یک **چالش/پاسخ امضایی** را کامل می‌کنند. پیام‌ها JSON هستند.
 
 **متدها**
 
 | متد | معنی | پاسخ |
 |---|---|---|
 | `get` | یافتن یک بلاک بر اساس ترکیبی از فیلدها. | `WS_Res` |
-| `add` | تکثیر یک بلاک؛ گیرنده ساختار و امضا را بررسی می‌کند، آن را ذخیره می‌کند (امضاهای نامعتبر با `boycott: true` قرنطینه می‌شوند) و تکراری‌ها را رد می‌کند. | `WS_Res` |
-| `sync` | ارسال همهٔ بلاک‌های جدیدتر از آخرین بلاک نظیر (بلاک جنسیس هرگز ارسال نمی‌شود). | `WS_Sync_Res` |
+| `add` | تکثیر یک بلاک؛ گیرنده ساختار، هر دو امضا و هش را بررسی می‌کند، آن را ذخیره می‌کند و تکراری را موفق می‌شمارد. بلاک نامعتبر دور ریخته می‌شود (نه قرنطینه). | `WS_Res` |
+| `inventory` | یک صفحه از شناسه‌های بلاک به ترتیب صعودی `_id` به‌همراه `nextCursor`/`hasMore`. | `WS_Inventory_Res` |
+| `getblocks` | دریافت بلاک‌های مربوط به شناسه‌های خواسته‌شده (محدود). | `WS_Blocks_Res` |
+
+همگام‌سازی مبتنی بر موجودی (inventory) است و هرگز به زمان‌سندکا تکیه نمی‌کند؛ بنابراین نظری که آفلاین بوده، ری‌استارت شده یا بلاک‌ها را نامرتب دریافت کرده، در دور بعد همگام می‌شود. `sync` قدیمی حذف شد.
 
 سه حلقهٔ پس‌زمینه اجرا می‌شود: پینگ و اتصال مجدد هر ۱۰ ثانیه، همگام‌سازی اولیه تا رسیدن به «چیزی جدید نیست»، و همگام‌سازی دوره‌ای هر ۵ ثانیه.
 
@@ -997,12 +1078,12 @@ go test -p 1 ./...
 
 | بسته | چه چیزی پوشش داده می‌شود |
 |---|---|
-| `utils` | هش Delium، امضای ECDSA (دستکاری، کلید اشتباه، کدگذاری نامعتبر)، توابع hex/فایل و اعتبارسنج‌ها. |
+| `utils` | هش SHA‑256 با جداسازی دامنه، Delium آموزشی، امضای ECDSA (دستکاری، کلید اشتباه، کدگذاری نامعتبر)، توابع hex/فایل و اعتبارسنج‌ها. |
 | `config` | همهٔ بارگذارها، اولویت `.env`، `Validate()`، قواعد مسیر هش و طول ثابتهای جنسیس. |
 | `db` | هش بلاک، اعتبارسنجی امضا، ساخت و تکرار جنسیس، CRUD، صفحه‌بندی و نتیجهٔ خالی. |
 | `db/dbtest` | شبیه‌ساز: عملگرها، مسیرهای نقطه‌دار، مرتب‌سازی، skip/limit و هم‌زمانی. |
 | `protos` | اعتبارسنجی هر فیلد، احراز هویت، محدودکنندهٔ نرخ، AddData/ReadData و آپلود قرارداد. |
-| `ws` | بررسی مبدأ، هندلرهای get/add/sync، قرنطینه، فیلتر همگام‌سازی و تکثیر. |
+| `ws` | بررسی مبدأ، احراز هویت چالش/پاسخ، هندلرهای get/add/inventory/getblocks، محدودکنندهٔ نرخ، همگام‌سازی مبتنی بر موجودی و تکثیر. |
 | `bvm` | اجرای ماژول، فایل ناموجود، WASM نامعتبر، نبود export، کرانل زمانی و سقف حافظه. |
 | `logger` | مقداردهی اولیه و تغییر خروجی. |
 | `main` | توقف سریع روی تنظیمات نامعتبر. |
@@ -1034,7 +1115,8 @@ go test -p 1 ./...
 - **بدون حساب و موجودی.**
 - **بدون TLS.** از پروکسی معکوس استفاده کنید.
 - **تکثیر هم‌زمان.** `AddData` منتظر پاسخ نظیرها می‌ماند.
-- **بدون مهاجرت داده.** تغییر ثابتهای جنسیس یا مسیرهای هش، بلاک‌های موجود را نامعتبر می‌کند.
+- **بدون مهاجرت خودکار داده.** نمایهٔ هش v2 با پایگاه دادهٔ v1 ناسازگار است؛ برای پشتیبان‌گیری/بازنشانی به `docs/MIGRATION.md` مراجعه کنید.
+- **کلید نود به عهدهٔ اپراتور است.** هر نود برای ساخت بلاک و شماره‌گیری به نظیرها به یک کلید P‑256 نیاز دارد.
 - **کلید API یک راز مشترک متنی است.**
 
 ---
@@ -1042,10 +1124,10 @@ go test -p 1 ./...
 ### نکات امنیتی
 
 - نود را پشت پروکسی معکوس با TLS قرار دهید.
-- `config/api_key.json` و `config/.env` را در استقرار واقعی از نسخه‌گیری خارج کنید.
+- `config/api_key.json`، `config/.env` و `config/node_keys.json` را در استقرار واقعی از نسخه‌گیری خارج کنید. **هر کلیدی که قبلاً commit شده باید بچرخد.**
 - سندباکس WASM یک محدودکنندهٔ منابع است، نه مرز کامل جداسازی؛ قراردادهای آپلودی را نامعتبر فرض کنید.
-- احراز هویت نظیرهای ورودی فقط با هدر `X-UID` است که قابل جعل است؛ پورت WebSocket را فقط به شبکهٔ خصوصی محدود کنید.
-- محدودکنندهٔ نرخ به ازای هر کلید API و هر متد است و پس از ۵ دقیقه بیکاری پاک می‌شود.
+- احراز هویت نظیرهای ورودی با چالش/پاسخ امضایی بر اساس کلید ثبت‌شده در `dns_seed.json` است؛ هدر `X-UID` جعلی به‌تنهایی پذیرفته نمی‌شود. پورت WebSocket را فقط به شبکهٔ خصوصی محدود کنید.
+- محدودکنندهٔ نرخ به ازای هر کلید API و هر متد است و پس از ۵ دقیقه بیکاری پاک می‌شود؛ نظیرهای WebSocket نیز به ازای هر اتصال محدود شده‌اند.
 
 ---
 

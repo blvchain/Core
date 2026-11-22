@@ -87,9 +87,18 @@ func validateAddDataRequest(req *BlockData) error {
 		}
 	}
 
-	// TimeStamp must be a unix timestamp in milliseconds.
-	if err := validate.Var(req.GetTimeStamp(), "gt=0"); err != nil {
-		return errors.New("timeStamp must be a valid unix format with milliseconds")
+	// TimeStamp must be a unix timestamp in milliseconds and, for a *new*
+	// submission, close to the node's clock. The wide MIN/MAX window is only a
+	// sanity bound for stored blocks; client submissions are held to a skew
+	// window so a client cannot backdate or post-date a record arbitrarily
+	// (VAL-3). This is not a consensus rule and never a sync mechanism.
+	now := utils.NowTimeInt64UnixMilli()
+	skew := config.TIMESTAMP_SKEW_MS
+	if skew <= 0 {
+		skew = config.DEFAULT_TIMESTAMP_SKEW_MS
+	}
+	if req.GetTimeStamp() < now-skew || req.GetTimeStamp() > now+skew {
+		return errors.New("timeStamp must be within the accepted clock-skew window")
 	}
 	if req.GetTimeStamp() < config.MIN_TIMESTAMP_MS || req.GetTimeStamp() > config.MAX_TIMESTAMP_MS {
 		return errors.New("timeStamp must be a valid unix format with milliseconds")

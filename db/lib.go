@@ -35,6 +35,15 @@ func MakeGenesisBlock() Block {
 	return block
 }
 
+// ErrLegacyDatabase is returned when the database already contains a genesis
+// block produced by an older, incompatible hashing profile. The hash cutover
+// described in docs/MIGRATION.md changes every block ID, so an old chain cannot
+// be read by this build; the operator must back it up and start a fresh
+// database (or keep running the previous build).
+var ErrLegacyDatabase = errors.New(
+	"database was created by an incompatible hashing profile: the genesis block " +
+		"does not match this build's genesis. See docs/MIGRATION.md")
+
 // Genesis_check makes sure the chain has its first block and records its hash in
 // config.FIRST_BLOCK_HASH. It is safe to call on every start-up.
 func Genesis_check() (bool, error) {
@@ -54,6 +63,13 @@ func Genesis_check() (bool, error) {
 			return false, errors.New("insert genesis: unknown error")
 		}
 	} else {
+		// The genesis block is deterministic for a given hashing profile. If the
+		// stored one differs, the database belongs to a different (legacy)
+		// profile and must not be silently reinterpreted.
+		if existing[0].ID != genesis.ID {
+			return false, fmt.Errorf("%w (stored %q, computed %q)",
+				ErrLegacyDatabase, existing[0].ID, genesis.ID)
+		}
 		// Keep the stored copy: it is authoritative once the chain exists.
 		genesis = existing[0]
 	}
@@ -62,59 +78,100 @@ func Genesis_check() (bool, error) {
 	return true, nil
 }
 
-// contractRoot flattens the contract metadata into a stable string so it can be
-// fed into the hash and the signed message.
+// contractRoot flattens the contract metadata into a stable, unambiguous string
+// so it can be fed into the hash and the signed message. Length-prefixing (see
+// utils.EncodeFields) means ("ab","c") and ("a","bc") cannot collide.
 func contractRoot(c Contract) string {
-	return c.Name +
-		c.Version +
-		c.Language +
-		c.Compiler +
-		c.Description +
-		c.Checksum +
-		c.Author +
-		c.License
+	return utils.EncodeFields(
+		c.Name,
+		c.Version,
+		c.Language,
+		c.Compiler,
+		c.Description,
+		c.Checksum,
+		c.Author,
+		c.License,
+	)
 }
 
 // BlockHashMaker computes the block ID from every field that defines the block.
 //
 // UseContract and ContractData are part of the digest: without them two blocks
-// that differ only in their contract metadata would share an ID.
+// that differ only in their contract metadata would share an ID. The root is a
+// length-prefixed encoding (utils.EncodeFields) hashed with domain-separated
+// SHA-256 (utils.BlockDigest), so it is unambiguous and collision resistant.
 func BlockHashMaker(b *Block, nodeUID string) {
 	b.BlockMeta.NodeUID = nodeUID
 
-	blockMetaRoot := b.BlockMeta.PreBlockHash +
-		b.BlockMeta.NodeUID +
-		utils.Int64ToStr(b.BlockMeta.TimeStamp)
+	root := utils.EncodeFields(
+		b.BlockMeta.PreBlockHash,
+		b.BlockMeta.NodeUID,
+		utils.Int64ToStr(b.BlockMeta.TimeStamp),
+		b.BlockData.SenderUID,
+		utils.Int64ToStr(b.BlockData.SenderRole),
+		b.BlockData.SenderPubKey,
+		b.BlockData.Signature,
+		b.BlockData.ReceiverUID,
+		utils.Int64ToStr(b.BlockData.ReceiverRole),
+		b.BlockData.Data,
+		b.BlockData.UseContract,
+		contractRoot(b.BlockData.ContractData),
+		utils.Int64ToStr(b.BlockData.TimeStamp),
+	)
 
-	blockDataRoot := b.BlockData.SenderUID +
-		utils.Int64ToStr(b.BlockData.SenderRole) +
-		b.BlockData.SenderPubKey +
-		b.BlockData.Signature +
-		b.BlockData.ReceiverUID +
-		utils.Int64ToStr(b.BlockData.ReceiverRole) +
-		b.BlockData.Data +
-		b.BlockData.UseContract +
-		contractRoot(b.BlockData.ContractData) +
-		utils.Int64ToStr(b.BlockData.TimeStamp)
-
-	b.ID = utils.D256C(blockMetaRoot+blockDataRoot, config.DELIUM_CONFIG.BLOCK_HASHING_PATH).String
+	b.ID = utils.BlockDigest(root)
 }
 
-// MessageMaker builds the exact byte string that the sender signs.
+// MessageMaker builds the exact string that the sender signs. Fields are
+// length-prefixed so the encoding is unambiguous (see utils.EncodeFields).
 func MessageMaker(b BlockData) string {
-	return b.SenderUID +
-		utils.Int64ToStr(b.SenderRole) +
-		b.SenderPubKey +
-		b.ReceiverUID +
-		utils.Int64ToStr(b.ReceiverRole) +
-		b.Data +
-		b.UseContract +
-		contractRoot(b.ContractData) +
-		utils.Int64ToStr(b.TimeStamp)
+	return utils.EncodeFields(
+		b.SenderUID,
+		utils.Int64ToStr(b.SenderRole),
+		b.SenderPubKey,
+		b.ReceiverUID,
+		utils.Int64ToStr(b.ReceiverRole),
+		b.Data,
+		b.UseContract,
+		contractRoot(b.ContractData),
+		utils.Int64ToStr(b.TimeStamp),
+	)
 }
 
-// BlockValidator checks the structure, the hash chain link and the signature of
-// a block received from a peer.
+// NodeMessage is the exact string a node signs to attest a block it produced.
+// It binds the authenticated metadata (predecessor, node UID, timestamp) to the
+// block ID, so the signature cannot be moved to a different block. The genesis
+// block is not node-signed.
+func NodeMessage(b Block) string {
+	return utils.EncodeFields(
+		"blvchain/node/v2",
+		b.BlockMeta.PreBlockHash,
+		b.BlockMeta.NodeUID,
+		utils.Int64ToStr(b.BlockMeta.TimeStamp),
+		b.ID,
+	)
+}
+
+// SignBlock computes the block ID and attaches the node's signature over it.
+// The signature is deliberately *not* part of the block ID: the ID commits to
+// the contents, and the signature attests that ID.
+func SignBlock(b *Block, nodePrivateKeyHex string) error {
+	if b.BlockMeta.NodeUID == "" {
+		b.BlockMeta.NodeUID = config.SELF_UID
+	}
+	b.BlockMeta.NodeSignature = ""
+	BlockHashMaker(b, b.BlockMeta.NodeUID)
+
+	signature, err := utils.Sign(nodePrivateKeyHex, NodeMessage(*b))
+	if err != nil {
+		return fmt.Errorf("sign block: %w", err)
+	}
+	b.BlockMeta.NodeSignature = signature
+	return nil
+}
+
+// BlockValidator checks the structure, the hash chain link and the signatures
+// of a block received from a peer.
 func BlockValidator(block Block) error {
 	if err := BlockStructValidator(block); err != nil {
 		return err
@@ -134,6 +191,24 @@ func BlockValidator(block Block) error {
 	}
 	if !valid {
 		return errors.New("signature is not valid")
+	}
+
+	// NET-3: every non-genesis block must carry a signature from the node it
+	// claims to have produced it, verifiable against the key pinned for that
+	// node in dns_seed.json. Without this, any peer could attribute a block to
+	// an arbitrary NodeUID.
+	if block.ID != MakeGenesisBlock().ID {
+		if block.BlockMeta.NodeSignature == "" {
+			return errors.New("node signature is required")
+		}
+		nodePubKey, known := config.NodePublicKey(block.BlockMeta.NodeUID)
+		if !known {
+			return fmt.Errorf("node %q is not a known, keyed seed", block.BlockMeta.NodeUID)
+		}
+		nodeOK, nodeErr := utils.VerifySignature(nodePubKey, NodeMessage(block), block.BlockMeta.NodeSignature)
+		if nodeErr != nil || !nodeOK {
+			return fmt.Errorf("node signature verification: %v", nodeErr)
+		}
 	}
 
 	return nil
@@ -161,12 +236,19 @@ func BlockStructValidator(b Block) error {
 		return errors.New("timeStamp must be a valid unix format with milliseconds")
 	}
 
+	// NodeSignature is optional for the genesis block and required for every
+	// other block (enforced by BlockValidator, which knows the genesis ID).
+	if b.BlockMeta.NodeSignature != "" &&
+		(utils.E_str(b.BlockMeta.NodeSignature, 128) || !utils.IsHex(b.BlockMeta.NodeSignature)) {
+		return errors.New("nodeSignature must be a 128 character hex string")
+	}
+
 	// Block Data
 	if utils.E_str(b.BlockData.SenderUID, 32) || !utils.IsHex(b.BlockData.SenderUID) {
 		return errors.New("senderUID is required and must be a 32 character hex string")
 	}
 
-	if utils.Bt_int64(b.BlockData.SenderRole, 0, 10000001) {
+	if utils.Bt_int64(b.BlockData.SenderRole, 1, 10000000) {
 		return errors.New("senderRole is required and must be bigger than zero")
 	}
 
@@ -182,7 +264,7 @@ func BlockStructValidator(b Block) error {
 		return errors.New("receiverUID is required and must be a 32 character hex string")
 	}
 
-	if utils.Bt_int64(b.BlockData.ReceiverRole, 0, 10000001) {
+	if utils.Bt_int64(b.BlockData.ReceiverRole, 1, 10000000) {
 		return errors.New("receiverRole is required and must be bigger than zero")
 	}
 
