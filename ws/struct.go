@@ -1,32 +1,27 @@
 package ws
 
-import (
-	"blvchain/core/db"
-	"sync"
+import "blvchain/core/db"
 
-	"github.com/gorilla/websocket"
+// WebSocket message methods.
+const (
+	MethodGet  = "get"
+	MethodAdd  = "add"
+	MethodSync = "sync"
 )
 
-type ServerManager struct {
-	clients map[string]*websocket.Conn // Map of client UIDs to WebSocket connections
-	mutex   sync.RWMutex
-}
-
-type ClientManager struct {
-	servers map[string]*websocket.Conn // Map of server UIDs to WebSocket connections
-	mutex   sync.RWMutex
-}
-
+// WS_Req is a request sent by a peer node.
 type WS_Req struct {
 	Method string   `json:"method"`
 	Block  db.Block `json:"block"`
 }
 
+// WS_Res is the reply to "get" and "add".
 type WS_Res struct {
 	IsSuccess bool     `json:"isSuccess"`
 	Block     db.Block `json:"block"`
 }
 
+// WS_Sync_Res is the reply to "sync".
 type WS_Sync_Res struct {
 	IsSuccess bool       `json:"isSuccess"`
 	Blocks    []db.Block `json:"blocks"`

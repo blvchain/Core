@@ -119,3 +119,20 @@ func init() {
 	SC_S_LOGGER = log.New(sc_s_logger_output, "", log.Ldate|log.Ltime)
 	SC_F_LOGGER = log.New(sc_f_logger_output, "", log.Ldate|log.Ltime)
 }
+
+// SetOutput redirects every logger to w. Passing io.Discard disables file
+// output entirely, which is what the test-suite does.
+func SetOutput(w io.Writer) {
+	for _, l := range []*log.Logger{
+		WS_S_LOGGER,
+		WS_F_LOGGER,
+		GRPC_S_LOGGER,
+		GRPC_F_LOGGER,
+		INTERNAL_LOGGER,
+		SC_S_LOGGER,
+		SC_F_LOGGER,
+		SIGNATURE_LOGGER,
+	} {
+		l.SetOutput(w)
+	}
+}

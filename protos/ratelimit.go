@@ -54,15 +54,15 @@ func (rl *RateLimiter) getConfig(method string) MethodLimit {
 	return rl.defaultCfg
 }
 
-// clientKey extracts client identity: tries authorization header, x-api-key, then peer IP.
+// clientKey extracts client identity: tries authorization header, x-api-key,
+// then peer IP. The metadata keys match validateAuth.
 // You can modify to parse JWT to extract user id for per-user limits.
 func clientKey(ctx context.Context) string {
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		if vals := md.Get("authorization"); len(vals) > 0 {
-			return "auth:" + vals[0]
-		}
-		if vals := md.Get("x-api-key"); len(vals) > 0 {
-			return "apikey:" + vals[0]
+		for _, key := range []string{"authorization", "x-api-key", "auth"} {
+			if vals := md.Get(key); len(vals) > 0 && vals[0] != "" {
+				return key + ":" + vals[0]
+			}
 		}
 	}
 	if p, ok := peer.FromContext(ctx); ok && p.Addr != nil {
@@ -92,7 +92,11 @@ func (rl *RateLimiter) cleanupLoop() {
 	if rl.ttl <= 0 {
 		return
 	}
-	ticker := time.NewTicker(rl.ttl / 2)
+	interval := rl.ttl / 2
+	if interval <= 0 {
+		interval = rl.ttl
+	}
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for range ticker.C {
 		cutoff := time.Now().Add(-rl.ttl)

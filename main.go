@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
 	"time"
 
 	"blvchain/core/config"
@@ -21,165 +24,160 @@ import (
 )
 
 func main() {
+	if err := run(); err != nil {
+		logger.INTERNAL_LOGGER.Println("Fatal:", err)
+		fmt.Println("Fatal:", err)
+		os.Exit(1)
+	}
+}
 
-	// Init BVM internal functions
-	// bvm.InitBVMInternalFunctions()
-
-	// // Run BVM
-	// bvm_err := bvm.RunBVM(config.SMART_CONTRACT_PATH)
-	// if bvm_err != nil {
-	// 	fmt.Println(bvm_err)
-	// }
-
+func run() error {
 	fmt.Println("===== Starting core =====")
 
-	syncDone := make(chan bool)
+	// ------------------------------------------------------------------
+	// Configuration
+	// ------------------------------------------------------------------
+	if err := config.Validate(); err != nil {
+		return err
+	}
 
-	client, client_err := db.ConnectToMongoDB()
-	if client_err != nil {
-		logger.INTERNAL_LOGGER.Fatal(client_err)
-		fmt.Println("Error: see log/internal folder for details.")
+	// ------------------------------------------------------------------
+	// Database
+	// ------------------------------------------------------------------
+	client, err := db.ConnectToMongoDB()
+	if err != nil {
+		return fmt.Errorf("mongo: %w", err)
 	}
 	defer func() {
-		if client_err = client.Disconnect(context.TODO()); client_err != nil {
-			logger.INTERNAL_LOGGER.Fatal(client_err)
-			fmt.Println("Error: see log/internal folder for details.")
+		if err := client.Disconnect(context.Background()); err != nil {
+			logger.INTERNAL_LOGGER.Printf("Warning: could not disconnect from MongoDB: %v", err)
 		}
 	}()
 
-	dataBase := client.Database(config.DATABASE_NAME)
-	config.BLOCK_COLL = dataBase.Collection(config.BLOCK_COLLECTION_NAME)
+	collection := client.Database(config.DATABASE_NAME).Collection(config.BLOCK_COLLECTION_NAME)
+	config.BLOCK_COLL = collection
+	db.SetCollection(collection)
 
-	// create Mongo indexes for Block collection
-	{
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
+	createIndexes(collection)
 
-		// Single-field index for timestamp (used for sorting and range queries)
-		tsIndexModel := mongo.IndexModel{
-			Keys:    bson.D{{Key: "blockMeta.timeStamp", Value: -1}},
-			Options: options.Index().SetName("idx_blockmeta_timestamp_desc"),
-		}
-
-		// Compound indexes to support common query patterns: filter by sender/receiver and sort by timestamp
-		senderUidTsIndex := mongo.IndexModel{
-			Keys:    bson.D{{Key: "blockData.senderUid", Value: 1}, {Key: "blockMeta.timeStamp", Value: -1}},
-			Options: options.Index().SetName("idx_blockdata_senderuid_ts"),
-		}
-
-		receiverUidTsIndex := mongo.IndexModel{
-			Keys:    bson.D{{Key: "blockData.receiverUid", Value: 1}, {Key: "blockMeta.timeStamp", Value: -1}},
-			Options: options.Index().SetName("idx_blockdata_receiveruid_ts"),
-		}
-
-		// Indexes for equality filters used in several places
-		useContractIndex := mongo.IndexModel{
-			Keys:    bson.D{{Key: "blockData.useContract", Value: 1}},
-			Options: options.Index().SetName("idx_blockdata_usecontract"),
-		}
-
-		idxs := []mongo.IndexModel{tsIndexModel, senderUidTsIndex, receiverUidTsIndex, useContractIndex}
-
-		if _, idxErr := config.BLOCK_COLL.Indexes().CreateMany(ctx, idxs); idxErr != nil {
-			logger.INTERNAL_LOGGER.Printf("Warning: failed to create indexes: %v", idxErr)
-			fmt.Println("Error: see log/internal folder for details.")
-		}
+	if ok, err := db.Genesis_check(); err != nil {
+		return fmt.Errorf("genesis: %w", err)
+	} else if !ok {
+		return errors.New("genesis: the first block could not be created")
 	}
 
-	// Genesis makers
-	check_genesis, check_genesis_err := db.Genesis_check()
+	// ------------------------------------------------------------------
+	// WebSocket server (peer-to-peer)
+	// ------------------------------------------------------------------
+	go func() {
+		ws.ClientManagerVar.ConnectToServers(config.DNS_SEED_LIST)
 
-	// Check genesis block and dns seed in DB in first run of Node
-	if check_genesis {
+		http.HandleFunc("/", ws.WS_Server_Handler)
 
-		//* WebSocket
-		go func() {
-
-			//* Connect to other servers
-			ws.ClientManagerVar.ConnectToServers(config.DNS_SEED_LIST)
-
-			//* Local server gateways
-			http.HandleFunc("/", ws.WS_Server_Handler)
-
-			logger.WS_S_LOGGER.Println("Success: WebSocket Server is running on port", config.WEBSOCKET_PORT)
-			websocketListener_err := http.ListenAndServe(config.WEBSOCKET_PORT, nil)
-			if websocketListener_err != nil {
-				logger.WS_F_LOGGER.Fatalf("Failed to listen WebSocket: %v", websocketListener_err)
-				fmt.Println("Error: see log/websocket/fail folder for details.")
-			}
-
-		}()
-
-		// Monitor and reconnect to missed nodes
-		go func() {
-			ws.MonitorAndReconnectToServers(&ws.ClientManagerVar)
-		}()
-
-		go func() {
-			genesis_sync_result := ws.FirstTimeSyncData(&ws.ClientManagerVar)
-			syncDone <- genesis_sync_result
-		}()
-
-		// Wait for sync to complete before starting gRPC server
-		if <-syncDone {
-
-			logger.INTERNAL_LOGGER.Println("Success: Data sync completed, running gRPC server")
-			fmt.Println("Success: Data sync completed, running gRPC server")
-
-			//* gRPC
-			go func() {
-				grpcListener, grpcListener_err := net.Listen("tcp", config.GRPC_PORT)
-				if grpcListener_err != nil {
-					logger.GRPC_F_LOGGER.Fatalf("Error: Failed to listen gRPC: %v", grpcListener_err)
-					fmt.Println("Error: see log/gRPC/fail folder for details.")
-				}
-
-				// Per-method configuration
-				methodCfg := map[string]protos.MethodLimit{
-					"/gate.AddData/addData":   {R: config.ADD_DATA_R, Burst: config.ADD_DATA_BURST},
-					"/gate.ReadData/readData": {R: config.READ_DATA_R, Burst: config.READ_DATA_BURST},
-				}
-
-				// default used for other RPCs (if any)
-				defaultCfg := protos.MethodLimit{R: 5, Burst: 10}
-
-				// create rate limiter with TTL for idle entries
-				rl := protos.NewRateLimiter(methodCfg, defaultCfg, 5*time.Minute)
-				grpcServer := grpc.NewServer(
-					grpc.UnaryInterceptor(rl.UnaryServerInterceptor()),
-					grpc.StreamInterceptor(rl.StreamServerInterceptor()),
-				)
-
-				// Register the services
-				protos.RegisterAddDataServer(grpcServer, &protos.AddDataService{})
-				protos.RegisterReadDataServer(grpcServer, &protos.ReadDataService{})
-
-				logger.GRPC_S_LOGGER.Println("Success: gRPC server is running on port", config.GRPC_PORT)
-				fmt.Println("Success: gRPC server is running on port", config.GRPC_PORT)
-
-				if grpcServer_err := grpcServer.Serve(grpcListener); grpcServer_err != nil {
-					logger.GRPC_F_LOGGER.Fatalf("Error: Failed to serve: %v", grpcServer_err)
-					fmt.Println("Error: see log/gRPC/fail folder for details.")
-				}
-
-			}()
-
-			// Sync missed data
-			go func() {
-				ws.SyncData(&ws.ClientManagerVar)
-			}()
-
-		} else {
-			logger.INTERNAL_LOGGER.Fatal("Error: Data sync failed")
-			fmt.Println("Error: see log/internal folder for details.")
+		server := &http.Server{
+			Addr:              config.WEBSOCKET_PORT,
+			ReadHeaderTimeout: 5 * time.Second,
 		}
 
-		// Prevent main from exiting
-		select {}
+		logger.WS_S_LOGGER.Println("Success: WebSocket server is running on port", config.WEBSOCKET_PORT)
+		fmt.Println("Success: WebSocket server is running on port", config.WEBSOCKET_PORT)
 
-	} else {
-		// Print error if genesis conditions fail
-		logger.INTERNAL_LOGGER.Printf("Error: %v", check_genesis_err)
-		fmt.Println("Error: see log/internal folder for details.")
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.WS_F_LOGGER.Printf("Failed to listen WebSocket: %v", err)
+		}
+	}()
+
+	go ws.MonitorAndReconnectToServers(&ws.ClientManagerVar)
+
+	// ------------------------------------------------------------------
+	// Initial sync: the gRPC API must not answer before the chain is current.
+	// ------------------------------------------------------------------
+	syncDone := make(chan bool, 1)
+	go func() {
+		syncDone <- ws.FirstTimeSyncData(&ws.ClientManagerVar)
+	}()
+
+	if !<-syncDone {
+		return errors.New("data sync failed")
+	}
+
+	logger.INTERNAL_LOGGER.Println("Success: Data sync completed, starting gRPC server")
+	fmt.Println("Success: Data sync completed, starting gRPC server")
+
+	go ws.SyncData(&ws.ClientManagerVar)
+
+	// ------------------------------------------------------------------
+	// gRPC API
+	// ------------------------------------------------------------------
+	grpcListener, err := net.Listen("tcp", config.GRPC_PORT)
+	if err != nil {
+		return fmt.Errorf("gRPC listen: %w", err)
+	}
+
+	methodCfg := map[string]protos.MethodLimit{
+		"/gate.AddData/addData":   {R: config.ADD_DATA_R, Burst: config.ADD_DATA_BURST},
+		"/gate.ReadData/readData": {R: config.READ_DATA_R, Burst: config.READ_DATA_BURST},
+	}
+	defaultCfg := protos.MethodLimit{R: 5, Burst: 10}
+
+	rl := protos.NewRateLimiter(methodCfg, defaultCfg, 5*time.Minute)
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(rl.UnaryServerInterceptor()),
+		grpc.StreamInterceptor(rl.StreamServerInterceptor()),
+	)
+
+	protos.RegisterAddDataServer(grpcServer, &protos.AddDataService{})
+	protos.RegisterReadDataServer(grpcServer, &protos.ReadDataService{})
+
+	go func() {
+		logger.GRPC_S_LOGGER.Println("Success: gRPC server is running on port", config.GRPC_PORT)
+		fmt.Println("Success: gRPC server is running on port", config.GRPC_PORT)
+
+		if err := grpcServer.Serve(grpcListener); err != nil {
+			logger.GRPC_F_LOGGER.Printf("Error: gRPC server stopped: %v", err)
+		}
+	}()
+
+	// ------------------------------------------------------------------
+	// Wait for a termination signal
+	// ------------------------------------------------------------------
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+	<-stop
+
+	fmt.Println("Shutting down...")
+	grpcServer.GracefulStop()
+	ws.ClientManagerVar.DisconnectFromServers()
+	return nil
+}
+
+// createIndexes installs the indexes the read path relies on. A failure is
+// logged but not fatal: the node still works, just slower.
+func createIndexes(collection *mongo.Collection) {
+	ctx, cancel := context.WithTimeout(context.Background(), config.DB_OP_TIMEOUT)
+	defer cancel()
+
+	indexes := []mongo.IndexModel{
+		{
+			Keys:    bson.D{{Key: "blockMeta.timeStamp", Value: -1}},
+			Options: options.Index().SetName("idx_blockmeta_timestamp_desc"),
+		},
+		{
+			Keys:    bson.D{{Key: "blockData.senderUid", Value: 1}, {Key: "blockMeta.timeStamp", Value: -1}},
+			Options: options.Index().SetName("idx_blockdata_senderuid_ts"),
+		},
+		{
+			Keys:    bson.D{{Key: "blockData.receiverUid", Value: 1}, {Key: "blockMeta.timeStamp", Value: -1}},
+			Options: options.Index().SetName("idx_blockdata_receiveruid_ts"),
+		},
+		{
+			Keys:    bson.D{{Key: "blockData.useContract", Value: 1}},
+			Options: options.Index().SetName("idx_blockdata_usecontract"),
+		},
+	}
+
+	if _, err := collection.Indexes().CreateMany(ctx, indexes); err != nil {
+		logger.INTERNAL_LOGGER.Printf("Warning: failed to create indexes: %v", err)
+		fmt.Println("Warning: see log/internal folder for details.")
 	}
 }

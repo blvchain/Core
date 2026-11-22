@@ -1,12 +1,13 @@
 package protos
 
 import (
+	"context"
+	"errors"
+	"fmt"
+
 	"blvchain/core/config"
 	"blvchain/core/logger"
 	"blvchain/core/utils"
-	context "context"
-	"errors"
-	"fmt"
 
 	validator "github.com/go-playground/validator/v10"
 	codes "google.golang.org/grpc/codes"
@@ -20,190 +21,198 @@ func init() {
 	validate = validator.New()
 }
 
-// validateAddDataRequest validates BlockData using go-playground/validator for
-// straightforward checks (length / numeric bounds) and keeps manual checks for
-// things like data size, wasm size, and timestamp windows.
-func validateAddDataRequest(req *BlockData) error {
+// maxRole is the exclusive upper bound for sender/receiver roles.
+const maxRole int64 = 10000001
 
-	// Basic string length and required checks using validator.Var
-	if err := validate.Var(req.SenderUID, "required,len=32"); err != nil {
-		return errors.New("senderUID is required and must be 32 len string")
+// validateAddDataRequest checks the shape of an AddData request.
+//
+// Simple length / numeric constraints are delegated to go-playground/validator;
+// cross-field rules (data size, wasm size, timestamp windows) stay here.
+func validateAddDataRequest(req *BlockData) error {
+	if req == nil {
+		return errors.New("request is required")
+	}
+
+	if err := validate.Var(req.GetSenderUID(), "required,len=32,hexadecimal"); err != nil {
+		return errors.New("senderUID is required and must be a 32 character hex string")
 	}
 
 	// SenderRole: must be > 0 and < 10000001
-	if err := validate.Var(req.SenderRole, "gt=0,lt=10000001"); err != nil {
+	if err := validate.Var(req.GetSenderRole(), "gt=0,lt=10000001"); err != nil {
 		return errors.New("senderRole is required and must be bigger than zero")
 	}
 
-	if err := validate.Var(req.SenderPubKey, "required,len=66"); err != nil {
-		return errors.New("senderPubKey is required and must be 66 len string")
+	if err := validate.Var(req.GetSenderPubKey(), "required,len=66,hexadecimal"); err != nil {
+		return errors.New("senderPubKey is required and must be a 66 character hex string")
 	}
 
-	if err := validate.Var(req.Signature, "required,len=128"); err != nil {
-		return errors.New("signature is required and must be 128 len string")
+	if err := validate.Var(req.GetSignature(), "required,len=128,hexadecimal"); err != nil {
+		return errors.New("signature is required and must be a 128 character hex string")
 	}
 
-	if err := validate.Var(req.ReceiverUID, "required,len=32"); err != nil {
-		return errors.New("receiverUID is required and must be 32 len string")
+	if err := validate.Var(req.GetReceiverUID(), "required,len=32,hexadecimal"); err != nil {
+		return errors.New("receiverUID is required and must be a 32 character hex string")
 	}
 
-	if err := validate.Var(req.ReceiverRole, "gt=0,lt=10000001"); err != nil {
+	if err := validate.Var(req.GetReceiverRole(), "gt=0,lt=10000001"); err != nil {
 		return errors.New("receiverRole is required and must be bigger than zero")
 	}
 
-	// Data is required and must be <= configured max size (in KB)
-	// Preserve the original textual error message format:
-	if req.Data == "" {
-		errStr := "data is required and must be lesser than " + config.MAX_DATA_SIZE_KB + "KB"
-		return errors.New(errStr)
-	}
-	// utils.StringSizeInKB returns a float size in KB; compare to configured max
+	// Data is required and must be smaller than the configured maximum size.
 	maxKB := utils.StringToFloat64(config.MAX_DATA_SIZE_KB)
-	if utils.StringSizeInKB(req.Data) > maxKB {
-		errStr := "data is required and must be lesser than " + config.MAX_DATA_SIZE_KB + "KB"
-		return errors.New(errStr)
+	if req.GetData() == "" {
+		return fmt.Errorf("data is required and must be lesser than %sKB", config.MAX_DATA_SIZE_KB)
+	}
+	if utils.StringSizeInKB(req.GetData()) >= maxKB {
+		return fmt.Errorf("data is required and must be lesser than %sKB", config.MAX_DATA_SIZE_KB)
 	}
 
-	// If this is a smart contract upload, enforce a 1MB (1024KB) limit for the Wasm file
-	if req.UseContract != "" {
-		// Validate UseContract identifier length
-		if err := validate.Var(req.UseContract, "len=66"); err != nil {
-			return errors.New("useContract must be 66 len string")
+	// A contract upload carries the WASM binary in ContractBase64. The payload
+	// limit is min(MAX_DATA_SIZE_KB, MAX_WASM_SIZE_KB).
+	if len(req.GetContractBase64()) > 0 {
+		if err := validate.Var(req.GetUseContract(), "required,len=66,hexadecimal"); err != nil {
+			return errors.New("useContract is required for a contract upload and must be a 66 character hex string")
 		}
-		// If Data contains the wasm file (base64 encoded), ensure it is <= 1MB
-		if req.Data != "" {
-			if utils.StringSizeInKB(req.Data) > 1024 {
-				return errors.New("wasm file must be lesser than 1024KB")
+		if int64(len(req.GetContractBase64())) > config.MAX_WASM_SIZE {
+			return fmt.Errorf("wasm file must be lesser than %dKB", config.MAX_WASM_SIZE_KB)
+		}
+		if checksum := req.GetContractData().GetChecksum(); checksum != "" {
+			if err := validate.Var(checksum, "len=64,hexadecimal"); err != nil {
+				return errors.New("contract checksum must be a 64 character hex string")
 			}
 		}
+	} else if req.GetUseContract() != "" {
+		if err := validate.Var(req.GetUseContract(), "len=66,hexadecimal"); err != nil {
+			return errors.New("useContract must be a 66 character hex string")
+		}
 	}
 
-	// TimeStamp: must be a valid unix ms timestamp between provided boundaries
-	// (1262304000000 .. 9262304000000)
-	if req.TimeStamp == 0 {
+	// TimeStamp must be a unix timestamp in milliseconds.
+	if err := validate.Var(req.GetTimeStamp(), "gt=0"); err != nil {
 		return errors.New("timeStamp must be a valid unix format with milliseconds")
 	}
-	if req.TimeStamp < int64(1262304000000) || req.TimeStamp > int64(9262304000000) {
+	if req.GetTimeStamp() < config.MIN_TIMESTAMP_MS || req.GetTimeStamp() > config.MAX_TIMESTAMP_MS {
 		return errors.New("timeStamp must be a valid unix format with milliseconds")
 	}
 
 	return nil
 }
 
-// validateReadDataRequest validates ReadDataRequest.
-// limit and skip are required; other fields are optional. If an optional
-// filter is provided it must be valid (wrong lengths / ranges return errors).
-// If no optional filters are provided, return an error as well.
+// validateReadDataRequest checks a ReadData request.
+//
+// limit and skip are always required. At least one *filter* must be supplied;
+// limit/skip alone do not count as a filter.
 func validateReadDataRequest(req *ReadDataRequest) error {
+	if req == nil {
+		return errors.New("request is required")
+	}
 
-	// limit must be between 1 and 100 inclusive (original said 1-100)
-	if err := validate.Var(req.Limit, "gt=0,lt=101"); err != nil {
+	if err := validate.Var(req.GetLimit(), "gt=0,lt=101"); err != nil {
 		return errors.New("limit must be between 1-100")
 	}
 
-	if req.Skip < 0 {
+	if req.GetSkip() < 0 {
 		return errors.New("skip must be zero or bigger than zero")
 	}
 
-	// Track whether the client provided at least one filter
 	provided := false
 
-	// skip limit
-	if req.Skip >= 0 && req.Limit > 0 {
-		provided = true
-	}
-
 	// UID
-	if req.UID != "" {
+	if req.GetUID() != "" {
 		provided = true
-		if len(req.UID) != 32 {
-			return errors.New("uid must be 32 len string")
+		if err := validate.Var(req.GetUID(), "len=32,hexadecimal"); err != nil {
+			return errors.New("uid must be a 32 character hex string")
 		}
 	}
 
 	// SenderUID
-	if req.SenderUID != "" {
+	if req.GetSenderUID() != "" {
 		provided = true
-		if len(req.SenderUID) != 32 {
-			return errors.New("senderUID must be 32 len string")
+		if err := validate.Var(req.GetSenderUID(), "len=32,hexadecimal"); err != nil {
+			return errors.New("senderUID must be a 32 character hex string")
 		}
 	}
 
 	// SenderRole (optional if zero)
-	if req.SenderRole != 0 {
+	if req.GetSenderRole() != 0 {
 		provided = true
-		if req.SenderRole <= 0 || req.SenderRole >= 10000001 {
+		if req.GetSenderRole() <= 0 || req.GetSenderRole() >= maxRole {
 			return errors.New("senderRole must be bigger than zero and within allowed range")
 		}
 	}
 
 	// SenderPubKey
-	if req.SenderPubKey != "" {
+	if req.GetSenderPubKey() != "" {
 		provided = true
-		if len(req.SenderPubKey) != 66 {
-			return errors.New("senderPubKey must be 66 len string")
+		if err := validate.Var(req.GetSenderPubKey(), "len=66,hexadecimal"); err != nil {
+			return errors.New("senderPubKey must be a 66 character hex string")
 		}
 	}
 
 	// ReceiverUID
-	if req.ReceiverUID != "" {
+	if req.GetReceiverUID() != "" {
 		provided = true
-		if len(req.ReceiverUID) != 32 {
-			return errors.New("receiverUID must be 32 len string")
+		if err := validate.Var(req.GetReceiverUID(), "len=32,hexadecimal"); err != nil {
+			return errors.New("receiverUID must be a 32 character hex string")
 		}
 	}
 
 	// ReceiverRole
-	if req.ReceiverRole != 0 {
+	if req.GetReceiverRole() != 0 {
 		provided = true
-		if req.ReceiverRole <= 0 || req.ReceiverRole >= 10000001 {
+		if req.GetReceiverRole() <= 0 || req.GetReceiverRole() >= maxRole {
 			return errors.New("receiverRole must be bigger than zero and within allowed range")
 		}
 	}
 
 	// BlockHash
-	if req.BlockHash != "" {
+	if req.GetBlockHash() != "" {
 		provided = true
-		if len(req.BlockHash) != 64 {
-			return errors.New("blockHash must be 64 len string")
+		if err := validate.Var(req.GetBlockHash(), "len=64,hexadecimal"); err != nil {
+			return errors.New("blockHash must be a 64 character hex string")
 		}
 	}
 
 	// PreBlockHash
-	if req.PreBlockHash != "" {
+	if req.GetPreBlockHash() != "" {
 		provided = true
-		if len(req.PreBlockHash) != 64 {
-			return errors.New("preBlockHash must be 64 len string")
+		if err := validate.Var(req.GetPreBlockHash(), "len=64,hexadecimal"); err != nil {
+			return errors.New("preBlockHash must be a 64 character hex string")
 		}
 	}
 
-	// NodeUID (original used utils.Gt_str(req.NodeUID, 9) — require length > 9)
-	if req.NodeUID != "" {
+	// NodeUID: node identifiers are longer than 9 characters (they are not
+	// restricted to hex, e.g. "node_1_729ea2f23d456b626df2f27183047912").
+	if req.GetNodeUID() != "" {
 		provided = true
-		if len(req.NodeUID) <= 9 {
+		if len(req.GetNodeUID()) <= 9 {
 			return errors.New("nodeUID must be longer than 9 characters")
 		}
 	}
 
-	// TimeStampFrom / TimeStampTo: original used 1262304000..9262304000 (seconds) bounds
-	if req.TimeStampFrom != 0 {
+	// TimeStampFrom / TimeStampTo are unix milliseconds, matching the values
+	// stored in blockData.timeStamp.
+	if req.GetTimeStampFrom() != 0 {
 		provided = true
-		if req.TimeStampFrom < 1262304000 || req.TimeStampFrom > 9262304000 {
-			return errors.New("timeStampFrom must be a valid unix format in seconds")
+		if req.GetTimeStampFrom() < config.MIN_TIMESTAMP_MS || req.GetTimeStampFrom() > config.MAX_TIMESTAMP_MS {
+			return errors.New("timeStampFrom must be a valid unix timestamp in milliseconds")
 		}
 	}
-	if req.TimeStampTo != 0 {
+	if req.GetTimeStampTo() != 0 {
 		provided = true
-		if req.TimeStampTo < 1262304000 || req.TimeStampTo > 9262304000 {
-			return errors.New("timeStampTo must be a valid unix format in seconds")
+		if req.GetTimeStampTo() < config.MIN_TIMESTAMP_MS || req.GetTimeStampTo() > config.MAX_TIMESTAMP_MS {
+			return errors.New("timeStampTo must be a valid unix timestamp in milliseconds")
 		}
+	}
+	if req.GetTimeStampFrom() != 0 && req.GetTimeStampTo() != 0 && req.GetTimeStampFrom() > req.GetTimeStampTo() {
+		return errors.New("timeStampFrom must not be greater than timeStampTo")
 	}
 
 	// UseContract
-	if req.UseContract != "" {
+	if req.GetUseContract() != "" {
 		provided = true
-		if len(req.UseContract) != 66 {
-			return errors.New("useContract must be 66 len string")
+		if err := validate.Var(req.GetUseContract(), "len=66,hexadecimal"); err != nil {
+			return errors.New("useContract must be a 66 character hex string")
 		}
 	}
 
@@ -214,29 +223,33 @@ func validateReadDataRequest(req *ReadDataRequest) error {
 	return nil
 }
 
-// validateAuth remains mostly the same, using metadata to get the API key.
+// validateAuth extracts and checks the API key from the gRPC metadata.
+//
+// Clients may send the key as "authorization", "x-api-key" or "auth". gRPC
+// lower-cases metadata keys, so all lookups are lower-case.
 func validateAuth(ctx context.Context) (string, error) {
-	// Extract metadata
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		logger.GRPC_F_LOGGER.Println("Missing metadata from ")
-		fmt.Println("Error: see log/gRPC/fail folder for details.")
-		return "", status.Errorf(codes.Unauthenticated, "Missing metadata")
+		logger.GRPC_F_LOGGER.Println("Missing metadata")
+		return "", status.Error(codes.Unauthenticated, "Missing metadata")
 	}
 
-	// Get API key from metadata
-	apiKeys := md["auth"]
-	if len(apiKeys) == 0 {
+	var apiKey string
+	for _, key := range []string{"authorization", "x-api-key", "auth"} {
+		if values := md.Get(key); len(values) > 0 && values[0] != "" {
+			apiKey = values[0]
+			break
+		}
+	}
+
+	if apiKey == "" {
 		logger.GRPC_F_LOGGER.Println("Missing API key")
-		fmt.Println("Error: see log/gRPC/fail folder for details.")
-		return "", status.Errorf(codes.Unauthenticated, "Missing API key")
+		return "", status.Error(codes.Unauthenticated, "Missing API key")
 	}
 
-	apiKey := apiKeys[0]
 	if !config.API_KEY_LIST[apiKey] {
-		logger.GRPC_F_LOGGER.Printf("unauthorized client: %s", apiKey)
-		fmt.Println("Error: see log/gRPC/fail folder for details.")
-		return apiKey, status.Errorf(codes.PermissionDenied, "Unauthorized client")
+		logger.GRPC_F_LOGGER.Printf("Unauthorized client: %s", apiKey)
+		return apiKey, status.Error(codes.PermissionDenied, "Unauthorized client")
 	}
 
 	return apiKey, nil

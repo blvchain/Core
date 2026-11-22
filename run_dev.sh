@@ -1,9 +1,15 @@
-# echo "Loading environment variables..."
-# source config/.env
+#!/bin/sh
+#
+# Development runner. Uses Air for hot reload when it is installed, otherwise
+# falls back to `go run`.
+#
+set -eu
 
-# echo "Starting development server..."
-# go run main.go
+if command -v air >/dev/null 2>&1; then
+    echo "==> starting with air (hot reload)"
+    exec air
+fi
 
-# $(go env GOPATH)/bin/air
-
-air
+echo "==> air is not installed, running 'go run .'"
+echo "    install it with: go install github.com/air-verse/air@latest"
+exec go run .

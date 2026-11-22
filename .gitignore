@@ -1,4 +1,23 @@
+# Build output
+/core
+/core.exe
+*.exe
+
+# Air live-reload
 /tmp
+
+# Runtime data and logs
 /log
+log/
+/smart_contracts
+
+# Editors
 /.vscode
+/.idea
+
+# OS noise
+Thumbs.db
+.DS_Store
+
+# Rust scratch directory (no longer part of the node)
 /bvm/smart-contract/target

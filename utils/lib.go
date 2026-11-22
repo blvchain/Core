@@ -3,21 +3,21 @@ package utils
 import (
 	"blvchain/core/config"
 	"blvchain/core/logger"
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
-	"math/big"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 )
 
-// Custom print for errors with red color
+// PrintError prints an error in red. Kept for the console output style used by
+// the node.
 func PrintError(format error, a ...interface{}) {
 	redColor := "\033[31m"
 	resetColor := "\033[0m"
@@ -47,16 +47,14 @@ func StringToFloat64(strNum string) float64 {
 	return num
 }
 
-func privkeyHexToECDSA(privkey string) (*ecdsa.PrivateKey, error) {
-	curve := elliptic.P256()
-	privateKey := new(ecdsa.PrivateKey)
-	privateKey.PublicKey.Curve = curve
-	privateKeyBigInt, _ := new(big.Int).SetString(privkey, 16)
-	privateKey.D = privateKeyBigInt
-
-	privateKey.PublicKey.X, privateKey.PublicKey.Y = curve.ScalarBaseMult(privateKey.D.Bytes())
-
-	return privateKey, nil
+// MakeUID derives the 32-character node/client identifier from a compressed
+// public key. It is deterministic: the same key always maps to the same UID.
+func Make_UID(pubkey_str string) string {
+	hash := D512C(pubkey_str, config.DELIUM_CONFIG.UID_MAKER_PATH).String
+	if len(hash) < 32 {
+		return hash
+	}
+	return hash[:32]
 }
 
 func AddQueryParams(baseURL string, params map[string]string) (string, error) {
@@ -66,16 +64,16 @@ func AddQueryParams(baseURL string, params map[string]string) (string, error) {
 	}
 
 	q := u.Query()
-
 	for key, value := range params {
 		q.Set(key, value)
 	}
-
 	u.RawQuery = q.Encode()
 
 	return u.String(), nil
 }
 
+// NodeUidChecker reports whether nodeUID belongs to a *different* seed node than
+// this one. It is used to authorise inbound WebSocket peers.
 func NodeUidChecker(nodeUID string) bool {
 	for _, item := range config.DNS_SEED_LIST {
 		if item.UID == nodeUID && item.UID != config.SELF_UID {
@@ -90,135 +88,92 @@ func Data_to_JSON(data any) []byte {
 	return byte_data
 }
 
-func Make_UID(pubkey_str string) string {
-	hash := D512C(pubkey_str, config.DELIUM_CONFIG.UID_MAKER_PATH).String
-	return hash[:32]
-}
-
 func StringSizeInKB(s string) float64 {
-	bytes := len(s)
-	kbSize := float64(bytes) / 1024
-
-	return kbSize
+	return float64(len(s)) / 1024
 }
 
-// validators
-// Between
-func Bt_int(inputData int, gt int, ls int) bool {
-	if inputData >= gt && inputData <= ls {
+// SHA256Hex returns the lower-case hex SHA-256 digest of data.
+func SHA256Hex(data []byte) string {
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:])
+}
+
+// IsHex reports whether s is a non-empty, even-length hex string.
+func IsHex(s string) bool {
+	if s == "" || len(s)%2 != 0 {
 		return false
-	} else {
-		return true
 	}
+	_, err := hex.DecodeString(s)
+	return err == nil
 }
 
-func Bt_int64(inputData int64, gt int64, ls int64) bool {
-	if inputData >= gt && inputData <= ls {
-		return false
-	} else {
-		return true
-	}
-}
-
-func Bt_str(inputData string, gt int, ls int) bool {
-	if len(inputData) >= gt && len(inputData) <= ls {
-		return false
-	} else {
-		return true
-	}
-}
-
-// Greater than
-func Gt_int(inputData int, gt int) bool {
-	if inputData > gt {
-		return false
-	} else {
-		return true
-	}
-}
-
-func Gt_int64(inputData int64, gt int64) bool {
-	if inputData > gt {
-		return false
-	} else {
-		return true
-	}
-}
-
-func Gt_str(inputData string, gt int) bool {
-	if len(inputData) > gt {
-		return false
-	} else {
-		return true
-	}
-}
-
-// Lesser than
-func Lt_float(inputData float64, ls float64) bool {
-	if inputData < ls {
-		return false
-	} else {
-		return true
-	}
-}
-
-func Lt_int(inputData int, ls int) bool {
-	if inputData < ls {
-		return false
-	} else {
-		return true
-	}
-}
-
-func Lt_int64(inputData int64, ls int64) bool {
-	if inputData < ls {
-		return false
-	} else {
-		return true
-	}
-}
-
-func Lt_str(inputData string, ls int) bool {
-	if len(inputData) < ls {
-		return false
-	} else {
-		return true
-	}
-}
-
-// Equal
-
-func E_str(inputData string, e int) bool {
-	if len(inputData) == e {
-		return false
-	} else {
-		return true
-	}
-}
-
-func BoolCheck(inputData bool) bool {
-	var data interface{} = inputData
-	if _, ok := data.(bool); ok {
-		return false
-	} else {
-		return true
-	}
-}
-
-func FileCheckSumSHA256(fileName string) bool {
-	path := config.SMART_CONTRACT_FILES_PATH + fileName
+// FileSHA256 returns the hex SHA-256 digest of the file at path.
+func FileSHA256(path string) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		logger.SC_F_LOGGER.Printf("Error: Error in opening file %v, in path %v for checksum sha256: %v", fileName, path, err)
-		return false
+		return "", err
 	}
 	defer f.Close()
 
 	h := sha256.New()
 	if _, err := io.Copy(h, f); err != nil {
-		logger.SC_F_LOGGER.Printf("Error: Error in opening file %v, in path %v for checksum sha256: %v", fileName, path, err)
+		return "", err
+	}
+	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+// FileCheckSumSHA256 reports whether the file named `checksum` inside the
+// smart-contract directory hashes to that name.
+func FileCheckSumSHA256(fileName string) bool {
+	path := filepath.Join(config.SMART_CONTRACT_DIR, fileName)
+	sum, err := FileSHA256(path)
+	if err != nil {
+		logger.SC_F_LOGGER.Printf("Error: could not read file %v at %v for sha256 checksum: %v", fileName, path, err)
 		return false
 	}
-
-	return hex.EncodeToString(h.Sum(nil)) == fileName
+	return strings.EqualFold(sum, fileName)
 }
+
+// ---------------------------------------------------------------------------
+// Tiny validation helpers
+//
+// Every helper returns true when the value is INVALID, which keeps the call
+// sites readable:
+//
+//	if utils.E_str(value, 32) { return errors.New("...") }
+// ---------------------------------------------------------------------------
+
+// Bt_int reports whether inputData is outside [gt, ls] (inclusive).
+func Bt_int(inputData int, gt int, ls int) bool { return !(inputData >= gt && inputData <= ls) }
+
+// Bt_int64 reports whether inputData is outside [gt, ls] (inclusive).
+func Bt_int64(inputData int64, gt int64, ls int64) bool { return !(inputData >= gt && inputData <= ls) }
+
+// Bt_str reports whether len(inputData) is outside [gt, ls] (inclusive).
+func Bt_str(inputData string, gt int, ls int) bool {
+	return !(len(inputData) >= gt && len(inputData) <= ls)
+}
+
+// Gt_int reports whether inputData is not greater than gt.
+func Gt_int(inputData int, gt int) bool { return !(inputData > gt) }
+
+// Gt_int64 reports whether inputData is not greater than gt.
+func Gt_int64(inputData int64, gt int64) bool { return !(inputData > gt) }
+
+// Gt_str reports whether len(inputData) is not greater than gt.
+func Gt_str(inputData string, gt int) bool { return !(len(inputData) > gt) }
+
+// Lt_float reports whether inputData is not smaller than ls.
+func Lt_float(inputData float64, ls float64) bool { return !(inputData < ls) }
+
+// Lt_int reports whether inputData is not smaller than ls.
+func Lt_int(inputData int, ls int) bool { return !(inputData < ls) }
+
+// Lt_int64 reports whether inputData is not smaller than ls.
+func Lt_int64(inputData int64, ls int64) bool { return !(inputData < ls) }
+
+// Lt_str reports whether len(inputData) is not smaller than ls.
+func Lt_str(inputData string, ls int) bool { return !(len(inputData) < ls) }
+
+// E_str reports whether len(inputData) differs from e.
+func E_str(inputData string, e int) bool { return len(inputData) != e }

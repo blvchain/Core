@@ -5,241 +5,215 @@ import (
 	"blvchain/core/db"
 	"blvchain/core/logger"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
-	"github.com/gorilla/websocket"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func (cm *ServerManager) addClientToLocalServer(uid string, conn *websocket.Conn) {
+func (cm *ServerManager) addClient(uid string, conn *safeConn) {
 	cm.mutex.Lock()
 	defer cm.mutex.Unlock()
 
+	// Replace any previous connection from the same node.
+	if previous, ok := cm.clients[uid]; ok {
+		_ = previous.Close()
+	}
 	cm.clients[uid] = conn
 }
 
-func (cm *ServerManager) removeClientFromLocalServer(uid string) {
+func (cm *ServerManager) removeClient(uid string) {
 	cm.mutex.Lock()
 	defer cm.mutex.Unlock()
 
-	if conn, ok := cm.clients[uid]; ok {
-		conn.Close()
-		delete(cm.clients, uid)
-	}
+	delete(cm.clients, uid)
 }
 
+// BroadcastMessageFromLocalServer sends a message to every connected peer.
 func (cm *ServerManager) BroadcastMessageFromLocalServer(message any) {
-	messageByte, messageByte_err := json.Marshal(message)
-	if messageByte_err != nil {
-		logger.INTERNAL_LOGGER.Printf("Error: Failed to marshal message \n %v", message)
-		fmt.Println("Error: see log/internal folder for details.")
-	}
-
 	cm.mutex.RLock()
-	defer cm.mutex.RUnlock()
+	conns := make([]*safeConn, 0, len(cm.clients))
+	for _, conn := range cm.clients {
+		conns = append(conns, conn)
+	}
+	cm.mutex.RUnlock()
 
-	for uid, conn := range cm.clients {
-		if err := conn.WriteMessage(websocket.TextMessage, messageByte); err != nil {
-			logger.WS_F_LOGGER.Printf("Error: Error writing message '%v' to node '%v'", err, uid)
-			fmt.Println("Error: see log/websocket/fail folder for details.")
+	for _, conn := range conns {
+		if err := conn.writeJSON(message); err != nil {
+			logger.WS_F_LOGGER.Printf("Error: could not broadcast message: %v", err)
 		}
 	}
 }
 
-func messenger(message any, conn *websocket.Conn, uid string) {
-	messageByte, _ := json.Marshal(message)
-	err := conn.WriteMessage(websocket.TextMessage, messageByte)
-	if err != nil {
-		logger.WS_F_LOGGER.Printf("Error: Error writing message '%v' to node '%v'", err, uid)
-		fmt.Println("Error: see log/websocket/fail folder for details.")
-	}
-}
-
+// WS_Server_Handler upgrades the request and serves one peer.
 func WS_Server_Handler(w http.ResponseWriter, r *http.Request) {
-	// Upgrade the HTTP connection to a WebSocket connection
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		logger.WS_F_LOGGER.Println("Error: Failed to upgrade:", err)
-		fmt.Println("Error: see log/websocket/fail folder for details.")
 		return
 	}
-	defer conn.Close()
 
-	// Node connection
+	safe := newSafeConn(conn)
+	defer safe.Close()
+
 	clientUID := r.Header.Get("X-UID")
-	ServerManagerVar.addClientToLocalServer(clientUID, conn)
-	defer ServerManagerVar.removeClientFromLocalServer(clientUID)
-	logger.WS_S_LOGGER.Printf("Success: Node '%s' connected\n", clientUID)
+	ServerManagerVar.addClient(clientUID, safe)
+	defer ServerManagerVar.removeClient(clientUID)
+	logger.WS_S_LOGGER.Printf("Success: Node '%s' connected", clientUID)
 
-	// Handle incoming messages
 	for {
-
-		// Handle disconnected clients
-		_, messageData, err := conn.ReadMessage()
+		_, messageData, err := safe.read()
 		if err != nil {
-			logger.WS_F_LOGGER.Printf("Error: Node '%s' disconnected, %v\n", clientUID, err)
-			fmt.Println("Error: see log/websocket/fail folder for details.")
-			break
+			logger.WS_F_LOGGER.Printf("Error: Node '%s' disconnected: %v", clientUID, err)
+			return
 		}
 
 		var msg WS_Req
 		if err := json.Unmarshal(messageData, &msg); err != nil {
-			logger.WS_F_LOGGER.Println("Error: Error parsing message:", err)
-			fmt.Println("Error: see log/websocket/fail folder for details.")
-			break
+			logger.WS_F_LOGGER.Printf("Error: Node '%s' sent malformed JSON: %v", clientUID, err)
+			return
 		}
 
-		//* Get block data
-		if msg.Method == "get" {
-
-			// Make response var
-			var res WS_Res = WS_Res{
-				IsSuccess: false,
-			}
-
-			filter := []bson.M{}
-
-			if msg.Block.BlockData.SenderUID != "" {
-				filter = append(filter, bson.M{"blockData.senderUid": msg.Block.BlockData.SenderUID})
-			}
-			if msg.Block.BlockData.SenderRole != 0 {
-				filter = append(filter, bson.M{"blockData.senderRole": msg.Block.BlockData.SenderRole})
-			}
-			if msg.Block.BlockData.SenderPubKey != "" {
-				filter = append(filter, bson.M{"blockData.senderPubKey": msg.Block.BlockData.SenderPubKey})
-			}
-			if msg.Block.BlockData.ReceiverUID != "" {
-				filter = append(filter, bson.M{"blockData.receiverUid": msg.Block.BlockData.ReceiverUID})
-			}
-			if msg.Block.BlockData.ReceiverRole != 0 {
-				filter = append(filter, bson.M{"blockData.receiverRole": msg.Block.BlockData.ReceiverRole})
-			}
-			if msg.Block.ID != "" {
-				filter = append(filter, bson.M{"_id": msg.Block.ID})
-			}
-			if msg.Block.BlockMeta.PreBlockHash != "" {
-				filter = append(filter, bson.M{"blockMeta.preBlockHash": msg.Block.BlockMeta.PreBlockHash})
-			}
-			if msg.Block.BlockMeta.NodeUID != "" {
-				filter = append(filter, bson.M{"blockMeta.nodeUid": msg.Block.BlockMeta.NodeUID})
-			}
-
-			if len(filter) == 0 {
-				logger.WS_F_LOGGER.Printf("Error: Not found block '%v'. Req from node '%v'", msg.Block.ID, clientUID)
-				fmt.Println("Error: see log/websocket/fail folder for details.")
-			} else {
-
-				founded_block, founded_block_err := db.FindManyBlocksLimited(bson.M{"$and": filter}, 0, 1)
-
-				if founded_block_err == mongo.ErrNoDocuments || len(founded_block) == 0 {
-					// Not found any block with this hash
-					logger.WS_F_LOGGER.Printf("Error: Not found block '%v'. Req from node '%v'", msg.Block.ID, clientUID)
-					fmt.Println("Error: see log/websocket/fail folder for details.")
-				} else {
-					// Send founded block
-					logger.WS_S_LOGGER.Printf("Success: Send data of block '%v' to node '%v'", msg.Block.ID, clientUID)
-					res.IsSuccess = true
-					res.Block = founded_block[0]
-				}
-			}
-
-			// Send response to client
-			messenger(res, conn, clientUID)
+		var reply any
+		switch msg.Method {
+		case MethodGet:
+			reply = handleGetBlock(msg.Block)
+		case MethodAdd:
+			reply = handleAddBlock(clientUID, msg.Block)
+		case MethodSync:
+			reply = handleSyncBlocks(clientUID, msg.Block)
+		default:
+			logger.WS_F_LOGGER.Printf("Error: Node '%s' used unknown method '%s'", clientUID, msg.Method)
+			continue
 		}
 
-		//* Add new block
-		if msg.Method == "add" {
-
-			// Make response var
-			var res WS_Res = WS_Res{
-				IsSuccess: false,
-			}
-
-			// check all data validation
-			structValidation_err := db.BlockStructValidator(msg.Block)
-
-			if structValidation_err != nil {
-				// Structure failed
-				logger.WS_F_LOGGER.Printf("Error: Error in node '%v' message structure validation: , %v\n", clientUID, structValidation_err)
-				fmt.Println("Error: see log/websocket/fail folder for details.")
-			} else {
-
-				// check block validation
-				validation_err := db.BlockValidator(msg.Block)
-
-				// check hash
-				founded_blocks, _ := db.FindAllBlocks(bson.M{"_id": msg.Block.ID})
-
-				if len(founded_blocks) == 0 {
-
-					if validation_err != nil {
-						// Block validation failed
-						logger.WS_F_LOGGER.Printf("WARNING!!!: Error in node '%v' block validation: , %v\n", clientUID, validation_err)
-						fmt.Println("Error: see log/websocket/fail folder for details.")
-						msg.Block.Boycott = true
-					} else {
-						msg.Block.Boycott = false
-					}
-
-					// Block hash is unique
-					// preBlockHash found in db
-					Block_insert_result, Block_insert_result_err := db.InsertOneBlock(msg.Block)
-
-					if !Block_insert_result {
-						// Internal error to add data to DB
-						logger.INTERNAL_LOGGER.Printf("Error: Error in adding block '%v' to db from node '%v' : \n %v", msg.Block.ID, clientUID, Block_insert_result_err)
-						fmt.Println("Error: see log/internal folder for details.")
-					} else {
-						// Successfully added data to DB
-						logger.WS_S_LOGGER.Printf("Success: Block '%v' successfully added from '%v' ", msg.Block.ID, clientUID)
-						res.IsSuccess = true
-					}
-
-				} else {
-					// Block hash is NOT unique
-					logger.WS_F_LOGGER.Printf("Error: Error in node '%v' block hash is not unique: , %v\n", clientUID, validation_err)
-					fmt.Println("Error: see log/websocket/fail folder for details.")
-				}
-
-			}
-
-			// Send response to client
-			messenger(res, conn, clientUID)
+		if err := safe.writeJSON(reply); err != nil {
+			logger.WS_F_LOGGER.Printf("Error: could not answer node '%s': %v", clientUID, err)
+			return
 		}
-
-		//* Sync data
-		if msg.Method == "sync" {
-
-			// Make response var
-			var res WS_Sync_Res = WS_Sync_Res{
-				IsSuccess: false,
-			}
-
-			filter := bson.M{
-				"$and": []bson.M{
-					{"blockMeta.timeStamp": bson.M{"$gte": msg.Block.BlockMeta.TimeStamp}},
-					{"blockMeta.preBlockHash": bson.M{"$ne": config.GENESIS_BLOCK_PREHASH}},
-				},
-			}
-
-			founded_block, founded_block_err := db.FindManyBlocksLimitedASE(filter, 0, config.MAX_LIMIT_OF_DATA_SYNC)
-
-			if (founded_block_err == nil || len(founded_block) != 0) && len(founded_block) > config.MIN_LIMIT_OF_DATA_SYNC {
-				// Send founded block
-				logger.WS_S_LOGGER.Printf("Success: Send data of %v block(s) made after %v to node '%v'", len(founded_block), msg.Block.BlockMeta.TimeStamp, clientUID)
-				res.IsSuccess = true
-				res.Blocks = founded_block
-			} else {
-				if founded_block_err != mongo.ErrNoDocuments && founded_block_err != nil {
-					logger.WS_F_LOGGER.Printf("Error: Error in finding blocks made after %v for node %v. \n %v", msg.Block.BlockMeta.TimeStamp, clientUID, founded_block_err)
-					fmt.Println("Error: see log/websocket/fail folder for details.")
-				}
-			}
-			// Send response to client
-			messenger(res, conn, clientUID)
-		}
-
 	}
+}
+
+// handleGetBlock answers a "get" request: look up one block by its fields.
+func handleGetBlock(query db.Block) WS_Res {
+	res := WS_Res{IsSuccess: false}
+
+	filter := []bson.M{}
+	if query.BlockData.SenderUID != "" {
+		filter = append(filter, bson.M{"blockData.senderUid": query.BlockData.SenderUID})
+	}
+	if query.BlockData.SenderRole != 0 {
+		filter = append(filter, bson.M{"blockData.senderRole": query.BlockData.SenderRole})
+	}
+	if query.BlockData.SenderPubKey != "" {
+		filter = append(filter, bson.M{"blockData.senderPubKey": query.BlockData.SenderPubKey})
+	}
+	if query.BlockData.ReceiverUID != "" {
+		filter = append(filter, bson.M{"blockData.receiverUid": query.BlockData.ReceiverUID})
+	}
+	if query.BlockData.ReceiverRole != 0 {
+		filter = append(filter, bson.M{"blockData.receiverRole": query.BlockData.ReceiverRole})
+	}
+	if query.ID != "" {
+		filter = append(filter, bson.M{"_id": query.ID})
+	}
+	if query.BlockMeta.PreBlockHash != "" {
+		filter = append(filter, bson.M{"blockMeta.preBlockHash": query.BlockMeta.PreBlockHash})
+	}
+	if query.BlockMeta.NodeUID != "" {
+		filter = append(filter, bson.M{"blockMeta.nodeUid": query.BlockMeta.NodeUID})
+	}
+
+	if len(filter) == 0 {
+		logger.WS_F_LOGGER.Printf("Error: empty get request from node")
+		return res
+	}
+
+	blocks, err := db.FindManyBlocksLimited(bson.M{"$and": filter}, 0, 1)
+	if err != nil || len(blocks) == 0 {
+		logger.WS_F_LOGGER.Printf("Error: block '%v' not found", query.ID)
+		return res
+	}
+
+	logger.WS_S_LOGGER.Printf("Success: sent block '%v' to a peer", query.ID)
+	res.IsSuccess = true
+	res.Block = blocks[0]
+	return res
+}
+
+// handleAddBlock answers an "add" request: validate and store a replicated block.
+func handleAddBlock(clientUID string, block db.Block) WS_Res {
+	res := WS_Res{IsSuccess: false}
+
+	if err := db.BlockStructValidator(block); err != nil {
+		logger.WS_F_LOGGER.Printf("Error: malformed block from node '%v': %v", clientUID, err)
+		return res
+	}
+
+	existing, err := db.FindAllBlocks(bson.M{"_id": block.ID})
+	if err != nil {
+		logger.INTERNAL_LOGGER.Printf("Error: could not check block '%v': %v", block.ID, err)
+		return res
+	}
+	if len(existing) > 0 {
+		logger.WS_F_LOGGER.Printf("Error: node '%v' sent duplicate block '%v'", clientUID, block.ID)
+		return res
+	}
+
+	if err := db.BlockValidator(block); err != nil {
+		logger.WS_F_LOGGER.Printf("WARNING!!!: Quarantining block '%v' from node '%v': %v", block.ID, clientUID, err)
+		block.Boycott = true
+	} else {
+		block.Boycott = false
+	}
+
+	ok, insertErr := db.InsertOneBlock(block)
+	if !ok {
+		logger.INTERNAL_LOGGER.Printf("Error: could not store block '%v' from node '%v': %v", block.ID, clientUID, insertErr)
+		return res
+	}
+
+	logger.WS_S_LOGGER.Printf("Success: stored block '%v' from node '%v'", block.ID, clientUID)
+	res.IsSuccess = true
+	res.Block = block
+	return res
+}
+
+// handleSyncBlocks answers a "sync" request with the blocks newer than the
+// peer's tip. The tip block itself is excluded so a peer that is already up to
+// date receives nothing and can stop syncing.
+func handleSyncBlocks(clientUID string, tip db.Block) WS_Sync_Res {
+	res := WS_Sync_Res{IsSuccess: false}
+
+	newerThanTip := bson.M{
+		"$or": []bson.M{
+			{"blockMeta.timeStamp": bson.M{"$gt": tip.BlockMeta.TimeStamp}},
+			{
+				"$and": []bson.M{
+					{"blockMeta.timeStamp": tip.BlockMeta.TimeStamp},
+					{"_id": bson.M{"$ne": tip.ID}},
+				},
+			},
+		},
+	}
+
+	filter := bson.M{
+		"$and": []bson.M{
+			newerThanTip,
+			{"blockMeta.preBlockHash": bson.M{"$ne": config.GENESIS_BLOCK_PREHASH}},
+		},
+	}
+
+	blocks, err := db.FindManyBlocksLimitedASE(filter, 0, config.MAX_LIMIT_OF_DATA_SYNC)
+	if err != nil {
+		logger.WS_F_LOGGER.Printf("Error: could not read blocks for node '%v': %v", clientUID, err)
+		return res
+	}
+	if len(blocks) == 0 {
+		return res
+	}
+
+	logger.WS_S_LOGGER.Printf("Success: sent %v block(s) made after %v to node '%v'", len(blocks), tip.BlockMeta.TimeStamp, clientUID)
+	res.IsSuccess = true
+	res.Blocks = blocks
+	return res
 }
