@@ -327,26 +327,31 @@ add metering.)
 
 ## 4. CometBFT integration strategy (requirement 4)
 
-### 4.1 Version selection and Go compatibility (verified, requirement 10)
+### 4.1 Version selection and Go compatibility (Phase S; pending approval)
 
-- **Pin: CometBFT `v1.0.1`** — the latest v1.0.x patch tag (verified; no v1.0.2+
-  exists at time of writing; the repo also carries a parallel `v0.40.0` line that
-  is **not** used here). The v1.0.x line carries the formal versioning guarantees
-  (PBTS, Data Companion API). Source: <https://github.com/cometbft/cometbft/releases/tag/v1.0.1>.
-- **Go compatibility:** CometBFT v1.0.1's `go.mod` declares **`go 1.23.5`**;
-  this project's `go.mod` declares **Go 1.24.0**, which satisfies it. Source:
-  <https://github.com/cometbft/cometbft/blob/v1.0.1/go.mod>.
-- **Default ports (v1.0.1):** P2P `tcp://0.0.0.0:26656`, RPC
-  `tcp://127.0.0.1:26657`, ABCI app proxy `tcp://127.0.0.1:26658`. Source:
-  `config/config.go` @ v1.0.1. (RPC/ABCI bind to localhost by default — keep it
-  that way; only the gRPC gate faces clients. See §4.5.)
-- **Package layout note (v1.0.x):** consensus code lives under
-  **`internal/consensus/`** (not `consensus/`); execution/state live under
-  top-level **`state/`**. This matters when reconciling call sites.
-- **API-reconciliation (implementation step):** the `nm.NewNode(...)` /
-  `proxy.NewLocalClientCreator(...)` wiring below is correct in shape; reconcile
-  the exact argument list to the v1.0.1 signature when coding. (This is an
-  implementation mechanic, Appendix A step 2, not a design change.)
+> **Phase S selected `v0.40.0`** (recommended; `v0.38.26` conservative fallback).
+> The design's original `v1.0.1` is **disqualified** (§17, Phase S report). The
+> facts below are verified against the **v0.40.0** tag; see
+> `docs/COMET_BFT_V0_40_0_COMPAT.md`. They apply **if** you approve the change.
+
+- **Pin: CometBFT `v0.40.0`** (latest release; ABCI 2.0; Tachyon-fixed). Source:
+  <https://github.com/cometbft/cometbft/releases/tag/v0.40.0>. **No PBTS** — block
+  time uses BFT-Time via unconditional `MedianTime` (v1.0.x's PBTS is **not** in
+  v0.40.0). If PBTS is a hard requirement, a PBTS-capable line (v0.39/v1.x) must be
+  used instead — see Phase S report §11.
+- **Go compatibility:** CometBFT v0.40.0's `go.mod` declares **`go 1.25.0`** (no
+  `toolchain` line); **verified to build on go1.26.6**. Selected toolchain
+  **go1.26.11** (§17) satisfies it. Source:
+  <https://github.com/cometbft/cometbft/blob/v0.40.0/go.mod>.
+- **Default ports:** P2P `tcp://0.0.0.0:26656`, RPC `tcp://127.0.0.1:26657`, ABCI
+  app proxy `tcp://127.0.0.1:26658` (same as v1.0.1). RPC/ABCI stay on loopback;
+  only the gRPC gate faces clients (§4.5).
+- **Package layout (v0.40.0):** consensus code is **`consensus/` (public)** —
+  *not* `internal/consensus/` (that is the v1.0.1 layout); execution/state under
+  top-level `state/`. ABCI proto is **`proto/tendermint/abci`** (there is **no**
+  `proto/cometbft/abci` and **no** `cometbft/api` module at v0.40.0).
+- **Version-string gotcha:** v0.40.0 ships `TMCoreSemVer = "0.39.0"` (stale — the
+  built binary misreports 0.39.0); do not gate ops logic on it.
 
 ### 4.2 In-process (built-in) embedding — verified as supported
 
@@ -357,16 +362,17 @@ the default local ABCI client serializes ABCI calls under a lock, so the app
 **may assume `FinalizeBlock`/`Commit` are not called concurrently** and must not
 expose mutable app state to the gRPC layer without its own synchronization.
 
-Target wiring (shape; reconcile to pinned version):
+Target wiring (v0.40.0 shape — `NewNode` has **no** `ctx` param; use
+`NewNodeWithContext(ctx, ...)`):
 
 ```go
-// pseudocode — reconcile signatures to the pinned CometBFT tag
-app := blvapp.New(deps)                         // our ABCI 2.0 Application
-node, err := nm.NewNode(
+// pseudocode — v0.40.0 signatures
+app := blvapp.New(deps)                                   // our ABCI 2.0 Application
+node, err := nm.NewNodeWithContext(ctx,
     cfg,                                       // *cfg.Config (CometBFT config)
     privValidator,                             // this node's ed25519 FilePV
     nodeKey,                                   // node identity key
-    proxy.NewLocalClientCreator(app),          // in-process ABCI wiring
+    proxy.NewLocalClientCreator(app),          // in-process ABCI wiring (1-method ClientCreator)
     nm.DefaultGenesisDocProviderFunc(cfg),     // serves genesis.json
     nm.DefaultDBProvider,                       // CometBFT block/state store
     nm.DefaultMetricsProvider(cfg.Instrumentation),
@@ -392,19 +398,20 @@ Our `Application` implements the ABCI 2.0 interface. Responsibilities:
 | `CheckTx` | Stateless + stateful admission: shape/length checks, client signature + UID binding, size limits, and dedup (reject a tx already committed). This is the mempool gate. |
 | `PrepareProposal` | (Proposer only.) Select/reorder txs from the mempool for the proposal. Phase 3: include valid txs in arrival order, bounded by `MaxBytes`; **deterministic** tie-breaking. Optional in Phase 3 (CometBFT default txs selection may be used); if implemented, see §9. |
 | `ProcessProposal` | Validate a received proposal: all txs pass `CheckTx`, none duplicate committed state, byte/gas bounds respected. Reject otherwise. Deterministic — all validators reach the same accept/reject. |
-| `FinalizeBlock` | **Execute the ordered txs deterministically** against committed state, assign each record its `PreBlockHash`/`NodeUID`/meta-time, compute the new state, and return the **`app_hash`** (+ empty `validator_updates` in Phase 3). MUST NOT make state durably visible. **(Verified: v1.0 returns `app_hash` here, not in `Commit`.)** |
-| `Commit` | **Durably persist** the staged writes for this height to Mongo and advance the committed-height watermark. Returns only `retain_height` (pruning hint) — **not** the app hash (verified v1.0 `CommitResponse`). See §11. |
+| `FinalizeBlock` | **Execute the ordered txs deterministically** against committed state, assign each record its `PreBlockHash`/`NodeUID`/meta-time, compute the new state, and return the **`app_hash`** (+ empty `validator_updates` in Phase 3). MUST NOT make state durably visible. **(Verified v0.40.0: `ResponseFinalizeBlock.app_hash`.)** |
+| `Commit` | **Durably persist** the staged writes for this height to Mongo and advance the committed-height watermark. Returns only `retain_height` (pruning hint) — **not** the app hash (`ResponseCommit`, verified v0.40.0). See §11. |
 
-- **Verified against v1.0.1:** `FinalizeBlockResponse` carries
-  `tx_results`, `validator_updates` ("validator set at height + 2"),
-  `consensus_param_updates`, and **`app_hash`**; `CommitResponse` carries only
-  `retain_height`. The full `Application` interface also includes
-  `ExtendVote`/`VerifyVoteExtension` (vote extensions — not used in Phase 3;
-  return empty) and the state-sync set
-  `ListSnapshots`/`OfferSnapshot`/`LoadSnapshotChunk`/`ApplySnapshotChunk`
-  (used by CometBFT state-sync; the app must implement them correctly so a
-  syncing node can reconstruct state — see §11.7 and acceptance L5). Sources:
-  `abci/types/application.go` and `proto/cometbft/abci/v1/types.proto` @ v1.0.1.
+- **Verified against v0.40.0:** `ResponseFinalizeBlock` carries `tx_results`,
+  `validator_updates`, `consensus_param_updates`, and **`app_hash`**;
+  `ResponseCommit` carries only `retain_height`. **Type names use the
+  `Request*`/`Response*` prefix** (e.g. `RequestFinalizeBlock`,
+  `ResponseCommit`) — *not* the v1.0.1 `FinalizeBlockRequest`/`CommitResponse`
+  aliases. The `Application` interface also has `ExtendVote`/`VerifyVoteExtension`
+  (return empty in Phase 3), the state-sync set
+  (`ListSnapshots`/`OfferSnapshot`/`LoadSnapshotChunk`/`ApplySnapshotChunk`), and
+  — new vs v1.0.1 — **`InsertTx`/`ReapTxs`** (only needed for the app-mempool;
+  stub them in Phase 3, which uses the default mempool). Sources:
+  `abci/types/application.go`, `proto/tendermint/abci/types.proto` @ v0.40.0.
 - **`Info` drives restart recovery:** it returns `LastBlockHeight` and
   `LastBlockAppHash` from Mongo's watermark; CometBFT's handshake compares these
   to its own store to decide replay (§11.3). This is the hinge of crash
