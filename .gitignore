@@ -27,3 +27,5 @@ Thumbs.db
 /config/api_key.json
 /config/node_keys.json
 /config/*.key
+
+.env
