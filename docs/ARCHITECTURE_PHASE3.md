@@ -1944,24 +1944,36 @@ source, §9.2/§19).
 > internals that were verified against v1.0.1 require **re-verification against
 > the chosen tag** and your approval (unresolved decision, §11 of the report).
 
-| Component | Current | **Phase S selected (apply in Phase 0)** | Note |
+| Component | Current | **Phase S selected — EXACT (apply in Phase 0)** | Note |
 |---|---|---|---|
-| **CometBFT** | — (design said `v1.0.1`, **disqualified**) | **`v0.40.0`** (recommended) / `v0.38.26` (conservative) | Tachyon-fixed, ABCI 2.0, maintained; re-verify internals |
-| **Go toolchain** | `go 1.24.0` directive; installed `1.26.6` | **`1.26.11`**, identical on all nodes+CI | 8 reachable stdlib CVEs fixed in 1.26.9–1.26.11 |
-| `google.golang.org/grpc` | `v1.69.0` | **`v1.83.1`** | 4 reachable vulns (authz bypass, panic, OOM) |
-| `go.mongodb.org/mongo-driver` | `v1.17.6` | **`v1.17.7`** | GSSAPI heap OOB read |
-| `google.golang.org/protobuf` | `v1.35.2` | keep / align with grpc | not flagged reachable |
-| `golang.org/x/net` (transitive) | `v0.43.0` | **`≥ v0.60.0`** | 5 reachable HTTP/2 vulns |
-| `golang.org/x/text` (transitive) | `v0.29.0` | **`≥ v0.39.0`** | infinite-loop DoS |
-| `github.com/klauspost/compress` (transitive) | `v1.17.11` | **`≥ v1.20.2`** | panic on two-block frames |
-| `github.com/gorilla/websocket` | `v1.5.3` | **REMOVE** | unmaintained; `ws/` removed |
+| **CometBFT** | — (design said `v1.0.1`, **disqualified**) | **`v0.40.0`** (recommended) / `v0.38.26` (conservative) | Tachyon-fixed, ABCI 2.0, maintained; re-verify internals (§4/§11/App B) |
+| **Go toolchain** | `go 1.24.0` directive; installed `1.26.6` | **`1.26.11`** | Resolved graph needs ≥ go1.26.0; 1.26.11 has all stdlib fixes; 1.27.4 also viable but less mature |
+| `google.golang.org/grpc` | `v1.69.0` | **`v1.85.0`** | ≥ v1.83.1 (authz bypass + panic/OOM/xDS fixes); latest stable |
+| `google.golang.org/protobuf` | `v1.35.2` | **`v1.36.12`** | resolved via grpc v1.85.0 |
+| `go.mongodb.org/mongo-driver` | `v1.17.6` | **`v1.17.10`** | ≥ v1.17.7 (GSSAPI OOB read); latest 1.17.x |
+| `golang.org/x/net` (transitive) | `v0.43.0` | **`v0.60.0`** | 5 reachable HTTP/2 vulns; MVS-resolved exact |
+| `golang.org/x/text` (transitive) | `v0.29.0` | **`v0.42.0`** | ≥ v0.39.0 (infinite-loop DoS); MVS-resolved exact |
+| `golang.org/x/crypto` (transitive) | `v0.42.0` | **`v0.57.0`** | resolved via CometBFT/grpc |
+| `github.com/klauspost/compress` (transitive) | `v1.17.11` | **`v1.20.2`** | panic on two-block frames; **explicit override** — MVS alone resolves a vulnerable v1.19.1 |
+| `github.com/gorilla/websocket` | `v1.5.3` | **drop DIRECT use**; stays **transitive** | unmaintained, but CometBFT v0.40.0 still pulls it for its RPC WS — cannot be removed from the graph, only from our code |
 | `github.com/tetratelabs/wazero` | `v1.9.0` | **REMOVE** | BVM execution removed |
 | `github.com/alecthomas/participle/v2` | `v2.1.4` | **REMOVE** | unused |
 
+> **Dependency-conflict notes (clarification pass):** (a) `klauspost/compress`
+> MUST be pinned explicitly to v1.20.2 — MVS otherwise selects a vulnerable
+> v1.19.1 via mongo-driver; this is the one unavoidable manual override.
+> (b) `gorilla/websocket` re-enters transitively via CometBFT's RPC even after we
+> drop our own `ws/` usage. (c) CometBFT v0.40.0 adds a large transitive surface
+> (~221 modules incl. cometbft-db, cel.dev/expr, cosmos/gogoproto, libp2p crypto,
+> pebble/badger, go-git); the CometBFT-inclusive resolved graph is in
+> `docs/phase-s/resolved-graph-candidate.txt` and will be finalized by
+> `go mod tidy` in Phase 0. The full exact build list is confirmed in the Phase S
+> report.
+
 These Phase-S pins are **recommended selections**; applying them (editing
-`go.mod`/`go.sum`, adding CometBFT, removing the three deps, bumping the toolchain
-directive) is **Phase 0 work**, gated on your approval of the selections and the
-CometBFT version change.
+`go.mod`/`go.sum`, adding CometBFT, dropping the three direct deps, bumping the
+toolchain directive, and pinning klauspost/compress) is **Phase 0 work**, gated on
+your approval of the selections and the CometBFT version change.
 
 ### 17.1 Dependency inventory & vulnerability scanning (Phase S deliverables)
 

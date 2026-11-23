@@ -52,13 +52,29 @@
 
 **CSA-2026-001 "Tachyon" (GHSA-c32p-wcqj-j677, Critical, 2026-01-23):** a BFT-Time
 consensus flaw — inconsistent commit-signature verification vs block-time
-derivation lets a faulty process arbitrarily inflate block time. The advisory
-states **all versions are affected**; patches shipped for **v0.38.21 / v0.37.18 /
-main** only, with **no v1.0.x patch** and no workaround. BLVChain **derives
-`BlockMeta.TimeStamp` from CometBFT block time** (consensus-critical, §9/§11 of the
-architecture), so this class of flaw is directly material. Running v1.0.1 in
-production would mean a known **Critical, unpatched, consensus-level**
-vulnerability on an unmaintained line. That is unacceptable for a production pin.
+derivation lets a faulty process arbitrarily inflate block time. BLVChain **derives
+`BlockMeta.TimeStamp` from CometBFT block time** (consensus-critical, §9/§11), so
+this is directly material. Full source-verified analysis in
+`docs/COMET_BFT_V0_40_0_COMPAT.md`; summary separating fact from inference:
+
+- ✅ **VERIFIED:** advisory prose says **"All versions of CometBFT"** affected,
+  **no workarounds**; patches shipped for **v0.38.21 / v0.37.18 / main** only;
+  **no v1.0.x patch exists** (v1.0.1 is the final v1.x release, branch dead since
+  2025-06). The fix code (validator-address-mismatch check + `MedianTime`
+  error-return) is **present in v0.40.0, absent in v1.0.1**.
+- ⚠️ **METADATA NUANCE (verified):** the GHSA *structured ranges* are `<= v0.38.20`
+  and `<= v0.37.17` — they do **not** list v1.0.1, so **automated scanners will NOT
+  flag v1.0.1**. The disqualification is a **human security judgment** (prose "all
+  versions" + fix-code analysis), not a scanner hit — which is exactly why a manual
+  review was required.
+- ⚠️ **INFERENCE (conservative):** a v1.0.1 node is **affected in substance** and
+  has **no patched upgrade on the v1.x line** (the vulnerable MedianTime path in
+  v0.38.20 is present in v1.0.1; the fix was never applied to the 1.x branch).
+
+**Conclusion:** do not ship v1.0.1 — it is both prose-affected by a Critical,
+unfixable-on-its-line consensus flaw **and** unmaintained. (Removing reliance on
+block-time would be the only non-upgrade mitigation, but BLVChain's design uses
+consensus block time throughout, so upgrade is the correct path.)
 
 ### 2.3 Justification for v0.40.0 (recommended)
 
@@ -249,3 +265,98 @@ Documented normatively in `docs/ARCHITECTURE_PHASE3.md` §17.3–§17.5:
 3. **Removal of gorilla/websocket, participle, wazero** in Phase 0 (§9).
 4. **CI provider/executors:** the workflow assumes GitHub Actions + the named
    actions; confirm that is the intended CI (else I will port to the actual CI).
+
+---
+
+# Clarification pass (Rev 2, 2026-11-23)
+
+This pass resolves the review's follow-up items 2–4 (CometBFT internals are in
+the companion `COMET_BFT_V0_40_0_COMPAT.md` and summarized in §16).
+
+## 12. Go toolchain — 1.26.11 vs 1.27.4 (item 2)
+
+**Verified:** the CometBFT-v0.40.0-inclusive resolved graph (§13) declares a
+**maximum `go` directive of 1.26.0** (grpc v1.85.0, x/net v0.60.0, x/text v0.42.0,
+x/crypto v0.57.0, etc. all require go 1.26.0); CometBFT v0.40.0 itself requires
+go 1.25.0. So **go 1.26.x is the floor** and **1.27 is not required**.
+
+| | Go 1.26.11 | Go 1.27.4 |
+|---|---|---|
+| Line released | 2026-02-10 | 2026-08-19 |
+| Patches to date | 11 (→ .11) | 4 (→ .4) |
+| Supported? | Yes (current) | Yes (newest) |
+| Meets graph floor (≥1.26.0)? | Yes | Yes |
+| Has all stdlib CVE fixes (§5.1)? | Yes | Yes |
+| Build-verified here | Yes — project builds on installed 1.26.6 (same minor) | Not installed locally; Go 1-compat guarantees build, retest in Phase 0 |
+
+**Recommendation: Go `1.26.11`** — chosen for **maturity + sufficiency**, not
+novelty: it satisfies every constraint, carries all security fixes, and is the
+more field-proven line (11 patches over ~9 months) for a determinism-critical
+consensus node. **1.27.4 is a viable alternative** if the team prefers newest; it
+adds a toolchain retest with no requirement driving it. Final exact pin:
+`go 1.26.11` / `toolchain go1.26.11`.
+
+## 13. Dependencies — exact pins + resolved graph + conflicts (item 3)
+
+All `>=` constraints from Rev 1 are replaced with **exact** versions below. The
+CometBFT-inclusive graph was resolved in a **throwaway scratch module** (outside
+this repo — `go.mod`/`go.sum` here untouched) via
+`go get cometbft@v0.40.0 grpc@v1.85.0 mongo-driver@v1.17.10 klauspost/compress@v1.20.2`.
+Full resolved list (221 modules): `docs/phase-s/resolved-graph-candidate.txt`.
+
+**Final exact pins (direct):**
+`cometbft v0.40.0`, `grpc v1.85.0`, `protobuf v1.36.12`, `mongo-driver v1.17.10`,
+`klauspost/compress v1.20.2`, `joho/godotenv v1.5.1`, `BurntSushi/toml v1.4.0`,
+`natefinch/lumberjack v2.0.0+incompatible`, `golang.org/x/time v0.14.0`.
+
+**Final exact pins (critical transitive, MVS-resolved):** `x/net v0.60.0`,
+`x/text v0.42.0`, `x/crypto v0.57.0`, `x/sys v0.48.0`, `x/sync v0.23.0`,
+`genproto/googleapis/{api,rpc} v0.0.0-20260817212433-ac3dfec99bb1`,
+`cometbft-db v0.14.1`, `cel.dev/expr v0.25.3`, `cosmos/gogoproto v1.7.2`.
+
+**Each verified against advisories:** grpc v1.85.0 ≥ all 4 grpc fixes; mongo-driver
+v1.17.10 ≥ v1.17.7; x/net v0.60.0 = fix; x/text v0.42.0 ≥ v0.39.0;
+klauspost/compress v1.20.2 = fix. (A final govulncheck/OSV re-scan of the *tidied*
+CometBFT-inclusive graph is a Phase 0 gate — reachability needs the real code.)
+
+**Unavoidable conflicts / required overrides (item 3):**
+1. **`klauspost/compress`: MVS resolves a VULNERABLE v1.19.1** (pulled by
+   mongo-driver); we MUST add an explicit `require github.com/klauspost/compress
+   v1.20.2` to override MVS. This is the one unavoidable manual pin.
+2. **`gorilla/websocket` cannot be removed from the graph** — CometBFT v0.40.0
+   depends on it for its RPC WebSocket. We drop only our **direct** use (the `ws/`
+   layer); it remains transitive. (Corrects the Rev-1 "REMOVE" wording.)
+3. **`x/time`: project direct v0.14.0 > CometBFT's v0.12.0** → MVS keeps v0.14.0;
+   no conflict.
+4. **Large CometBFT surface:** v0.40.0 expands the graph to ~221 modules (libp2p
+   crypto, pebble/badger, cosmos/gogoproto, go-git, etc.). `go mod tidy` with the
+   real import set will prune tooling-only deps (tm-load-test, docker, gotty), but
+   the core set remains a significant attack-surface increase — flagged as a risk.
+   No hard version *conflicts* among grpc/protobuf/genproto/x-net (MVS resolved a
+   single consistent set).
+
+## 14. CI & SBOM hardening (item 4)
+
+- **SBOM uses the actual resolved graph:** `go list -m -json all` is Go's resolved
+  build list (MVS), so the SBOM reflects exactly what would be compiled.
+- **Reproducibility verified:** regenerating produced a **byte-identical**
+  `sbom.cyclonedx.json` (deterministic: sorted components, fixed timestamp).
+- **Actions pinned to immutable commit SHAs** in `.github/workflows/security.yml`:
+  checkout `11bd7190…` (v4.2.2), setup-go `40f1582b…` (v5.6.0), sbom-action
+  `fffec3d8…` (v0.24.3), trivy-action `915b19bb…` (0.28.0). Scanner **tools pinned
+  to exact versions**: govulncheck `v1.10.0`, osv-scanner `v1.9.2`.
+- **Binary-level scanning added:** a `govulncheck -scan=bin` job (build → scan the
+  artifact) plus a Trivy rootfs scan of the built binary.
+- **Exact failure thresholds (documented in-workflow):**
+  - govulncheck (source **and** binary): **any reachable vulnerability fails**.
+  - OSV-Scanner (go.mod + SBOM): **any finding fails**.
+  - Trivy (fs + binary): **HIGH or CRITICAL, `exit-code: 1`**, `ignore-unfixed:
+    false` → fails on any High/Critical.
+  - Exceptions require a reviewed, committed waiver (none currently).
+
+## 15. CometBFT v1.0.1 → v0.40.0 internals (item 1)
+
+See `docs/COMET_BFT_V0_40_0_COMPAT.md`: Tachyon applicability to v1.0.1 (verified
+vs assumed), and re-verified v0.40.0 internals (ABCI 2.0, FinalizeBlock/Commit
+ordering, handshake/replay, AppHash, node construction, P2P, state sync) with the
+exact list of `ARCHITECTURE_PHASE3.md` sections needing correction.

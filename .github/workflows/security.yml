@@ -1,9 +1,11 @@
 name: security
 
 # Phase S — dependency & vulnerability scanning.
-# Gates: no known exploitable High/Critical vulnerability in the pinned set
-# without a documented, reviewed exception (see docs/ARCHITECTURE_PHASE3.md §17).
+# See docs/PHASE_S_DEPENDENCY_REVIEW.md and docs/ARCHITECTURE_PHASE3.md §17.
 # This workflow scans only; it does not modify dependencies.
+#
+# Third-party actions are pinned to IMMUTABLE COMMIT SHAs (not floating tags).
+# Scanner tools are pinned to EXACT versions (not @latest).
 
 on:
   push:
@@ -15,68 +17,105 @@ on:
 
 permissions:
   contents: read
-  security-events: write   # upload SARIF where supported
 
 env:
-  # Pinned Go toolchain (Phase S selection; keep in sync with go.mod `toolchain`).
+  # Pinned Go toolchain (Phase S selection). Keep in sync with go.mod `toolchain`.
   GO_VERSION: "1.26.11"
+  # Pinned scanner tool versions (immutable).
+  GOVULNCHECK_VERSION: "v1.10.0"
+  OSV_SCANNER_VERSION: "v1.9.2"
 
 jobs:
-  govulncheck:
-    name: govulncheck (reachability-aware Go vulns)
+  govulncheck-source:
+    name: govulncheck (source, reachability-aware)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff   # v5.6.0
         with:
           go-version: ${{ env.GO_VERSION }}
-          check-latest: false
-      - name: Run govulncheck (gating)
+      # FAILURE THRESHOLD: any reachable vulnerability (govulncheck exits non-zero).
+      - name: govulncheck ./...  (fail on ANY reachable vuln)
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
-          govulncheck -show verbose ./...
+          go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}
+          govulncheck ./...
+
+  govulncheck-binary:
+    name: govulncheck (binary, symbols)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff   # v5.6.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      # Binary-level scan (catches vulns reachable via symbols in the built artifact).
+      # FAILURE THRESHOLD: any reachable vuln in the binary fails the job.
+      - name: build + govulncheck -scan=bin
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}
+          mkdir -p bin
+          go build -o bin/blvchain .
+          govulncheck -scan=bin bin/blvchain
 
   osv-scanner:
-    name: OSV-Scanner (lockfile / go.mod)
+    name: OSV-Scanner (go.mod / SBOM)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff   # v5.6.0
         with:
           go-version: ${{ env.GO_VERSION }}
-      - name: Scan with OSV-Scanner
+      # FAILURE THRESHOLD: any OSV finding (call=all) fails the job.
+      - name: osv-scanner (go.mod + committed SBOM)
         run: |
-          go install github.com/google/osv-scanner/cmd/osv-scanner@latest
+          go install github.com/google/osv-scanner/cmd/osv-scanner@${OSV_SCANNER_VERSION}
           osv-scanner --lockfile=go.mod
-          # To scan the SBOM instead: osv-scanner --sbom=docs/phase-s/sbom.cyclonedx.json
+          osv-scanner --sbom=docs/phase-s/sbom.cyclonedx.json
 
-  sbom:
-    name: SBOM (Syft) + Trivy scan
+  sbom-and-trivy:
+    name: SBOM (Syft) + Trivy
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - name: Generate CycloneDX + SPDX SBOM (Syft)
-        uses: anchore/sbom-action@v0
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Generate CycloneDX SBOM (Syft via anchore/sbom-action)
+        uses: anchore/sbom-action@fffec3d851af758d56fee099cf3fbf8aa8779843 # v0.24.3
         with:
           path: ./
           format: cyclonedx-json
           output-file: sbom/cyclonedx.json
           upload-artifact: true
           artifact-name: sbom-cyclonedx
-      - name: Generate SPDX SBOM (Syft)
-        uses: anchore/sbom-action@v0
+      - name: Generate SPDX SBOM
+        uses: anchore/sbom-action@fffec3d851af758d56fee099cf3fbf8aa8779843 # v0.24.3
         with:
           path: ./
           format: spdx-json
           output-file: sbom/spdx.json
           upload-artifact: true
           artifact-name: sbom-spdx
+      # FAILURE THRESHOLD: HIGH,CRITICAL with exit-code 1 (fail); unfixed NOT ignored.
       - name: Trivy filesystem + config scan
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # 0.28.0
         with:
           scan-type: fs
           scan-ref: ./
           severity: HIGH,CRITICAL
-          exit-code: "1"          # fail on High/Critical (policy: reviewed exceptions only)
+          exit-code: "1"
           ignore-unfixed: false
           format: table
+      - name: build binary for binary-level scan
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: build
+        run: go build -o bin/blvchain .
+      - name: Trivy binary scan
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # 0.28.0
+        with:
+          scan-type: rootfs
+          scan-ref: ./bin
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          exit-code: "1"
