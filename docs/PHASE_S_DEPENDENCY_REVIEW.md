@@ -256,9 +256,16 @@ Documented normatively in `docs/ARCHITECTURE_PHASE3.md` §17.3–§17.5:
 ## 11. Unresolved decisions (need your approval before Phase 0)
 
 1. **CometBFT version change v1.0.1 → v0.40.0** (recommended) vs v0.38.26
-   (conservative). This invalidates v1.0.1-specific internals in the approved
-   design (§4/§11/Appendix B) — approve the change and the follow-on design-doc
-   re-verification against the chosen tag.
+   (conservative). **Source-verified** (see `docs/COMET_BFT_V0_40_0_COMPAT.md`):
+   v0.40.0 keeps the ABCI 2.0 FinalizeBlock/Commit/handshake/AppHash/P2P semantics
+   the BLVChain design relies on, but **drops PBTS** (v0.40.0 uses BFT-Time via
+   unconditional `MedianTime`), renames ABCI types (`Request*`/`Response*`, proto
+   `proto/tendermint/abci`, `consensus/` public), and changes `node.NewNode`
+   (no `ctx`). Approve the change **and** the follow-on **documentation-only**
+   corrections to §4.1/§4.2/§4.3/§9.2/§11/App B enumerated in the compat report
+   §C (the state-machine/ABCI *design* is unaffected). A PBTS-based design would
+   instead require staying on a PBTS-capable line (v0.39/v1.x) — flag if PBTS is a
+   requirement.
 2. **Go toolchain → 1.26.11** and the **dependency upgrade set** in §4/§6
    (grpc v1.83.1, mongo-driver v1.17.7, x/net v0.60.0, x/text v0.39.0,
    klauspost/compress v1.20.2). Confirm these are acceptable to apply in Phase 0.
