@@ -44,9 +44,9 @@
 
 | Candidate | Date | Status | Security posture | Verdict |
 |---|---|---|---|---|
-| **v1.0.1** (design baseline) | 2025-02-03 | Last v1.x; **no v1.0.2**; line unmaintained; pkg.go.dev still pins it | **NOT patched for CSA-2026-001 (Critical)**; no v1.x fix exists | **Disqualified** |
-| **v0.40.0** | 2026-07-27 | Current release line; ABCI 2.0; Cosmos "Ledger Security 2026.1" recommends it | Post-dates & includes Tachyon + ASA-2025-001/002/003 fixes; adds mldsa65, secp256k1eth, mempool/RPC hardening | **Selected (recommended)** |
-| **v0.38.26** | 2026-08-13 | Latest v0.38.x; widely deployed; Go 1.22+ | Post-Tachyon (via v0.38.21) + all prior fixes; mldsa65 backport | Conservative fallback |
+| **v1.0.1** (design baseline) | 2025-02-03 | Last v1.x; **no v1.0.2**; branch inactive since 2025-06; pkg.go.dev still pins it | Tachyon status **UNRESOLVED** (advisory prose "all versions" vs metadata ranges that omit v1.0.1; no v1.x fix; exploitability not established) — see §2.2 | **Excluded** (unresolved Critical + unmaintained) |
+| **v0.40.0** | 2026-07-27 | Current release line; ABCI 2.0; 2026.1 / SDK-v0.55 family (new deployments) | Includes Tachyon + ASA fixes; adds the v0.38.26-absent items (proposer vote-ext self-verify #5204, blocksync deadlock fixes #5931/#5839, RPC Host/JSON-RPC hardening #5921/#5861) + mldsa65, secp256k1eth; full list in §2.5 | **Selected** |
+| **v0.38.26** | 2026-08-13 | Latest v0.38.x; widely deployed (2025.1 / SDK-v0.53); Go 1.22.11 | v0.38 line backported core hardening in .22–.25 (blocksync full verification, MsgBytesFilter #5946, double-sign off-by-one #5668, sig-count #5860); **.26 itself is mldsa65 only**; see §2.5 | Conservative fallback |
 
 ### 2.2 Why v1.0.1 is disqualified (Critical)
 
@@ -67,37 +67,97 @@ this is directly material. Full source-verified analysis in
   flag v1.0.1**. The disqualification is a **human security judgment** (prose "all
   versions" + fix-code analysis), not a scanner hit — which is exactly why a manual
   review was required.
-- ⚠️ **INFERENCE (conservative):** a v1.0.1 node is **affected in substance** and
-  has **no patched upgrade on the v1.x line** (the vulnerable MedianTime path in
-  v0.38.20 is present in v1.0.1; the fix was never applied to the 1.x branch).
+- ⚠️ **UNRESOLVED (not asserted vulnerable):** whether v1.0.1 is *actually
+  exploitable* for Tachyon is **NOT established**. The prose says "all versions"
+  and the vulnerable MedianTime/verifyCommit code path present in v0.38.20 appears
+  to be present in v1.0.1, but (a) the GHSA ranges do not list v1.0.1 and (b) no
+  source-level exploitability analysis proving block-time inflation on the v1.0.x
+  code path has been performed here. Per the review instruction, v1.0.1's Tachyon
+  status is therefore recorded as **UNRESOLVED**, not "definitively vulnerable."
 
-**Conclusion:** do not ship v1.0.1 — it is both prose-affected by a Critical,
-unfixable-on-its-line consensus flaw **and** unmaintained. (Removing reliance on
-block-time would be the only non-upgrade mitigation, but BLVChain's design uses
-consensus block time throughout, so upgrade is the correct path.)
+**Conclusion:** v1.0.1 is **excluded from production selection** — not on a claim
+of confirmed vulnerability, but because (1) its Tachyon status is **unresolved** on
+a Critical consensus issue affecting block-time (which BLVChain relies on), and an
+unresolved Critical is itself disqualifying for a *new* production design; and
+(2) it is on a line that is **officially unsupported**. **Terminology (precise):**
+"retracted/unsupported" is used **only with attribution** — **Cosmos Labs** (the
+production-ecosystem steward) officially declares "CometBFT v1.x is not supported;
+that release line was retracted" (docs.cosmos.network release-family + security
+policy; cosmos.network "Retracting CometBFT v1 and v2" 2026 roadmap). This is **not**
+a Go `retract` directive (none exists for v1.x — the go.mod retract block lists only
+old `v0.38.x`) and **not** a CometBFT-repo announcement: the CometBFT `v1.x`
+README still lists v1.x as **"pre-release."** Either ground alone excludes it;
+together they are decisive. (If a source-level exploitability analysis later *clears*
+v1.0.1, ground (2) still excludes it.)
 
-### 2.3 Justification for v0.40.0 (recommended)
+### 2.3 Justification for v0.40.0 (recommended) — corrected with per-version evidence
 
-- **Security-maintained:** on the active release line; includes the Tachyon,
-  ASA-2025-001/002 (blocksync/peer stall), ASA-2025-003 (BitArray halt), and
-  additional hardening (mempool `MsgBytesFilter` heap-amplification, RPC host
-  escaping, `double_sign_check_height` off-by-one, blocksync validation, proposer
-  vote-extension self-verification).
-- **ABCI 2.0 compatible:** the architecture is written against ABCI 2.0
-  (`FinalizeBlock` returning `app_hash` + validator updates; `Commit` returns
-  `retain_height`) — present unchanged since v0.38 and in v0.40.0. The BLVChain
-  ABCI design is therefore portable to v0.40.0.
-- **Ecosystem alignment:** Cosmos SDK v0.55 / "Ledger Security 2026.1" ship and
-  recommend v0.40.0 (or ≥ v0.38.26).
-- **Fallback:** if the team wants the most battle-tested line, **v0.38.26** also
-  satisfies all security requirements (post-Tachyon, Go 1.22+, ABCI 2.0).
+My earlier "v0.38.26 mostly lacks security hardening" was **wrong and is withdrawn.**
+A source-level changelog review (§2.5) shows the v0.38.x line **did** backport the
+core security-relevant fixes in v0.38.22–v0.38.25 — blocksync full commit
+verification (#5663/#5711/#5753), `MsgBytesFilter` heap-amplification fix (#5946),
+blocksync sender/signature-count validation (#5860), the `double_sign_check_height`
+off-by-one (#5668), filter `ReadTag` int32 truncation (#5948), nil-vote handling
+(#5777) — none of which carry a new advisory ID but are real hardening. **v0.38.26
+itself is a feature-only release** (just the ML-DSA-65 backport #6028).
 
-> **Version-specific re-verification required (Phase 0, not Phase S):** the
-> architecture's CometBFT internals (package path `internal/consensus` vs
-> `consensus`, exact `finalizeCommit` ordering, `nm.NewNode` signature, default
-> ports) were verified against **v1.0.1** and MUST be re-verified against the
-> chosen tag (**v0.40.0** or v0.38.26) before Phase 0 implementation. This is a
-> design-doc update, flagged as an unresolved decision (§11).
+So the choice is **close**, and the honest differentiators that remain in v0.40.0
+and are **not** in v0.38.26 (code-verified, §2.5):
+
+- **Blocksync robustness / liveness:** `AddBlock` deadlock fix (#5931),
+  `removeTimedoutPeers` deadlock (#5839), `Enable()` + atomic `numPending`
+  (#5888/#5889) — relevant to any node that syncs.
+- **Consensus robustness:** proposer **self-verifies its own vote extension** before
+  precommitting (#5204) — turns a stall into a clean `CONSENSUS FAILURE` halt.
+- **RPC hardening:** request `Host` HTML-escaping (#5921), JSON-RPC numeric-ID
+  validation (#5861) — **low relevance to BLVChain**, whose CometBFT RPC is bound
+  to loopback and never client-facing (§4.5).
+- **Forward support runway:** v0.40.0 is the 2026.1 / SDK-v0.55 line recommended
+  for **new** deployments; v0.38.x (2025.1) is maintained but older and will EOL
+  sooner.
+
+**Recommendation: v0.40.0**, because BLVChain is a **new** deployment (so v0.40.0's
+state/API-breaking nature — e.g. `MedianTime` Nil/Absent, #5901 — carries no
+migration penalty) and benefits from the blocksync-deadlock and proposer-self-
+verify fixes plus the longest forward support. **v0.38.26 is a fully security-
+hardened conservative fallback** (core fixes present, correct version string
+"0.38.26", smaller dep surface, Go 1.22.11); choose it only if maximum battle-
+testing is weighted above the above deltas. This is a genuine close call — both are
+defensible; the final call is yours (Phase 0 gate).
+
+> **Already reconciled:** the architecture's CometBFT internals (public `consensus/`
+> package, `proto/tendermint/abci`, `nm.NewNodeWithContext`, `Request*`/`Response*`
+> ABCI types, no PBTS, large default block params) have been verified against
+> **v0.40.0** and the arch doc updated (§4/§11/App B). If **v0.38.26** is chosen
+> instead, re-verify those same points against the v0.38.26 tag (notably: v0.38.26
+> also has no PBTS; default params differ; ABCI proto is `proto/tendermint/abci`).
+
+### 2.5 Per-version factual comparison (v0.38.22 → v0.40.0), source-referenced
+
+Sources: `CHANGELOG.md` + `go.mod` at each tag, GitHub release pages, and tagged
+source (raw.githubusercontent.com/cometbft/cometbft/<tag>/...). No advisory IDs are
+attached to any of these entries; the only published advisories are ASA-2023/024/
+025 and CSA-2026-001 (Tachyon, patched in v0.38.21).
+
+| Version (release) | Security-relevant | Consensus | Blocksync | Mempool | ABCI / RPC |
+|---|---|---|---|---|---|
+| **v0.38.22** (2026-04-10) | (inherits Tachyon fix from v0.38.21) | light-client-attack evidence validation (#5638, #5757) | **full commit verification** instead of light (#5663/#5711/#5753) | — | — |
+| **v0.38.23** (2026-05-08) | — | nil-vote handling (#5777) | `maxPeerHeight` poisoning guard (#5803) | — | ABCI socket unlock/panic fix (#5593); light witness comparison (#5820) |
+| **v0.38.24** | *tag only, skipped — no release* | — | — | — | — |
+| **v0.38.25** (2026-07-27) | **`MsgBytesFilter` heap-amplification fix (#5946)**; filter `ReadTag` int32 (#5948) | `double_sign_check_height=1` off-by-one (#5668) | sender + sig-count validation (#5860); late `BlockResponse` tolerance (#5959) | `setRecheckFull`/`setDone` race (#5837) | `EventBusBufferCapacity` (#5849) |
+| **v0.38.26** (2026-08-13) | — (feature only) | — | — | — | **mldsa65 backport only** (#6028) |
+| **v0.40.0** (2026-07-27) | **RPC Host HTML-escape (#5921); JSON-RPC ID validation (#5861)**; MsgBytesFilter; ReadTag int32 | **proposer vote-ext self-verify (#5204)**; double_sign off-by-one; `MedianTime` skips Nil+Absent (**state-breaking #5901**) | AddBlock deadlock (#5931); removeTimedoutPeers deadlock (#5839); Enable/atomic numPending (#5888/#5889); sig-count (#5860) | setRecheckFull race (#5837); AppReactor framing (#5956) | **ABCI app-mempool `InsertTx`/`ReapTxs` socket fix (#5958)**; callback re-entrancy deadlock (#5850); pre-bound listener (#5904) |
+
+**Adjudicating the examples I previously mis-stated:**
+- `MsgBytesFilter` heap-amplification — **IS backported** (v0.38.25, #5946). Not a gap.
+- `double_sign_check_height` off-by-one — **IS backported** (v0.38.25, #5668). Not a gap.
+- blocksync sender/signature validation — **IS backported** (v0.38.25, #5860). Not a gap.
+- RPC `Host` escaping (#5921) & JSON-RPC ID validation (#5861) — **NOT backported** (v0.40.0 only) — but low relevance (loopback RPC).
+- Proposer vote-extension self-verification (#5204) — **NOT backported** (v0.40.0 only).
+- Blocksync `AddBlock`/`removeTimedoutPeers` deadlocks (#5931/#5839) — **NOT backported** (v0.40.0 only).
+
+`go.mod` Go directives: v0.38.22–.26 = **`go 1.22.11`**; v0.40.0 = **`go 1.25.0`**.
+(v0.40.0's binary still misreports `TMCoreSemVer = "0.39.0"` — see §4/item 4.)
 
 ## 3. Go toolchain selection
 
@@ -200,10 +260,11 @@ These reinforce upgrading grpc→v1.83.1 and mongo-driver→v1.17.7 in Phase 0.
 | ASA-2025-001 (blocksync peer disruption) | Low→Informational | Yes (fixed only in v1.0.1) | Addressed by v1.0.1; also fixed in v0.38.17+/v0.40.0 |
 | ASA-2025-002 (peer stall via block parts) | High | Yes (fixed only in v1.0.1) | Addressed by v1.0.1; also fixed in v0.38.17+/v0.40.0 |
 | ASA-2025-003 (BitArray → network halt) | High | Metadata gap (not listed) | Fixed v0.38.19+; **v0.40.0/v0.38.26 include it** |
-| **CSA-2026-001 "Tachyon" (BFT-Time)** | **Critical** | **Yes — NO v1.x fix** | **Disqualifies v1.0.1; v0.40.0 / v0.38.26 are fixed** |
+| **CSA-2026-001 "Tachyon" (BFT-Time)** | **Critical** | **UNRESOLVED** (prose "all versions"; metadata ranges omit v1.0.1; no v1.x fix; exploitability not established) | v0.40.0 / v0.38.26 include the fix; v1.0.1 status unresolved → excluded |
 
-Conclusion: the selected **v0.40.0** (or v0.38.26) clears **all** known CometBFT
-advisories; the design's v1.0.1 does **not** clear the Critical one.
+Conclusion: the selected **v0.40.0** (or v0.38.26) contains the Tachyon fix; the
+design's v1.0.1 has an **unresolved** Tachyon status (not a confirmed vuln) and is
+excluded (see §2.2).
 
 ## 7. SBOM and CI
 
@@ -280,28 +341,45 @@ Documented normatively in `docs/ARCHITECTURE_PHASE3.md` §17.3–§17.5:
 This pass resolves the review's follow-up items 2–4 (CometBFT internals are in
 the companion `COMET_BFT_V0_40_0_COMPAT.md` and summarized in §16).
 
-## 12. Go toolchain — 1.26.11 vs 1.27.4 (item 2)
+## 12. Go toolchain — 1.26.11 vs 1.27.4 (reassessed with test evidence)
 
-**Verified:** the CometBFT-v0.40.0-inclusive resolved graph (§13) declares a
-**maximum `go` directive of 1.26.0** (grpc v1.85.0, x/net v0.60.0, x/text v0.42.0,
-x/crypto v0.57.0, etc. all require go 1.26.0); CometBFT v0.40.0 itself requires
-go 1.25.0. So **go 1.26.x is the floor** and **1.27 is not required**.
+**Verified facts:**
+- The CometBFT-v0.40.0-inclusive resolved graph (§13) needs go **≥ 1.26.0**
+  (grpc v1.85.0, x/net v0.60.0, x/text v0.42.0, x/crypto v0.57.0); CometBFT
+  v0.40.0 needs go 1.25.0. So 1.26.x is the floor; 1.27 is not required.
+- **Both toolchains were actually installed and run here** (via `GOTOOLCHAIN`
+  auto-download; dl.google.com was blocked but the module proxy served both):
+  BLVChain `go build`/`vet`/`test ./...` pass under **both** go1.26.11 and go1.27.4
+  (all 9 packages `ok`), and CometBFT v0.40.0 `go install` succeeds under **both**.
+- **govulncheck:** the latest published version is **v1.10.0** (no newer). It
+  runs on go1.26.11 (stdlib clean) but **fails on go1.27.4** — its vendored
+  `x/tools`/`go-types` cannot parse the go1.27 stdlib (`math/rand/v2/rand.go:
+  generic method requires go1.27 or later`). Rebuilding govulncheck with go1.27.4
+  did **not** help (the limitation is in govulncheck's bundled parser, not the
+  build toolchain).
 
-| | Go 1.26.11 | Go 1.27.4 |
-|---|---|---|
-| Line released | 2026-02-10 | 2026-08-19 |
-| Patches to date | 11 (→ .11) | 4 (→ .4) |
-| Supported? | Yes (current) | Yes (newest) |
-| Meets graph floor (≥1.26.0)? | Yes | Yes |
-| Has all stdlib CVE fixes (§5.1)? | Yes | Yes |
-| Build-verified here | Yes — project builds on installed 1.26.6 (same minor) | Not installed locally; Go 1-compat guarantees build, retest in Phase 0 |
+**Options considered:**
+- **(a) Go 1.26.11 + govulncheck v1.10.0** — works end-to-end; the vuln scan runs
+  on the *same* toolchain that ships, so stdlib results are accurate.
+- **(b) Go 1.27.4 + updated govulncheck** — **not available**: no govulncheck
+  release (v1.10.0 is latest) parses go1.27 yet.
+- **(c) Split CI jobs (build/test on 1.27.4, vuln-scan on 1.26.11)** — possible for
+  third-party/module scanning (OSV-Scanner/Trivy are version-range based and don't
+  care about the toolchain), **but NOT sound for stdlib analysis**: reachability-
+  aware stdlib results depend on the Go version that *builds/ships* the binary.
+  Scanning 1.27-built code with a 1.26 toolchain would mis-report stdlib vulns
+  (false-clear 1.26-fixed issues, miss 1.27-introduced ones). So a split is only
+  acceptable if the scan job also builds with 1.26 — i.e. you still ship 1.26.
 
-**Recommendation: Go `1.26.11`** — chosen for **maturity + sufficiency**, not
-novelty: it satisfies every constraint, carries all security fixes, and is the
-more field-proven line (11 patches over ~9 months) for a determinism-critical
-consensus node. **1.27.4 is a viable alternative** if the team prefers newest; it
-adds a toolchain retest with no requirement driving it. Final exact pin:
-`go 1.26.11` / `toolchain go1.26.11`.
+**Recommendation: Go `1.26.11`** — **not** merely because "v1.10.0 can't parse
+1.27," but because (1) accurate stdlib vulnerability analysis requires the vuln
+scanner to support the **shipping** toolchain, and the only reachability-aware Go
+scanner in our CI (govulncheck) does not yet support go1.27; (2) 1.26.11
+builds/vets/tests everything and builds CometBFT v0.40.0; (3) it is the more
+field-proven line. **Reassess when govulncheck (or an equivalent) supports go1.27**
+— at that point 1.27.4 (which builds/tests clean) becomes equally valid.
+**Recorded tooling limitation:** govulncheck v1.10.0 lacks go1.27 stdlib support.
+Final exact pin: `go 1.26.11` / `toolchain go1.26.11`.
 
 ## 13. Dependencies — exact pins + resolved graph + conflicts (item 3)
 
@@ -367,3 +445,51 @@ See `docs/COMET_BFT_V0_40_0_COMPAT.md`: Tachyon applicability to v1.0.1 (verifie
 vs assumed), and re-verified v0.40.0 internals (ABCI 2.0, FinalizeBlock/Commit
 ordering, handshake/replay, AppHash, node construction, P2P, state sync) with the
 exact list of `ARCHITECTURE_PHASE3.md` sections needing correction.
+
+---
+
+## 16. What has and has NOT been tested (evidence boundary)
+
+**Tested here (real results):**
+- **BLVChain current code, current `go.mod`/`go.sum`** — `go build ./...`,
+  `go vet ./...`, `go test ./...` (9 packages) **pass under go1.26.11 AND go1.27.4**.
+- **CometBFT standalone** — `go install github.com/cometbft/cometbft/cmd/cometbft@v0.40.0`
+   succeeds under **go1.26.11 and go1.27.4**; `@v0.38.26` under go1.26.11.
+   Runtime version string confirmed (v0.40.0 → "0.39.0"; v0.38.26 → "0.38.26").
+- **govulncheck on the CURRENT dependency set** (go1.26.11): stdlib clean; 11
+   reachable third-party findings (the planned upgrades).
+
+**NOT tested / NOT claimed validated:**
+- **The proposed UPGRADED dependency matrix** (CometBFT v0.40.0 + grpc v1.85.0 +
+   protobuf v1.36.12 + mongo-driver v1.17.10 + x/net v0.60.0 + x/text v0.42.0 +
+   klauspost/compress v1.20.2, minus wazero/participle/direct-gorilla) **integrated
+   with BLVChain code**. It was only **resolved as a module graph in a throwaway
+   scratch module**; it has **not** been compiled against BLVChain, **not**
+   `go test`-ed, **not** `-race`-tested, and **not** vuln-scanned as an integrated
+   build. **The upgraded matrix is NOT validated.** Compatibility of these upgrades
+   with BLVChain's code is unproven until Phase 0 applies and tests them.
+
+### 16.1 Exact Phase-0 validation checklist (run after applying the upgrades)
+
+1. Apply pins in `go.mod` (CometBFT v0.40.0; grpc v1.85.0; protobuf v1.36.12;
+   mongo-driver v1.17.10; klauspost/compress v1.20.2; toolchain/go 1.26.11);
+   remove wazero/participle/gorilla-direct; `go mod tidy`; commit `go.mod`/`go.sum`.
+2. `go build ./...` (go1.26.11) — pass.
+3. `go vet ./...` — pass.
+4. `go test ./...` — all packages pass (existing tests, unchanged behavior).
+5. `go test -race ./...` — on **Linux CI** (needs gcc; not runnable on the Windows
+   dev host) — pass.
+6. `govulncheck ./...` (go1.26.11) — **zero reachable** (confirm the 11 cleared).
+7. `osv-scanner --lockfile=go.mod` + Trivy (fs) — no High/Critical (or reviewed
+   exception).
+8. **In-process CometBFT smoke test:** construct `nm.NewNodeWithContext(...,
+   proxy.NewLocalClientCreator(app), ...)` with the real ABCI app; start a
+   single-node devnet; produce ≥ 1 block; verify `Info`/`InitChain`/`FinalizeBlock`/
+   `Commit` are invoked and the ABCI wiring compiles/runs.
+9. Regenerate the SBOM; review the diff (new CometBFT transitive set).
+10. Confirm `go version -m` of a built node shows `mod github.com/cometbft/cometbft
+    v0.40.0` (the authoritative build identity, not the runtime string).
+
+Items 1–10 are **dependency/build validation** (Phase 0). The full §14 consensus/
+crash/migration acceptance matrix is Phase 1+, not part of Phase-0 dependency
+validation.

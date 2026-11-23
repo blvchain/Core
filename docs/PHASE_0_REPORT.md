@@ -23,8 +23,9 @@
   imported / not applicable**) plus CometBFT-libp2p `pion` findings surfaced by
   OSV/Trivy — all **not reachable** and **not on any BLVChain code path**. Each
   is itemized in §5 with its disposition.
-- **Gate verdict: PASS (conditional)** — see §8 for the one remaining
-  non-blocking condition (Linux-CI `-race`).
+- **Gate verdict: PASS** — all Phase-0 conditions met, including
+  `go test -race ./...` (run locally with MinGW-W64 gcc 16.2.0, `CGO_ENABLED=1`;
+  all packages pass, no data races). See §8.
 
 ## 1. Exact dependency changes (go.mod)
 
@@ -107,7 +108,7 @@ working tree before Phase 0 and are unchanged by this work.)
 | `go build ./...` (go1.26.11) | ✅ PASS |
 | `go vet ./...` (go1.26.11) | ✅ PASS |
 | `go test ./...` (go1.26.11) | ✅ PASS — all 10 packages (`core`, `bvm`, `comet`, `config`, `db`, `db/dbtest`, `logger`, `protos`, `utils`, `ws`) |
-| `go test -race ./...` | ⚠️ **NOT RUN LOCALLY** — requires cgo/gcc, not available on the Windows dev host. Deferred to **Linux CI** (per Phase S §16.1 item 5). |
+| `go test -race ./...` (go1.26.11) | ✅ **PASS** — run with `CC=gcc CGO_ENABLED=1` (MinGW-W64 UCRT gcc 16.2.0 at `C:\Dev\mingw64`); all 10 packages pass, no data races. |
 | `govulncheck ./...` (go1.26.11) | ✅ **0 reachable** (see §5) |
 | OSV-Scanner v1.9.2 (`--lockfile=go.mod`) | ⚠️ findings, all unreachable (see §5) |
 | Trivy (fs, HIGH/CRITICAL) via Docker | ⚠️ **1 HIGH, 0 CRITICAL** — `x/net/html` DoS, unreachable (see §5) |
@@ -235,8 +236,8 @@ identified in Phase S §5.1.
 
 ## 7. Remaining risks and blockers
 
-1. **`-race` not run locally** — needs Linux CI (gcc). **Non-blocking for the
-   dependency gate** but required before Phase 1 (Phase S §16.1 item 5).
+1. **`-race` closed** — `go test -race ./...` now passes locally (MinGW-W64 gcc
+   16.2.0). Still worth re-running on Linux CI for cross-platform coverage.
 2. **CometBFT graph attack surface** — +~221 modules (libp2p, pebble/badger,
    cosmos/gogoproto, go-git, etc.). The libp2p transport (and its pion deps) is
    linked but **not used** (default is Comet networking); keep it that way.
@@ -251,11 +252,13 @@ identified in Phase S §5.1.
 
 ## 8. Gate verdict
 
-**PASS (conditional)** — the Phase-0 dependency gate passes on:
+**PASS** — the Phase-0 dependency gate passes on:
 - ✅ All approved dependency upgrades applied and integrated, **including the
   user-approved `x/net v0.62.0` security update** (which cleared the two
   `x/net/html` HIGH findings).
 - ✅ `go build` / `go vet` / `go test ./...` green (go1.26.11).
+- ✅ **`go test -race ./...` green** (MinGW-W64 gcc 16.2.0, `CGO_ENABLED=1`;
+  all 10 packages, no data races) — the final Phase-0 condition, now closed.
 - ✅ In-process CometBFT v0.40.0 smoke test passes with verified AppHash + build
   identity.
 - ✅ govulncheck: 0 reachable; every residual finding individually dispositioned
@@ -263,8 +266,8 @@ identified in Phase S §5.1.
 - ✅ **Trivy: 0 HIGH/CRITICAL.**
 - ✅ SBOM + dependency docs regenerated and reviewed.
 
-**Remaining condition (non-blocking for Phase 0, must be closed before Phase 1):**
-1. **`go test -race ./...` on Linux CI** — not runnable on the Windows host.
+**No open Phase-0 conditions remain.** (Re-running `-race` on Linux CI remains
+good practice for cross-platform coverage, but is no longer a gate blocker.)
 
 **No Phase 1 work has been started.** I will wait for explicit approval before
 proceeding.

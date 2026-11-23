@@ -327,31 +327,39 @@ add metering.)
 
 ## 4. CometBFT integration strategy (requirement 4)
 
-### 4.1 Version selection and Go compatibility (Phase S; pending approval)
+### 4.1 Version selection and Go compatibility (FINAL — v0.40.0 / Go 1.26.11)
 
-> **Phase S selected `v0.40.0`** (recommended; `v0.38.26` conservative fallback).
-> The design's original `v1.0.1` is **disqualified** (§17, Phase S report). The
-> facts below are verified against the **v0.40.0** tag; see
-> `docs/COMET_BFT_V0_40_0_COMPAT.md`. They apply **if** you approve the change.
+> **FINAL (pending your Phase-0 authorization):** CometBFT **`v0.40.0`**, Go
+> **`1.26.11`**. v1.0.1 is excluded (unmaintained line — no `v1.0.2`, v1.x
+> branch inactive since 2025-06 — plus **unresolved**
+> Tachyon status — see Phase S report). Verified against the v0.40.0 tag
+> (`docs/COMET_BFT_V0_40_0_COMPAT.md`); both selected tools were built/tested here.
 
-- **Pin: CometBFT `v0.40.0`** (latest release; ABCI 2.0; Tachyon-fixed). Source:
-  <https://github.com/cometbft/cometbft/releases/tag/v0.40.0>. **No PBTS** — block
-  time uses BFT-Time via unconditional `MedianTime` (v1.0.x's PBTS is **not** in
-  v0.40.0). If PBTS is a hard requirement, a PBTS-capable line (v0.39/v1.x) must be
-  used instead — see Phase S report §11.
-- **Go compatibility:** CometBFT v0.40.0's `go.mod` declares **`go 1.25.0`** (no
-  `toolchain` line); **verified to build on go1.26.6**. Selected toolchain
-  **go1.26.11** (§17) satisfies it. Source:
-  <https://github.com/cometbft/cometbft/blob/v0.40.0/go.mod>.
-- **Default ports:** P2P `tcp://0.0.0.0:26656`, RPC `tcp://127.0.0.1:26657`, ABCI
-  app proxy `tcp://127.0.0.1:26658` (same as v1.0.1). RPC/ABCI stay on loopback;
-  only the gRPC gate faces clients (§4.5).
+- **Pin: CometBFT `v0.40.0`** (latest release; ABCI 2.0; Tachyon-fixed; 2026.1 /
+  SDK-v0.55 family recommended for new deployments). Chosen over `v0.38.26` (the
+  conservative fallback) because BLVChain is a **new** chain — v0.40.0's
+  state/API-breaking nature carries no migration penalty — and it has the most
+  security hardening (full comparison in Phase S report §2). **No PBTS** — block
+  time uses BFT-Time via unconditional `MedianTime`; if PBTS were a hard
+  requirement, a PBTS-capable line (v0.39/v1.x) would be needed instead.
+  Source: <https://github.com/cometbft/cometbft/releases/tag/v0.40.0>.
+- **Go toolchain: `1.26.11`.** The resolved graph needs go ≥ 1.26.0. Verified
+  here: BLVChain `go build`/`vet`/`test ./...` pass under **both go1.26.11 and
+  go1.27.4**, and CometBFT v0.40.0 `go install` succeeds under **both**. Chosen
+  over 1.27.4 because **`govulncheck` v1.10.0 supports 1.26.x but NOT 1.27**
+  (it cannot parse the go1.27 stdlib) — so the CI vuln-scan pipeline works on
+  1.26.11 (see Phase S report §12). CometBFT v0.40.0 `go.mod` = `go 1.25.0`.
+  Source: <https://github.com/cometbft/cometbft/blob/v0.40.0/go.mod>.
+- **Default ports:** P2P `0.0.0.0:26656`, RPC `127.0.0.1:26657`, ABCI `127.0.0.1:26658`.
+  RPC/ABCI stay loopback; only the gRPC gate faces clients (§4.5).
 - **Package layout (v0.40.0):** consensus code is **`consensus/` (public)** —
-  *not* `internal/consensus/` (that is the v1.0.1 layout); execution/state under
-  top-level `state/`. ABCI proto is **`proto/tendermint/abci`** (there is **no**
-  `proto/cometbft/abci` and **no** `cometbft/api` module at v0.40.0).
-- **Version-string gotcha:** v0.40.0 ships `TMCoreSemVer = "0.39.0"` (stale — the
-  built binary misreports 0.39.0); do not gate ops logic on it.
+  *not* `internal/consensus/` (the v1.0.1 layout); execution/state under `state/`.
+  ABCI proto is **`proto/tendermint/abci`** (no `proto/cometbft/abci`, no
+  `cometbft/api` module at v0.40.0).
+- **Version-string gotcha (verified):** the v0.40.0 binary's `cometbft version`
+  misreports **`0.39.0`** (stale `TMCoreSemVer`); identify the real build via the
+  go.mod pin + `go version -m <binary>` (shows `mod github.com/cometbft/cometbft
+  v0.40.0`), never the runtime string (§18 / Phase S item 4).
 
 ### 4.2 In-process (built-in) embedding — verified as supported
 
@@ -443,8 +451,8 @@ Our `Application` implements the ABCI 2.0 interface. Responsibilities:
 
 **Authenticated ≠ authorized.** CometBFT's p2p transport authenticates a
 *node*, not a *validator*. The two are different keys with different jobs, and
-neither implies the other. Verified against v1.0.1 (`p2p/key.go`,
-`privval/file.go`, `p2p/conn/secret_connection.go`).
+neither implies the other. Verified at v0.40.0 (`p2p/key.go`,
+`privval/file.go`, `p2p/conn/secret_connection.go`; identical to v1.0.1).
 
 #### 4.5.1 Two keys, distinct purposes (both ed25519)
 
@@ -973,7 +981,7 @@ from the proposer address via a deterministic, documented mapping (e.g. a
 registered label per validator in genesis `app_state`, keyed by ed25519
 address). It is per-CometBFT-block, so all records in one block share the
 proposer's `NodeUID`. This is deterministic and known to all validators in
-advance (the proposer for height `H` is fixed by the round-robin/PBTS schedule),
+advance (the proposer for height `H` is fixed by the round-robin proposer schedule),
 so it does not threaten determinism. `NodeUID` remains a 64-hex-compatible label
 as before; it is **no longer a key-derived or signed field** (its trust now comes
 from CometBFT commit signatures, §3.3).
@@ -1039,7 +1047,7 @@ AppHash[H] = SHA256(
 > **must** implement its own divergence detection. Do not rely on CometBFT to
 > tell you a validator diverged.
 
-**What CometBFT guarantees (verified, v1.0.1):**
+**What CometBFT guarantees (verified at v0.40.0; identical to v1.0.1):**
 - `FinalizeBlock` returns an `app_hash`; CometBFT writes it into the **next**
   block's header (`header.AppHash` at height `H+1` = the app hash resulting from
   executing `H`).
@@ -1313,9 +1321,9 @@ and is reconstructed deterministically on restart.
 
 ### 11.1 The verified commit ordering (the fact the design is built on)
 
-CometBFT v1.0.1 `finalizeCommit` (`internal/consensus/state.go`) then
+CometBFT v0.40.0 `finalizeCommit` (`consensus/state.go`) then
 `applyBlock` (`state/execution.go`) orders the durable events like this
-(verified against the v1.0.1 source):
+(verified against the v0.40.0 source — materially identical to v1.0.1):
 
 ```
 ValidateBlock(H)
@@ -1364,8 +1372,8 @@ the block store by replay.
 
 On startup the ABCI app's `Info` returns `LastBlockHeight = watermark` (the last
 durably committed height in Mongo) and `LastBlockAppHash = AppHash[watermark]`.
-CometBFT's handshake (`internal/consensus/replay.go`) compares these to its store
-and behaves per v1.0.1:
+CometBFT's handshake (`consensus/replay.go`, v0.40.0) compares these to its store
+and behaves (identical to v1.0.1):
 
 - **app height == 0** (fresh): `InitChain` runs; genesis state/validators saved.
 - **app ahead of store** (`storeH < appH`): CometBFT returns
@@ -1886,11 +1894,11 @@ The detailed, normative statements follow.
    acceptance S2, C1).
 
 **Residual items that are implementation mechanics, not open design choices**
-(to be executed, not decided): CometBFT is pinned to **v1.0.1** (§4.1) and
-Appendix B cites the verified v1.0.1 source; the remaining mechanic is
-reconciling the `nm.NewNode`/`proxy.NewLocalClientCreator` argument lists to the
-v1.0.1 signatures when coding. This does not change the architecture and is an
-Appendix A implementation step.
+(to be executed, not decided): CometBFT is pinned to **v0.40.0** (§4.1) and
+Appendix B cites the v0.40.0 source; the `nm.NewNodeWithContext`/
+`proxy.NewLocalClientCreator` wiring (§4.2) and `Request*`/`Response*` ABCI types
+(§4.3) are already reconciled to v0.40.0. These do not change the architecture and
+are Appendix A implementation steps.
 
 ---
 
@@ -1941,19 +1949,23 @@ correctness requirement (a toolchain/dependency skew is a classic nondeterminism
 source, §9.2/§19).
 
 > **PHASE S RESULT (2026-11-23) — see `docs/PHASE_S_DEPENDENCY_REVIEW.md`.**
-> The security review **disqualified the design's CometBFT `v1.0.1`**: the v1.x
-> line is unmaintained and is **not** patched for the **Critical** consensus
-> advisory **CSA-2026-001 "Tachyon"** (BFT-Time inflation), which directly affects
-> our block-time use. The scan also found **20 reachable vulnerabilities** in the
-> current set (incl. a gRPC authorization bypass and a mongo-driver OOB read).
-> The **Phase-S-selected secure pins** below are to be **applied in Phase 0**
-> (upgrades are out of Phase S scope). The CometBFT change and the §4/§11/App-B
-> internals that were verified against v1.0.1 require **re-verification against
-> the chosen tag** and your approval (unresolved decision, §11 of the report).
+> **FINAL selection: CometBFT `v0.40.0`, Go `1.26.11`** (pending your Phase-0
+> authorization). The design's original `v1.0.1` is **excluded** — the v1.x line
+> is no longer maintained (no `v1.0.2`; v1.x branch inactive since 2025-06) and its
+> **CSA-2026-001 "Tachyon"** (Critical, BFT-Time)
+> status is **unresolved** (prose "all versions" vs metadata ranges that omit
+> v1.0.1; exploitability not established), which is itself disqualifying for a new
+> production design. BLVChain `go build/vet/test` and CometBFT v0.40.0 build were
+> verified under both go1.26.11 and go1.27.4; **govulncheck** (CI scanner) supports
+> 1.26.x but not 1.27, so Go **1.26.11** is selected. The current dependency set
+> has **20 reachable vulns** (stdlib cleared by the toolchain bump; the rest are
+> the third-party upgrades below). All §4/§11/App-B CometBFT internals are now
+> verified against v0.40.0. The pins below are **applied in Phase 0** (upgrades are
+> out of Phase S scope).
 
 | Component | Current | **Phase S selected — EXACT (apply in Phase 0)** | Note |
 |---|---|---|---|
-| **CometBFT** | — (design said `v1.0.1`, **disqualified**) | **`v0.40.0`** (recommended) / `v0.38.26` (conservative) | Tachyon-fixed, ABCI 2.0, maintained; re-verify internals (§4/§11/App B) |
+| **CometBFT** | — (design said `v1.0.1`, excluded) | **`v0.40.0`** (final) / `v0.38.26` (fallback) | Tachyon-fixed, ABCI 2.0, maintained; internals verified vs v0.40.0 (§4/§11/App B) |
 | **Go toolchain** | `go 1.24.0` directive; installed `1.26.6` | **`1.26.11`** | Resolved graph needs ≥ go1.26.0; 1.26.11 has all stdlib fixes; 1.27.4 also viable but less mature |
 | `google.golang.org/grpc` | `v1.69.0` | **`v1.85.0`** | ≥ v1.83.1 (authz bypass + panic/OOM/xDS fixes); latest stable |
 | `google.golang.org/protobuf` | `v1.35.2` | **`v1.36.12`** | resolved via grpc v1.85.0 |
@@ -2011,7 +2023,7 @@ A **justified** selection, not an assumption. Phase S surveys:
 
 ### 17.3 Upgrade policy and security-patch procedure
 
-- **Patch (e.g. v1.0.1 → v1.0.2):** expected non-breaking; routine. Flow:
+- **Patch (e.g. v0.40.0 → v0.40.1):** expected non-breaking; routine. Flow:
   advisory/release monitoring → CVE assessment → bump pin → full CI (incl. vuln
   scan + §14 regression) → rolling restart (validators one at a time where the
   patch is consensus-compatible).
@@ -2133,9 +2145,9 @@ require a full stop of the set.
 2. **Consensus config & keys:** define `genesis.json` (4 ed25519 validators,
    equal power, `app_state` with `sender_tails`, `FIRST_BLOCK_HASH`, proposer
    labels); add `cmd/validatorkeygen` (validator key) and node-key provisioning
-   (§4.5); CometBFT `config.toml` with the §4.5 p2p allowlist; reconcile
-   `nm.NewNode`/`proxy.NewLocalClientCreator` to the v1.0.1 signatures.
-3. **ABCI app (`consensus/app`):** implement the full v1.0.1 `Application`
+   (§4.5); CometBFT `config.toml` with the §4.5 p2p allowlist; wire
+   `nm.NewNodeWithContext`/`proxy.NewLocalClientCreator` (v0.40.0 signatures, §4.2).
+3. **ABCI app (`consensus/app`):** implement the full v0.40.0 `Application`
    interface — at minimum `Info`, `InitChain`, `CheckTx`, `ProcessProposal`,
    `FinalizeBlock` (returns app_hash + empty validator updates), `Commit`
    (returns retain_height); plus empty `ExtendVote`/`VerifyVoteExtension` and the
@@ -2160,34 +2172,34 @@ require a full stop of the set.
    chain-migration validator replacement and the §12 legacy cutover; update
    `docs/MIGRATION.md`.
 
-## Appendix B — Sources for CometBFT facts (verified at tag v1.0.1)
+## Appendix B — Sources for CometBFT facts (verified at tag v0.40.0)
 
-All facts in this document were verified against the **v1.0.1** source (the
-latest v1.0.x patch). Primary references:
+All facts in this document were verified against the **v0.40.0** source (the
+selected tag). Primary references (all @ `v0.40.0`):
 
-- **Version / Go / ports** — release <https://github.com/cometbft/cometbft/releases/tag/v1.0.1>;
-  `go.mod` (go 1.23.5) <https://github.com/cometbft/cometbft/blob/v1.0.1/go.mod>;
-  default ports in `config/config.go` (P2P 26656, RPC 26657, ABCI 26658).
-- **Commit ordering** (§11.1) — `internal/consensus/state.go` (`finalizeCommit`:
-  SaveBlock → WAL → ApplyVerifiedBlock → updateToState) and
-  `state/execution.go` (`applyBlock`: FinalizeBlock → SaveFinalizeBlockResponse →
-  updateState → app.Commit → stateStore.Save(AppHash)):
-  <https://github.com/cometbft/cometbft/blob/v1.0.1/internal/consensus/state.go>,
-  <https://github.com/cometbft/cometbft/blob/v1.0.1/state/execution.go>.
-- **Handshake / replay** (§11.3) — `internal/consensus/replay.go`
-  (`ErrAppBlockHeightTooHigh`, app-hash-mismatch panic, `storeH==stateH+1`
-  real-vs-mock replay, `ExecCommitBlock` re-calls FinalizeBlock+Commit):
-  <https://github.com/cometbft/cometbft/blob/v1.0.1/internal/consensus/replay.go>.
-- **AppHash validation** (§9.2) — `state/validation.go` `validateBlock`
-  (`wrong Block.Header.AppHash ... Check ABCI app for non-determinism`; a per-node
-  local check, not a cross-validator protocol):
-  <https://github.com/cometbft/cometbft/blob/v1.0.1/state/validation.go>.
+- **Version / Go / ports** — release <https://github.com/cometbft/cometbft/releases/tag/v0.40.0>;
+  `go.mod` (`go 1.25.0`, builds on go1.26.11 verified)
+  <https://github.com/cometbft/cometbft/blob/v0.40.0/go.mod>; default ports in
+  `config/config.go` (P2P 26656, RPC 26657, ABCI 26658).
+- **Commit ordering** (§11.1) — `consensus/state.go` (`finalizeCommit`: SaveBlock →
+  WAL → ApplyVerifiedBlock → updateToState) and `state/execution.go` (`applyBlock`:
+  FinalizeBlock → SaveFinalizeBlockResponse → updateState → app.Commit →
+  stateStore.Save(AppHash)):
+  <https://github.com/cometbft/cometbft/blob/v0.40.0/consensus/state.go>,
+  <https://github.com/cometbft/cometbft/blob/v0.40.0/state/execution.go>.
+- **Handshake / replay** (§11.3) — `consensus/replay.go` (`ErrAppBlockHeightTooHigh`,
+  app-hash-mismatch panic, `storeH==stateH+1` real-vs-mock replay, `ExecCommitBlock`
+  re-calls FinalizeBlock+Commit):
+  <https://github.com/cometbft/cometbft/blob/v0.40.0/consensus/replay.go>.
+- **AppHash validation** (§9.2) — `state/validation.go` `validateBlock` (`wrong
+  Block.Header.AppHash`; a per-node local check, not a cross-validator protocol):
+  <https://github.com/cometbft/cometbft/blob/v0.40.0/state/validation.go>.
 - **ABCI 2.0 interface** (§4.3) — `abci/types/application.go` (full `Application`
-  interface) and `proto/cometbft/abci/v1/types.proto` (`FinalizeBlockResponse`
-  carries `app_hash` + `validator_updates`; `CommitResponse` carries only
-  `retain_height`):
-  <https://github.com/cometbft/cometbft/blob/v1.0.1/abci/types/application.go>,
-  <https://github.com/cometbft/cometbft/blob/v1.0.1/proto/cometbft/abci/v1/types.proto>.
+  interface, incl. `InsertTx`/`ReapTxs`) and `proto/tendermint/abci/types.proto`
+  (`ResponseFinalizeBlock` carries `app_hash` + `validator_updates`; `ResponseCommit`
+  carries only `retain_height`; type names use the `Request*`/`Response*` prefix):
+  <https://github.com/cometbft/cometbft/blob/v0.40.0/abci/types/application.go>,
+  <https://github.com/cometbft/cometbft/blob/v0.40.0/proto/tendermint/abci/types.proto>.
 - **P2P keys & config** (§4.5) — `p2p/key.go` (node key, node ID =
   `hex(pubkey.Address())`), `privval/file.go` (validator key, `SignVote`),
   `p2p/conn/secret_connection.go` (ed25519 + X25519 + ChaCha20-Poly1305;
@@ -2195,10 +2207,15 @@ latest v1.0.x patch). Primary references:
   (`persistent_peers`, `private_peer_ids`, `unconditional_peer_ids`,
   `addr_book_strict`, `pex`, `max_num_inbound_peers`/`max_num_outbound_peers`).
 
-Supporting background: CometBFT docs (built-in Go app; ABCI 2.0 `FinalizeBlock`/
-`Commit` model; v1.0 versioning guarantees incl. PBTS). v0.40.0 exists on a
-parallel line and is **not** used. (The consensus package is `internal/consensus/`
-in v1.0.x; re-verify any pinned patch if upgrading.)
+Verified build facts (this environment): CometBFT **v0.40.0 `go install` succeeds
+under both go1.26.11 and go1.27.4**; BLVChain `go build/vet/test ./...` pass under
+both; `govulncheck` runs under go1.26.11 but **not** go1.27 (see Phase S report).
+The **v0.40.0 binary misreports `cometbft version` = `0.39.0`** (stale
+`TMCoreSemVer`) — identify the build via the go.mod pin + `go version -m`
+(`mod github.com/cometbft/cometbft v0.40.0`). Supporting docs: CometBFT built-in
+Go app + ABCI 2.0 model. (In v0.40.0 the consensus package is **public `consensus/`**
+and ABCI proto is `proto/tendermint/abci`; both differ from v1.0.x — see
+`docs/COMET_BFT_V0_40_0_COMPAT.md`.)
 
 ## Appendix C — Canonical encoding & AppHash golden test vectors
 

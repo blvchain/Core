@@ -46,12 +46,24 @@
   prose + fix-code analysis, **not** a scanner hit. This is exactly why a
   non-automated review was required.
 
-### A.3 Decision
-**Do not ship v1.0.1.** Independent of Tachyon it is also **unmaintained** (final
-release Feb 2025, dead branch). Prefer **v0.40.0** (current, Tachyon-fixed,
-ABCI 2.0, Cosmos-aligned); **v0.38.26** is the conservative same-features fallback
-(also post-Tachyon via v0.38.21, Go 1.22+). See §B for the cost of the move and
-§C for a Go-1.23+ (v1.0.x → v0.39/v0.40) note.
+### A.3 Decision — v1.0.1 Tachyon status: UNRESOLVED; v1.0.1 excluded from production
+Per the review instruction, v1.0.1 is **not** classified as definitively vulnerable:
+a source-level exploitability analysis proving block-time inflation on the v1.0.x
+code path was **not** performed, and the GHSA ranges do not list v1.0.1. Its Tachyon
+status is therefore recorded as **UNRESOLVED**. v1.0.1 is nonetheless **excluded
+from production selection** because (1) an unresolved Critical consensus issue
+affecting block time — which BLVChain relies on — is itself disqualifying for a
+new production design, and (2) v1.0.1 is on a line that is **officially
+unsupported** (v1.0.1 is the final v1.x; branch inactive since 2025-06). **Terminology
+(precise):** "retracted/unsupported" is used **with attribution** — **Cosmos Labs**
+officially declares v1.x "retracted"/"not supported" (docs.cosmos.network + 2026
+roadmap); this is **not** a Go `retract` directive (none for v1.x — only old
+`v0.38.x`) and **not** a CometBFT-repo statement — the CometBFT `v1.x` README still
+lists v1.x as **"pre-release."** Prefer **v0.40.0** (current, Tachyon-fixed, ABCI 2.0,
+new-deployment line); **v0.38.26** is the conservative fallback (also post-Tachyon via
+v0.38.21, Go 1.22.11). See §B for the cost of the move and §C for the architecture
+corrections. (If a future exploitability analysis *clears* v1.0.1, ground (2)
+still excludes it.)
 
 ## Part B — v0.40.0 internals vs v1.0.1 (re-verified)
 
