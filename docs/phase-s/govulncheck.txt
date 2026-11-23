@@ -1,0 +1,1056 @@
+=== Symbol Results ===
+
+Vulnerability #1: GO-2026-6865
+    Panic on two-block frames in github.com/klauspost/compress
+  More info: https://pkg.go.dev/vuln/GO-2026-6865
+  Module: github.com/klauspost/compress
+    Found in: github.com/klauspost/compress@v1.17.11
+    Fixed in: github.com/klauspost/compress@v1.20.2
+    Example traces found:
+      #1: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls fse.Compress
+      #2: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls fse.Decompress
+      #3: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls huff0.Compress1X
+      #4: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls huff0.Compress4X
+      #5: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls huff0.ReadTable
+
+Vulnerability #2: GO-2026-6859
+    HTTP/1 server crash due to MaxBytesReader header race in net/http
+  More info: https://pkg.go.dev/vuln/GO-2026-6859
+  Standard library
+    Found in: net/http@go1.26.6
+    Fixed in: net/http@go1.26.11
+    Example traces found:
+      #1: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.CanonicalHeaderKey
+      #2: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Client.Do
+      #3: ws/server.go:24:13: ws.WS_Server_Handler calls http.Error
+      #4: main.go:75:18: core.run calls http.HandleFunc
+      #5: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Header.Add
+      #6: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.Header.Del
+      #7: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.Header.Get
+      #8: ws/manager.go:58:12: ws.dial calls http.Header.Set
+      #9: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.NewRequest
+      #10: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.NewRequestWithContext
+      #11: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.ProxyFromEnvironment
+      #12: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.ReadResponse
+      #13: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Request.AddCookie
+      #14: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Request.Write
+      #15: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Response.Cookies
+      #16: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls http.Response.Write
+      #17: main.go:85:34: core.run calls http.Server.ListenAndServe
+      #18: db/dbtest/memory.go:20:2: dbtest.init calls options.init, which eventually calls http.Transport.Clone
+      #19: db/mongo.go:59:24: db.ConnectToMongoDB calls mongo.Client.Disconnect, which eventually calls http.Transport.CloseIdleConnections
+      #20: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.body.Close
+      #21: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.body.Read
+      #22: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.bodyEOFSignal.Close
+      #23: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bodyEOFSignal.Read
+      #24: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bodyLocked.Read
+      #25: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bufioFlushWriter.Write
+      #26: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.cancelTimerBody.Close
+      #27: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.cancelTimerBody.Read
+      #28: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.checkConnErrorWriter.Write
+      #29: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.chunkWriter.Write
+      #30: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.connReader.Read
+      #31: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.expectContinueReader.Close
+      #32: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.expectContinueReader.Read
+      #33: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.gzipReader.Close
+      #34: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.gzipReader.Read
+      #35: ws/conn.go:30:55: ws.safeConn.Close calls websocket.Conn.Close, which calls http.loggingConn.Close
+      #36: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.loggingConn.Read
+      #37: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.loggingConn.Write
+      #38: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.maxBytesReader.Read
+      #39: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls http.onceCloseListener.Close
+      #40: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.persistConn.Read
+      #41: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.persistConnWriter.ReadFrom
+      #42: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.persistConnWriter.Write
+      #43: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readTrackingBody.Close
+      #44: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readTrackingBody.Read
+      #45: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readWriteCloserBody.Read
+      #46: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.response.Hijack
+      #47: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which calls http.response.Write
+      #48: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.transportReadFromServerError.Error
+
+Vulnerability #3: GO-2026-6809
+    Distrust compromised intermediate certificates in crypto/x509
+  More info: https://pkg.go.dev/vuln/GO-2026-6809
+  Standard library
+    Found in: crypto/x509@go1.26.6
+    Fixed in: crypto/x509@go1.26.10
+    Example traces found:
+      #1: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls x509.Certificate.Verify
+
+Vulnerability #4: GO-2026-6617
+    HTTP/2 server crash due to HPACK encoder race in net/http
+  More info: https://pkg.go.dev/vuln/GO-2026-6617
+  Module: golang.org/x/net
+    Found in: golang.org/x/net@v0.43.0
+    Fixed in: golang.org/x/net@v0.60.0
+    Example traces found:
+      #1: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http2.ConnectionError.Error
+      #2: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.ErrCode.String
+      #3: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.FrameHeader.String
+      #4: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.FrameType.String
+      #5: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.ReadFrame
+      #6: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteContinuation
+      #7: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteData
+      #8: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteGoAway
+      #9: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteHeaders
+      #10: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WritePing
+      #11: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteRSTStream
+      #12: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteSettings
+      #13: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteSettingsAck
+      #14: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteWindowUpdate
+      #15: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http2.GoAwayError.Error
+      #16: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.Setting.String
+      #17: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.SettingID.String
+      #18: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.SettingsFrame.ForeachSetting
+      #19: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http2.StreamError.Error
+      #20: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http2.bufferedWriterTimeoutWriter.Write
+      #21: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http2.chunkWriter.Write
+      #22: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http2.connError.Error
+      #23: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls mongo.WriteException.Error, which eventually calls http2.duplicatePseudoHeaderError.Error
+      #24: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http2.gzipReader.Close
+      #25: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http2.gzipReader.Read
+      #26: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls mongo.WriteException.Error, which eventually calls http2.headerFieldNameError.Error
+      #27: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls mongo.WriteException.Error, which eventually calls http2.headerFieldValueError.Error
+      #28: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls mongo.WriteException.Error, which eventually calls http2.pseudoHeaderError.Error
+      #29: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http2.stickyErrWriter.Write
+      #30: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http2.transportResponseBody.Close
+      #31: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http2.transportResponseBody.Read
+      #32: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.writeData.String
+
+  Standard library
+    Found in: net/http@go1.26.6
+    Fixed in: net/http@go1.26.9
+    Example traces found:
+      #1: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.CanonicalHeaderKey
+      #2: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.CanonicalHeaderKey
+      #3: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Client.Do
+      #4: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Client.Do
+      #5: ws/server.go:24:13: ws.WS_Server_Handler calls http.Error
+      #6: ws/server.go:24:13: ws.WS_Server_Handler calls http.Error
+      #7: main.go:75:18: core.run calls http.HandleFunc
+      #8: main.go:75:18: core.run calls http.HandleFunc
+      #9: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Header.Add
+      #10: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Header.Add
+      #11: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.Header.Del
+      #12: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.Header.Del
+      #13: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.Header.Get
+      #14: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.Header.Get
+      #15: ws/manager.go:58:12: ws.dial calls http.Header.Set
+      #16: ws/manager.go:58:12: ws.dial calls http.Header.Set
+      #17: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.NewRequest
+      #18: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.NewRequest
+      #19: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.NewRequestWithContext
+      #20: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.NewRequestWithContext
+      #21: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.ProxyFromEnvironment
+      #22: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.ProxyFromEnvironment
+      #23: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.ReadResponse
+      #24: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.ReadResponse
+      #25: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Request.AddCookie
+      #26: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Request.AddCookie
+      #27: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Request.Write
+      #28: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Request.Write
+      #29: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Response.Cookies
+      #30: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Response.Cookies
+      #31: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls http.Response.Write
+      #32: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls http.Response.Write
+      #33: main.go:85:34: core.run calls http.Server.ListenAndServe
+      #34: main.go:85:34: core.run calls http.Server.ListenAndServe
+      #35: db/dbtest/memory.go:20:2: dbtest.init calls options.init, which eventually calls http.Transport.Clone
+      #36: db/dbtest/memory.go:20:2: dbtest.init calls options.init, which eventually calls http.Transport.Clone
+      #37: db/mongo.go:59:24: db.ConnectToMongoDB calls mongo.Client.Disconnect, which eventually calls http.Transport.CloseIdleConnections
+      #38: db/mongo.go:59:24: db.ConnectToMongoDB calls mongo.Client.Disconnect, which eventually calls http.Transport.CloseIdleConnections
+      #39: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.body.Close
+      #40: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.body.Close
+      #41: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.body.Read
+      #42: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.body.Read
+      #43: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.bodyEOFSignal.Close
+      #44: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.bodyEOFSignal.Close
+      #45: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bodyEOFSignal.Read
+      #46: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bodyEOFSignal.Read
+      #47: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bodyLocked.Read
+      #48: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bodyLocked.Read
+      #49: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bufioFlushWriter.Write
+      #50: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bufioFlushWriter.Write
+      #51: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.cancelTimerBody.Close
+      #52: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.cancelTimerBody.Close
+      #53: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.cancelTimerBody.Read
+      #54: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.cancelTimerBody.Read
+      #55: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.checkConnErrorWriter.Write
+      #56: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.checkConnErrorWriter.Write
+      #57: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.chunkWriter.Write
+      #58: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.chunkWriter.Write
+      #59: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.connReader.Read
+      #60: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.connReader.Read
+      #61: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.expectContinueReader.Close
+      #62: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.expectContinueReader.Close
+      #63: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.expectContinueReader.Read
+      #64: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.expectContinueReader.Read
+      #65: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.gzipReader.Close
+      #66: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.gzipReader.Close
+      #67: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.gzipReader.Read
+      #68: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.gzipReader.Read
+      #69: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2ConnectionError.Error
+      #70: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2ConnectionError.Error
+      #71: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2ErrCode.String
+      #72: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2ErrCode.String
+      #73: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameHeader.String
+      #74: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameHeader.String
+      #75: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameType.String
+      #76: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameType.String
+      #77: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameWriteRequest.String
+      #78: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameWriteRequest.String
+      #79: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2GoAwayError.Error
+      #80: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2GoAwayError.Error
+      #81: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2Setting.String
+      #82: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2Setting.String
+      #83: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2SettingID.String
+      #84: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2SettingID.String
+      #85: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2StreamError.Error
+      #86: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2StreamError.Error
+      #87: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2bufferedWriterTimeoutWriter.Write
+      #88: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2bufferedWriterTimeoutWriter.Write
+      #89: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2chunkWriter.Write
+      #90: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2chunkWriter.Write
+      #91: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2connError.Error
+      #92: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2connError.Error
+      #93: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2duplicatePseudoHeaderError.Error
+      #94: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2duplicatePseudoHeaderError.Error
+      #95: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.http2gzipReader.Close
+      #96: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.http2gzipReader.Close
+      #97: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2gzipReader.Read
+      #98: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2gzipReader.Read
+      #99: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2headerFieldNameError.Error
+      #100: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2headerFieldNameError.Error
+      #101: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2headerFieldValueError.Error
+      #102: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2headerFieldValueError.Error
+      #103: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2pseudoHeaderError.Error
+      #104: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2pseudoHeaderError.Error
+      #105: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2requestBody.Close
+      #106: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2requestBody.Close
+      #107: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2requestBody.Read
+      #108: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2requestBody.Read
+      #109: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which calls http.http2responseWriter.Write
+      #110: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which calls http.http2responseWriter.Write
+      #111: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2responseWriter.WriteString
+      #112: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2responseWriter.WriteString
+      #113: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2stickyErrWriter.Write
+      #114: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2stickyErrWriter.Write
+      #115: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.http2transportResponseBody.Close
+      #116: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.http2transportResponseBody.Close
+      #117: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2transportResponseBody.Read
+      #118: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2transportResponseBody.Read
+      #119: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2writeData.String
+      #120: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2writeData.String
+      #121: ws/conn.go:30:55: ws.safeConn.Close calls websocket.Conn.Close, which calls http.loggingConn.Close
+      #122: ws/conn.go:30:55: ws.safeConn.Close calls websocket.Conn.Close, which calls http.loggingConn.Close
+      #123: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.loggingConn.Read
+      #124: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.loggingConn.Read
+      #125: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.loggingConn.Write
+      #126: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.loggingConn.Write
+      #127: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.maxBytesReader.Read
+      #128: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.maxBytesReader.Read
+      #129: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls http.onceCloseListener.Close
+      #130: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls http.onceCloseListener.Close
+      #131: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.persistConn.Read
+      #132: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.persistConn.Read
+      #133: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.persistConnWriter.ReadFrom
+      #134: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.persistConnWriter.ReadFrom
+      #135: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.persistConnWriter.Write
+      #136: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.persistConnWriter.Write
+      #137: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readTrackingBody.Close
+      #138: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readTrackingBody.Close
+      #139: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readTrackingBody.Read
+      #140: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readTrackingBody.Read
+      #141: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readWriteCloserBody.Read
+      #142: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readWriteCloserBody.Read
+      #143: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.response.Hijack
+      #144: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.response.Hijack
+      #145: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which calls http.response.Write
+      #146: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which calls http.response.Write
+      #147: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.transportReadFromServerError.Error
+      #148: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.transportReadFromServerError.Error
+
+Vulnerability #5: GO-2026-6613
+    HTTP/1 server connection desynchronization after 2xx CONNECT response in
+    net/http
+  More info: https://pkg.go.dev/vuln/GO-2026-6613
+  Standard library
+    Found in: net/http@go1.26.6
+    Fixed in: net/http@go1.26.9
+    Example traces found:
+      #1: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.CanonicalHeaderKey
+      #2: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Client.Do
+      #3: ws/server.go:24:13: ws.WS_Server_Handler calls http.Error
+      #4: main.go:75:18: core.run calls http.HandleFunc
+      #5: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Header.Add
+      #6: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.Header.Del
+      #7: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.Header.Get
+      #8: ws/manager.go:58:12: ws.dial calls http.Header.Set
+      #9: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.NewRequest
+      #10: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.NewRequestWithContext
+      #11: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.ProxyFromEnvironment
+      #12: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.ReadResponse
+      #13: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Request.AddCookie
+      #14: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Request.Write
+      #15: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Response.Cookies
+      #16: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls http.Response.Write
+      #17: main.go:85:34: core.run calls http.Server.ListenAndServe
+      #18: db/dbtest/memory.go:20:2: dbtest.init calls options.init, which eventually calls http.Transport.Clone
+      #19: db/mongo.go:59:24: db.ConnectToMongoDB calls mongo.Client.Disconnect, which eventually calls http.Transport.CloseIdleConnections
+      #20: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.body.Close
+      #21: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.body.Read
+      #22: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.bodyEOFSignal.Close
+      #23: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bodyEOFSignal.Read
+      #24: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bodyLocked.Read
+      #25: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bufioFlushWriter.Write
+      #26: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.cancelTimerBody.Close
+      #27: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.cancelTimerBody.Read
+      #28: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.checkConnErrorWriter.Write
+      #29: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.chunkWriter.Write
+      #30: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.connReader.Read
+      #31: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.expectContinueReader.Close
+      #32: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.expectContinueReader.Read
+      #33: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.gzipReader.Close
+      #34: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.gzipReader.Read
+      #35: ws/conn.go:30:55: ws.safeConn.Close calls websocket.Conn.Close, which calls http.loggingConn.Close
+      #36: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.loggingConn.Read
+      #37: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.loggingConn.Write
+      #38: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.maxBytesReader.Read
+      #39: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls http.onceCloseListener.Close
+      #40: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.persistConn.Read
+      #41: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.persistConnWriter.ReadFrom
+      #42: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.persistConnWriter.Write
+      #43: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readTrackingBody.Close
+      #44: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readTrackingBody.Read
+      #45: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readWriteCloserBody.Read
+      #46: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.response.Hijack
+      #47: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which calls http.response.Write
+      #48: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.transportReadFromServerError.Error
+
+Vulnerability #6: GO-2026-6612
+    Double flow control refund on HTTP/2 server streams in net/http
+  More info: https://pkg.go.dev/vuln/GO-2026-6612
+  Module: golang.org/x/net
+    Found in: golang.org/x/net@v0.43.0
+    Fixed in: golang.org/x/net@v0.60.0
+    Example traces found:
+      #1: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http2.ConnectionError.Error
+      #2: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.ErrCode.String
+      #3: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.FrameHeader.String
+      #4: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.FrameType.String
+      #5: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.ReadFrame
+      #6: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteContinuation
+      #7: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteData
+      #8: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteGoAway
+      #9: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteHeaders
+      #10: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WritePing
+      #11: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteRSTStream
+      #12: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteSettings
+      #13: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteSettingsAck
+      #14: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteWindowUpdate
+      #15: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http2.GoAwayError.Error
+      #16: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.Setting.String
+      #17: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.SettingID.String
+      #18: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.SettingsFrame.ForeachSetting
+      #19: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http2.StreamError.Error
+      #20: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http2.bufferedWriterTimeoutWriter.Write
+      #21: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http2.chunkWriter.Write
+      #22: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http2.connError.Error
+      #23: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls mongo.WriteException.Error, which eventually calls http2.duplicatePseudoHeaderError.Error
+      #24: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http2.gzipReader.Close
+      #25: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http2.gzipReader.Read
+      #26: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls mongo.WriteException.Error, which eventually calls http2.headerFieldNameError.Error
+      #27: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls mongo.WriteException.Error, which eventually calls http2.headerFieldValueError.Error
+      #28: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls mongo.WriteException.Error, which eventually calls http2.pseudoHeaderError.Error
+      #29: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http2.stickyErrWriter.Write
+      #30: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http2.transportResponseBody.Close
+      #31: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http2.transportResponseBody.Read
+      #32: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.writeData.String
+
+  Standard library
+    Found in: net/http@go1.26.6
+    Fixed in: net/http@go1.26.9
+    Example traces found:
+      #1: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.CanonicalHeaderKey
+      #2: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.CanonicalHeaderKey
+      #3: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Client.Do
+      #4: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Client.Do
+      #5: ws/server.go:24:13: ws.WS_Server_Handler calls http.Error
+      #6: ws/server.go:24:13: ws.WS_Server_Handler calls http.Error
+      #7: main.go:75:18: core.run calls http.HandleFunc
+      #8: main.go:75:18: core.run calls http.HandleFunc
+      #9: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Header.Add
+      #10: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Header.Add
+      #11: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.Header.Del
+      #12: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.Header.Del
+      #13: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.Header.Get
+      #14: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.Header.Get
+      #15: ws/manager.go:58:12: ws.dial calls http.Header.Set
+      #16: ws/manager.go:58:12: ws.dial calls http.Header.Set
+      #17: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.NewRequest
+      #18: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.NewRequest
+      #19: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.NewRequestWithContext
+      #20: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.NewRequestWithContext
+      #21: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.ProxyFromEnvironment
+      #22: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.ProxyFromEnvironment
+      #23: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.ReadResponse
+      #24: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.ReadResponse
+      #25: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Request.AddCookie
+      #26: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Request.AddCookie
+      #27: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Request.Write
+      #28: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Request.Write
+      #29: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Response.Cookies
+      #30: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Response.Cookies
+      #31: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls http.Response.Write
+      #32: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls http.Response.Write
+      #33: main.go:85:34: core.run calls http.Server.ListenAndServe
+      #34: main.go:85:34: core.run calls http.Server.ListenAndServe
+      #35: db/dbtest/memory.go:20:2: dbtest.init calls options.init, which eventually calls http.Transport.Clone
+      #36: db/dbtest/memory.go:20:2: dbtest.init calls options.init, which eventually calls http.Transport.Clone
+      #37: db/mongo.go:59:24: db.ConnectToMongoDB calls mongo.Client.Disconnect, which eventually calls http.Transport.CloseIdleConnections
+      #38: db/mongo.go:59:24: db.ConnectToMongoDB calls mongo.Client.Disconnect, which eventually calls http.Transport.CloseIdleConnections
+      #39: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.body.Close
+      #40: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.body.Close
+      #41: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.body.Read
+      #42: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.body.Read
+      #43: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.bodyEOFSignal.Close
+      #44: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.bodyEOFSignal.Close
+      #45: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bodyEOFSignal.Read
+      #46: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bodyEOFSignal.Read
+      #47: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bodyLocked.Read
+      #48: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bodyLocked.Read
+      #49: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bufioFlushWriter.Write
+      #50: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bufioFlushWriter.Write
+      #51: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.cancelTimerBody.Close
+      #52: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.cancelTimerBody.Close
+      #53: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.cancelTimerBody.Read
+      #54: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.cancelTimerBody.Read
+      #55: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.checkConnErrorWriter.Write
+      #56: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.checkConnErrorWriter.Write
+      #57: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.chunkWriter.Write
+      #58: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.chunkWriter.Write
+      #59: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.connReader.Read
+      #60: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.connReader.Read
+      #61: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.expectContinueReader.Close
+      #62: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.expectContinueReader.Close
+      #63: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.expectContinueReader.Read
+      #64: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.expectContinueReader.Read
+      #65: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.gzipReader.Close
+      #66: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.gzipReader.Close
+      #67: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.gzipReader.Read
+      #68: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.gzipReader.Read
+      #69: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2ConnectionError.Error
+      #70: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2ConnectionError.Error
+      #71: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2ErrCode.String
+      #72: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2ErrCode.String
+      #73: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameHeader.String
+      #74: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameHeader.String
+      #75: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameType.String
+      #76: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameType.String
+      #77: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameWriteRequest.String
+      #78: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameWriteRequest.String
+      #79: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2GoAwayError.Error
+      #80: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2GoAwayError.Error
+      #81: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2Setting.String
+      #82: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2Setting.String
+      #83: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2SettingID.String
+      #84: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2SettingID.String
+      #85: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2StreamError.Error
+      #86: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2StreamError.Error
+      #87: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2bufferedWriterTimeoutWriter.Write
+      #88: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2bufferedWriterTimeoutWriter.Write
+      #89: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2chunkWriter.Write
+      #90: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2chunkWriter.Write
+      #91: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2connError.Error
+      #92: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2connError.Error
+      #93: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2duplicatePseudoHeaderError.Error
+      #94: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2duplicatePseudoHeaderError.Error
+      #95: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.http2gzipReader.Close
+      #96: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.http2gzipReader.Close
+      #97: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2gzipReader.Read
+      #98: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2gzipReader.Read
+      #99: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2headerFieldNameError.Error
+      #100: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2headerFieldNameError.Error
+      #101: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2headerFieldValueError.Error
+      #102: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2headerFieldValueError.Error
+      #103: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2pseudoHeaderError.Error
+      #104: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2pseudoHeaderError.Error
+      #105: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2requestBody.Close
+      #106: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2requestBody.Close
+      #107: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2requestBody.Read
+      #108: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2requestBody.Read
+      #109: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which calls http.http2responseWriter.Write
+      #110: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which calls http.http2responseWriter.Write
+      #111: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2responseWriter.WriteString
+      #112: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2responseWriter.WriteString
+      #113: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2stickyErrWriter.Write
+      #114: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2stickyErrWriter.Write
+      #115: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.http2transportResponseBody.Close
+      #116: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.http2transportResponseBody.Close
+      #117: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2transportResponseBody.Read
+      #118: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2transportResponseBody.Read
+      #119: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2writeData.String
+      #120: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2writeData.String
+      #121: ws/conn.go:30:55: ws.safeConn.Close calls websocket.Conn.Close, which calls http.loggingConn.Close
+      #122: ws/conn.go:30:55: ws.safeConn.Close calls websocket.Conn.Close, which calls http.loggingConn.Close
+      #123: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.loggingConn.Read
+      #124: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.loggingConn.Read
+      #125: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.loggingConn.Write
+      #126: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.loggingConn.Write
+      #127: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.maxBytesReader.Read
+      #128: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.maxBytesReader.Read
+      #129: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls http.onceCloseListener.Close
+      #130: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls http.onceCloseListener.Close
+      #131: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.persistConn.Read
+      #132: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.persistConn.Read
+      #133: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.persistConnWriter.ReadFrom
+      #134: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.persistConnWriter.ReadFrom
+      #135: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.persistConnWriter.Write
+      #136: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.persistConnWriter.Write
+      #137: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readTrackingBody.Close
+      #138: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readTrackingBody.Close
+      #139: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readTrackingBody.Read
+      #140: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readTrackingBody.Read
+      #141: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readWriteCloserBody.Read
+      #142: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readWriteCloserBody.Read
+      #143: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.response.Hijack
+      #144: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.response.Hijack
+      #145: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which calls http.response.Write
+      #146: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which calls http.response.Write
+      #147: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.transportReadFromServerError.Error
+      #148: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.transportReadFromServerError.Error
+
+Vulnerability #7: GO-2026-6611
+    Excessive CPU consumption from repeated initial window changes in net/http
+  More info: https://pkg.go.dev/vuln/GO-2026-6611
+  Module: golang.org/x/net
+    Found in: golang.org/x/net@v0.43.0
+    Fixed in: golang.org/x/net@v0.60.0
+    Example traces found:
+      #1: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http2.ConnectionError.Error
+      #2: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.ErrCode.String
+      #3: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.FrameHeader.String
+      #4: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.FrameType.String
+      #5: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.ReadFrame
+      #6: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteContinuation
+      #7: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteData
+      #8: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteGoAway
+      #9: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteHeaders
+      #10: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WritePing
+      #11: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteRSTStream
+      #12: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteSettings
+      #13: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteSettingsAck
+      #14: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteWindowUpdate
+      #15: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http2.GoAwayError.Error
+      #16: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.Setting.String
+      #17: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.SettingID.String
+      #18: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.SettingsFrame.ForeachSetting
+      #19: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http2.StreamError.Error
+      #20: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http2.bufferedWriterTimeoutWriter.Write
+      #21: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http2.chunkWriter.Write
+      #22: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http2.connError.Error
+      #23: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls mongo.WriteException.Error, which eventually calls http2.duplicatePseudoHeaderError.Error
+      #24: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http2.gzipReader.Close
+      #25: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http2.gzipReader.Read
+      #26: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls mongo.WriteException.Error, which eventually calls http2.headerFieldNameError.Error
+      #27: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls mongo.WriteException.Error, which eventually calls http2.headerFieldValueError.Error
+      #28: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls mongo.WriteException.Error, which eventually calls http2.pseudoHeaderError.Error
+      #29: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http2.stickyErrWriter.Write
+      #30: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http2.transportResponseBody.Close
+      #31: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http2.transportResponseBody.Read
+      #32: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.writeData.String
+
+  Standard library
+    Found in: net/http@go1.26.6
+    Fixed in: net/http@go1.26.9
+    Example traces found:
+      #1: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.CanonicalHeaderKey
+      #2: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.CanonicalHeaderKey
+      #3: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Client.Do
+      #4: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Client.Do
+      #5: ws/server.go:24:13: ws.WS_Server_Handler calls http.Error
+      #6: ws/server.go:24:13: ws.WS_Server_Handler calls http.Error
+      #7: main.go:75:18: core.run calls http.HandleFunc
+      #8: main.go:75:18: core.run calls http.HandleFunc
+      #9: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Header.Add
+      #10: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Header.Add
+      #11: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.Header.Del
+      #12: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.Header.Del
+      #13: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.Header.Get
+      #14: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.Header.Get
+      #15: ws/manager.go:58:12: ws.dial calls http.Header.Set
+      #16: ws/manager.go:58:12: ws.dial calls http.Header.Set
+      #17: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.NewRequest
+      #18: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.NewRequest
+      #19: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.NewRequestWithContext
+      #20: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.NewRequestWithContext
+      #21: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.ProxyFromEnvironment
+      #22: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.ProxyFromEnvironment
+      #23: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.ReadResponse
+      #24: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.ReadResponse
+      #25: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Request.AddCookie
+      #26: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Request.AddCookie
+      #27: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Request.Write
+      #28: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Request.Write
+      #29: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Response.Cookies
+      #30: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Response.Cookies
+      #31: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls http.Response.Write
+      #32: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls http.Response.Write
+      #33: main.go:85:34: core.run calls http.Server.ListenAndServe
+      #34: main.go:85:34: core.run calls http.Server.ListenAndServe
+      #35: db/dbtest/memory.go:20:2: dbtest.init calls options.init, which eventually calls http.Transport.Clone
+      #36: db/dbtest/memory.go:20:2: dbtest.init calls options.init, which eventually calls http.Transport.Clone
+      #37: db/mongo.go:59:24: db.ConnectToMongoDB calls mongo.Client.Disconnect, which eventually calls http.Transport.CloseIdleConnections
+      #38: db/mongo.go:59:24: db.ConnectToMongoDB calls mongo.Client.Disconnect, which eventually calls http.Transport.CloseIdleConnections
+      #39: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.body.Close
+      #40: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.body.Close
+      #41: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.body.Read
+      #42: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.body.Read
+      #43: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.bodyEOFSignal.Close
+      #44: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.bodyEOFSignal.Close
+      #45: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bodyEOFSignal.Read
+      #46: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bodyEOFSignal.Read
+      #47: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bodyLocked.Read
+      #48: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bodyLocked.Read
+      #49: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bufioFlushWriter.Write
+      #50: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bufioFlushWriter.Write
+      #51: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.cancelTimerBody.Close
+      #52: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.cancelTimerBody.Close
+      #53: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.cancelTimerBody.Read
+      #54: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.cancelTimerBody.Read
+      #55: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.checkConnErrorWriter.Write
+      #56: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.checkConnErrorWriter.Write
+      #57: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.chunkWriter.Write
+      #58: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.chunkWriter.Write
+      #59: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.connReader.Read
+      #60: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.connReader.Read
+      #61: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.expectContinueReader.Close
+      #62: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.expectContinueReader.Close
+      #63: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.expectContinueReader.Read
+      #64: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.expectContinueReader.Read
+      #65: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.gzipReader.Close
+      #66: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.gzipReader.Close
+      #67: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.gzipReader.Read
+      #68: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.gzipReader.Read
+      #69: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2ConnectionError.Error
+      #70: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2ConnectionError.Error
+      #71: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2ErrCode.String
+      #72: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2ErrCode.String
+      #73: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameHeader.String
+      #74: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameHeader.String
+      #75: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameType.String
+      #76: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameType.String
+      #77: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameWriteRequest.String
+      #78: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameWriteRequest.String
+      #79: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2GoAwayError.Error
+      #80: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2GoAwayError.Error
+      #81: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2Setting.String
+      #82: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2Setting.String
+      #83: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2SettingID.String
+      #84: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2SettingID.String
+      #85: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2StreamError.Error
+      #86: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2StreamError.Error
+      #87: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2bufferedWriterTimeoutWriter.Write
+      #88: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2bufferedWriterTimeoutWriter.Write
+      #89: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2chunkWriter.Write
+      #90: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2chunkWriter.Write
+      #91: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2connError.Error
+      #92: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2connError.Error
+      #93: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2duplicatePseudoHeaderError.Error
+      #94: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2duplicatePseudoHeaderError.Error
+      #95: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.http2gzipReader.Close
+      #96: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.http2gzipReader.Close
+      #97: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2gzipReader.Read
+      #98: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2gzipReader.Read
+      #99: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2headerFieldNameError.Error
+      #100: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2headerFieldNameError.Error
+      #101: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2headerFieldValueError.Error
+      #102: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2headerFieldValueError.Error
+      #103: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2pseudoHeaderError.Error
+      #104: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2pseudoHeaderError.Error
+      #105: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2requestBody.Close
+      #106: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2requestBody.Close
+      #107: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2requestBody.Read
+      #108: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2requestBody.Read
+      #109: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which calls http.http2responseWriter.Write
+      #110: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which calls http.http2responseWriter.Write
+      #111: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2responseWriter.WriteString
+      #112: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2responseWriter.WriteString
+      #113: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2stickyErrWriter.Write
+      #114: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2stickyErrWriter.Write
+      #115: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.http2transportResponseBody.Close
+      #116: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.http2transportResponseBody.Close
+      #117: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2transportResponseBody.Read
+      #118: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2transportResponseBody.Read
+      #119: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2writeData.String
+      #120: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2writeData.String
+      #121: ws/conn.go:30:55: ws.safeConn.Close calls websocket.Conn.Close, which calls http.loggingConn.Close
+      #122: ws/conn.go:30:55: ws.safeConn.Close calls websocket.Conn.Close, which calls http.loggingConn.Close
+      #123: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.loggingConn.Read
+      #124: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.loggingConn.Read
+      #125: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.loggingConn.Write
+      #126: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.loggingConn.Write
+      #127: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.maxBytesReader.Read
+      #128: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.maxBytesReader.Read
+      #129: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls http.onceCloseListener.Close
+      #130: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls http.onceCloseListener.Close
+      #131: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.persistConn.Read
+      #132: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.persistConn.Read
+      #133: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.persistConnWriter.ReadFrom
+      #134: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.persistConnWriter.ReadFrom
+      #135: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.persistConnWriter.Write
+      #136: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.persistConnWriter.Write
+      #137: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readTrackingBody.Close
+      #138: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readTrackingBody.Close
+      #139: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readTrackingBody.Read
+      #140: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readTrackingBody.Read
+      #141: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readWriteCloserBody.Read
+      #142: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readWriteCloserBody.Read
+      #143: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.response.Hijack
+      #144: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.response.Hijack
+      #145: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which calls http.response.Write
+      #146: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which calls http.response.Write
+      #147: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.transportReadFromServerError.Error
+      #148: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.transportReadFromServerError.Error
+
+Vulnerability #8: GO-2026-6610
+    HTTP/2 transport accepts malformed framing-related headers in net/http
+  More info: https://pkg.go.dev/vuln/GO-2026-6610
+  Module: golang.org/x/net
+    Found in: golang.org/x/net@v0.43.0
+    Fixed in: golang.org/x/net@v0.60.0
+
+  Standard library
+    Found in: net/http@go1.26.6
+    Fixed in: net/http@go1.26.9
+    Example traces found:
+      #1: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Client.Do
+      #2: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Client.Do
+      #3: db/mongo.go:59:24: db.ConnectToMongoDB calls mongo.Client.Disconnect, which eventually calls http.Transport.CloseIdleConnections
+      #4: db/mongo.go:59:24: db.ConnectToMongoDB calls mongo.Client.Disconnect, which eventually calls http.Transport.CloseIdleConnections
+
+Vulnerability #9: GO-2026-6608
+    Memory limit bypass when parsing MIME headers in net/textproto,
+    mime/multipart
+  More info: https://pkg.go.dev/vuln/GO-2026-6608
+  Standard library
+    Found in: net/textproto@go1.26.6
+    Fixed in: net/textproto@go1.26.9
+    Example traces found:
+      #1: main.go:85:34: core.run calls http.Server.ListenAndServe, which eventually calls multipart.Reader.ReadForm
+      #2: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls textproto.Reader.ReadMIMEHeader
+
+Vulnerability #10: GO-2026-6607
+    Reject malformed ECH outer extension references in crypto/tls
+  More info: https://pkg.go.dev/vuln/GO-2026-6607
+  Standard library
+    Found in: crypto/tls@go1.26.6
+    Fixed in: crypto/tls@go1.26.9
+    Example traces found:
+      #1: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls tls.Conn.HandshakeContext
+      #2: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls tls.Conn.Read
+      #3: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls tls.Conn.Write
+      #4: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls tls.Dial
+      #5: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls tls.Dialer.DialContext
+
+Vulnerability #11: GO-2026-6605
+    HTTP/1 client connection desynchronization after CONNECT rejection in
+    net/http
+  More info: https://pkg.go.dev/vuln/GO-2026-6605
+  Standard library
+    Found in: net/http@go1.26.6
+    Fixed in: net/http@go1.26.9
+    Example traces found:
+      #1: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Client.Do
+      #2: db/mongo.go:59:24: db.ConnectToMongoDB calls mongo.Client.Disconnect, which eventually calls http.Transport.CloseIdleConnections
+
+Vulnerability #12: GO-2026-6603
+    HTTP/2 server memory exhaustion due to Trailer headers in net/http
+  More info: https://pkg.go.dev/vuln/GO-2026-6603
+  Module: golang.org/x/net
+    Found in: golang.org/x/net@v0.43.0
+    Fixed in: golang.org/x/net@v0.60.0
+    Example traces found:
+      #1: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http2.ConnectionError.Error
+      #2: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.ErrCode.String
+      #3: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.FrameHeader.String
+      #4: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.FrameType.String
+      #5: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.ReadFrame
+      #6: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteContinuation
+      #7: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteData
+      #8: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteGoAway
+      #9: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteHeaders
+      #10: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WritePing
+      #11: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteRSTStream
+      #12: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteSettings
+      #13: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteSettingsAck
+      #14: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.Framer.WriteWindowUpdate
+      #15: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http2.GoAwayError.Error
+      #16: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.Setting.String
+      #17: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.SettingID.String
+      #18: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls http2.SettingsFrame.ForeachSetting
+      #19: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http2.StreamError.Error
+      #20: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http2.bufferedWriterTimeoutWriter.Write
+      #21: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http2.chunkWriter.Write
+      #22: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http2.connError.Error
+      #23: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls mongo.WriteException.Error, which eventually calls http2.duplicatePseudoHeaderError.Error
+      #24: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http2.gzipReader.Close
+      #25: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http2.gzipReader.Read
+      #26: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls mongo.WriteException.Error, which eventually calls http2.headerFieldNameError.Error
+      #27: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls mongo.WriteException.Error, which eventually calls http2.headerFieldValueError.Error
+      #28: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls mongo.WriteException.Error, which eventually calls http2.pseudoHeaderError.Error
+      #29: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http2.stickyErrWriter.Write
+      #30: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http2.transportResponseBody.Close
+      #31: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http2.transportResponseBody.Read
+      #32: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http2.writeData.String
+
+  Standard library
+    Found in: net/http@go1.26.6
+    Fixed in: net/http@go1.26.9
+    Example traces found:
+      #1: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.CanonicalHeaderKey
+      #2: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.CanonicalHeaderKey
+      #3: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Client.Do
+      #4: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Client.Do
+      #5: ws/server.go:24:13: ws.WS_Server_Handler calls http.Error
+      #6: ws/server.go:24:13: ws.WS_Server_Handler calls http.Error
+      #7: main.go:75:18: core.run calls http.HandleFunc
+      #8: main.go:75:18: core.run calls http.HandleFunc
+      #9: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Header.Add
+      #10: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.Header.Add
+      #11: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.Header.Del
+      #12: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.Header.Del
+      #13: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.Header.Get
+      #14: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.Header.Get
+      #15: ws/manager.go:58:12: ws.dial calls http.Header.Set
+      #16: ws/manager.go:58:12: ws.dial calls http.Header.Set
+      #17: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.NewRequest
+      #18: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.NewRequest
+      #19: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.NewRequestWithContext
+      #20: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.NewRequestWithContext
+      #21: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.ProxyFromEnvironment
+      #22: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.ProxyFromEnvironment
+      #23: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.ReadResponse
+      #24: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.ReadResponse
+      #25: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Request.AddCookie
+      #26: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Request.AddCookie
+      #27: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Request.Write
+      #28: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Request.Write
+      #29: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Response.Cookies
+      #30: ws/manager.go:60:46: ws.dial calls websocket.Dialer.Dial, which eventually calls http.Response.Cookies
+      #31: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls http.Response.Write
+      #32: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls http.Response.Write
+      #33: main.go:85:34: core.run calls http.Server.ListenAndServe
+      #34: main.go:85:34: core.run calls http.Server.ListenAndServe
+      #35: db/dbtest/memory.go:20:2: dbtest.init calls options.init, which eventually calls http.Transport.Clone
+      #36: db/dbtest/memory.go:20:2: dbtest.init calls options.init, which eventually calls http.Transport.Clone
+      #37: db/mongo.go:59:24: db.ConnectToMongoDB calls mongo.Client.Disconnect, which eventually calls http.Transport.CloseIdleConnections
+      #38: db/mongo.go:59:24: db.ConnectToMongoDB calls mongo.Client.Disconnect, which eventually calls http.Transport.CloseIdleConnections
+      #39: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.body.Close
+      #40: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.body.Close
+      #41: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.body.Read
+      #42: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.body.Read
+      #43: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.bodyEOFSignal.Close
+      #44: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.bodyEOFSignal.Close
+      #45: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bodyEOFSignal.Read
+      #46: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bodyEOFSignal.Read
+      #47: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bodyLocked.Read
+      #48: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bodyLocked.Read
+      #49: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bufioFlushWriter.Write
+      #50: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.bufioFlushWriter.Write
+      #51: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.cancelTimerBody.Close
+      #52: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.cancelTimerBody.Close
+      #53: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.cancelTimerBody.Read
+      #54: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.cancelTimerBody.Read
+      #55: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.checkConnErrorWriter.Write
+      #56: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.checkConnErrorWriter.Write
+      #57: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.chunkWriter.Write
+      #58: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.chunkWriter.Write
+      #59: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.connReader.Read
+      #60: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.connReader.Read
+      #61: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.expectContinueReader.Close
+      #62: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.expectContinueReader.Close
+      #63: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.expectContinueReader.Read
+      #64: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.expectContinueReader.Read
+      #65: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.gzipReader.Close
+      #66: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.gzipReader.Close
+      #67: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.gzipReader.Read
+      #68: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.gzipReader.Read
+      #69: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2ConnectionError.Error
+      #70: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2ConnectionError.Error
+      #71: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2ErrCode.String
+      #72: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2ErrCode.String
+      #73: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameHeader.String
+      #74: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameHeader.String
+      #75: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameType.String
+      #76: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameType.String
+      #77: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameWriteRequest.String
+      #78: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2FrameWriteRequest.String
+      #79: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2GoAwayError.Error
+      #80: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2GoAwayError.Error
+      #81: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2Setting.String
+      #82: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2Setting.String
+      #83: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2SettingID.String
+      #84: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2SettingID.String
+      #85: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2StreamError.Error
+      #86: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2StreamError.Error
+      #87: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2bufferedWriterTimeoutWriter.Write
+      #88: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2bufferedWriterTimeoutWriter.Write
+      #89: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2chunkWriter.Write
+      #90: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2chunkWriter.Write
+      #91: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2connError.Error
+      #92: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2connError.Error
+      #93: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2duplicatePseudoHeaderError.Error
+      #94: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2duplicatePseudoHeaderError.Error
+      #95: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.http2gzipReader.Close
+      #96: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.http2gzipReader.Close
+      #97: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2gzipReader.Read
+      #98: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2gzipReader.Read
+      #99: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2headerFieldNameError.Error
+      #100: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2headerFieldNameError.Error
+      #101: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2headerFieldValueError.Error
+      #102: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2headerFieldValueError.Error
+      #103: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2pseudoHeaderError.Error
+      #104: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.http2pseudoHeaderError.Error
+      #105: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2requestBody.Close
+      #106: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2requestBody.Close
+      #107: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2requestBody.Read
+      #108: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2requestBody.Read
+      #109: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which calls http.http2responseWriter.Write
+      #110: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which calls http.http2responseWriter.Write
+      #111: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2responseWriter.WriteString
+      #112: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2responseWriter.WriteString
+      #113: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2stickyErrWriter.Write
+      #114: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.http2stickyErrWriter.Write
+      #115: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.http2transportResponseBody.Close
+      #116: db/mongo.go:58:23: db.ConnectToMongoDB calls mongo.Client.Ping, which eventually calls http.http2transportResponseBody.Close
+      #117: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2transportResponseBody.Read
+      #118: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.http2transportResponseBody.Read
+      #119: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2writeData.String
+      #120: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which eventually calls http.http2writeData.String
+      #121: ws/conn.go:30:55: ws.safeConn.Close calls websocket.Conn.Close, which calls http.loggingConn.Close
+      #122: ws/conn.go:30:55: ws.safeConn.Close calls websocket.Conn.Close, which calls http.loggingConn.Close
+      #123: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.loggingConn.Read
+      #124: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.loggingConn.Read
+      #125: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.loggingConn.Write
+      #126: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.loggingConn.Write
+      #127: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.maxBytesReader.Read
+      #128: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.maxBytesReader.Read
+      #129: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls http.onceCloseListener.Close
+      #130: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls http.onceCloseListener.Close
+      #131: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.persistConn.Read
+      #132: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.persistConn.Read
+      #133: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.persistConnWriter.ReadFrom
+      #134: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.persistConnWriter.ReadFrom
+      #135: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.persistConnWriter.Write
+      #136: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which eventually calls http.persistConnWriter.Write
+      #137: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readTrackingBody.Close
+      #138: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readTrackingBody.Close
+      #139: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readTrackingBody.Read
+      #140: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readTrackingBody.Read
+      #141: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readWriteCloserBody.Read
+      #142: utils/lib.go:117:22: utils.FileSHA256 calls io.Copy, which eventually calls http.readWriteCloserBody.Read
+      #143: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.response.Hijack
+      #144: ws/server.go:28:31: ws.WS_Server_Handler calls websocket.Upgrader.Upgrade, which calls http.response.Hijack
+      #145: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which calls http.response.Write
+      #146: cmd/nodekeygen/main.go:26:15: nodekeygen.main calls fmt.Fprintln, which calls http.response.Write
+      #147: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.transportReadFromServerError.Error
+      #148: protos/gate.service.go:312:62: protos.ReadDataService.ReadData calls http.transportReadFromServerError.Error
+
+Vulnerability #13: GO-2026-6600
+    Recognize yield as regexp preceder keyword in html/template
+  More info: https://pkg.go.dev/vuln/GO-2026-6600
+  Standard library
+    Found in: html/template@go1.26.6
+    Fixed in: html/template@go1.26.9
+    Example traces found:
+      #1: main.go:85:34: core.run calls http.Server.ListenAndServe, which eventually calls template.Template.Execute
+      #2: main.go:85:34: core.run calls http.Server.ListenAndServe, which eventually calls template.Template.ExecuteTemplate
+
+Vulnerability #14: GO-2026-6599
+    Reset context tracking on consecutive template expressions in html/template
+  More info: https://pkg.go.dev/vuln/GO-2026-6599
+  Standard library
+    Found in: html/template@go1.26.6
+    Fixed in: html/template@go1.26.9
+    Example traces found:
+      #1: main.go:85:34: core.run calls http.Server.ListenAndServe, which eventually calls template.Template.Execute
+      #2: main.go:85:34: core.run calls http.Server.ListenAndServe, which eventually calls template.Template.ExecuteTemplate
+
+Vulnerability #15: GO-2026-6443
+    Server panic via missing authority or Host headers in google.golang.org/grpc
+  More info: https://pkg.go.dev/vuln/GO-2026-6443
+  Module: google.golang.org/grpc
+    Found in: google.golang.org/grpc@v1.69.0
+    Fixed in: google.golang.org/grpc@v1.82.2
+    Example traces found:
+      #1: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls transport.http2Server.HandleStreams
+
+Vulnerability #16: GO-2026-6348
+    Heap Memory Exhaustion (OOM) via HTTP/2 DATA Frame Fragmentation in
+    google.golang.org/grpc
+  More info: https://pkg.go.dev/vuln/GO-2026-6348
+  Module: google.golang.org/grpc
+    Found in: google.golang.org/grpc@v1.69.0
+    Fixed in: google.golang.org/grpc@v1.83.1
+    Example traces found:
+      #1: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls mem.BufferSlice.MaterializeToBuffer
+      #2: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls mem.Copy
+      #3: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls mem.IsBelowBufferPoolingThreshold
+      #4: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls mem.NewBuffer
+      #5: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls mem.ReadAll
+      #6: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls transport.NewHTTP2Client
+      #7: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls transport.NewServerTransport
+      #8: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls transport.http2Client.Close
+      #9: main.go:149:25: core.run calls grpc.Server.GracefulStop, which eventually calls transport.http2Server.Close
+      #10: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls transport.http2Server.HandleStreams
+
+Vulnerability #17: GO-2026-6061
+    Vulnerabilities in the xDS RBAC authorization engine and the HTTP/2
+    transport server implementation in google.golang.org/grpc
+  More info: https://pkg.go.dev/vuln/GO-2026-6061
+  Module: google.golang.org/grpc
+    Found in: google.golang.org/grpc@v1.69.0
+    Fixed in: google.golang.org/grpc@v1.82.1
+    Example traces found:
+      #1: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls transport.NewHTTP2Client
+      #2: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls transport.NewServerTransport
+      #3: protos/gate.pb.go:711:39: protos.file_protos_gate_proto_rawDescGZIP calls sync.Once.Do, which eventually calls transport.http2Client.Close
+      #4: main.go:149:25: core.run calls grpc.Server.GracefulStop, which eventually calls transport.http2Server.Drain
+      #5: main.go:136:29: core.run calls grpc.Server.Serve, which eventually calls transport.http2Server.HandleStreams
+
+Vulnerability #18: GO-2026-5970
+    Infinite loop on invalid input in golang.org/x/text
+  More info: https://pkg.go.dev/vuln/GO-2026-5970
+  Module: golang.org/x/text
+    Found in: golang.org/x/text@v0.29.0
+    Fixed in: golang.org/x/text@v0.39.0
+    Example traces found:
+      #1: db/mongo.go:53:30: db.ConnectToMongoDB calls mongo.Connect, which eventually calls norm.Form.String
+
+Vulnerability #19: GO-2026-5327
+    Mongo-go-driver: Heap Out-of-Bounds Read in GSSAPI Error Handling in
+    go.mongodb.org/mongo-driver
+  More info: https://pkg.go.dev/vuln/GO-2026-5327
+  Module: go.mongodb.org/mongo-driver
+    Found in: go.mongodb.org/mongo-driver@v1.17.6
+    Fixed in: go.mongodb.org/mongo-driver@v1.17.7
+    Example traces found:
+      #1: db/mongo.go:53:30: db.ConnectToMongoDB calls mongo.Connect
+
+Vulnerability #20: GO-2026-4762
+    Authorization bypass in gRPC-Go via missing leading slash in :path in
+    google.golang.org/grpc
+  More info: https://pkg.go.dev/vuln/GO-2026-4762
+  Module: google.golang.org/grpc
+    Found in: google.golang.org/grpc@v1.69.0
+    Fixed in: google.golang.org/grpc@v1.79.3
+    Example traces found:
+      #1: main.go:136:29: core.run calls grpc.Server.Serve
+
+Your code is affected by 20 vulnerabilities from 4 modules and the Go standard library.
+This scan also found 5 vulnerabilities in packages you import and 33
+vulnerabilities in modules you require, but your code doesn't appear to call
+these vulnerabilities.
+Use '-show verbose' for more details.
